@@ -1,0 +1,474 @@
+import { useEffect, useState } from 'react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Navigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
+
+interface ClientWithStats {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  created_at: string;
+  usersCount: number;
+  documentsCount: number;
+}
+
+export default function Clients() {
+  const { isSuperAdmin } = useAuth();
+  const { t, language } = useLanguage();
+  const { toast } = useToast();
+  
+  const [clients, setClients] = useState<ClientWithStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientWithStats | null>(null);
+  
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formSlug, setFormSlug] = useState('');
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchClients();
+    }
+  }, [isSuperAdmin]);
+
+  const fetchClients = async () => {
+    setLoading(true);
+    try {
+      // Fetch clients
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('*')
+        .order('name');
+
+      if (clientsError) throw clientsError;
+
+      // Fetch user counts per client
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('client_id');
+
+      if (profilesError) throw profilesError;
+
+      // Fetch document counts per client
+      const { data: documents, error: documentsError } = await supabase
+        .from('documents')
+        .select('client_id');
+
+      if (documentsError) throw documentsError;
+
+      // Calculate stats
+      const clientsWithStats: ClientWithStats[] = (clientsData || []).map(client => {
+        const usersCount = profiles?.filter(p => p.client_id === client.id).length || 0;
+        const documentsCount = documents?.filter(d => d.client_id === client.id).length || 0;
+        return {
+          ...client,
+          usersCount,
+          documentsCount,
+        };
+      });
+
+      setClients(clientsWithStats);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: 'Failed to load organizations',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  };
+
+  const handleAddClient = async () => {
+    if (!formName || !formSlug) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: 'Please fill all required fields',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .insert({ name: formName, slug: formSlug });
+
+      if (error) throw error;
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Organisation créée' : 'Organization created',
+      });
+
+      setIsAddModalOpen(false);
+      resetForm();
+      fetchClients();
+    } catch (error: any) {
+      console.error('Error creating client:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to create organization',
+      });
+    }
+  };
+
+  const handleEditClient = async () => {
+    if (!selectedClient || !formName || !formSlug) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ name: formName, slug: formSlug })
+        .eq('id', selectedClient.id);
+
+      if (error) throw error;
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Organisation mise à jour' : 'Organization updated',
+      });
+
+      setIsEditModalOpen(false);
+      resetForm();
+      fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to update organization',
+      });
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!selectedClient) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', selectedClient.id);
+
+      if (error) throw error;
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Organisation supprimée' : 'Organization deleted',
+      });
+
+      setIsDeleteModalOpen(false);
+      setSelectedClient(null);
+      fetchClients();
+    } catch (error: any) {
+      console.error('Error deleting client:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to delete organization',
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormName('');
+    setFormSlug('');
+    setSelectedClient(null);
+  };
+
+  const openEditModal = (client: ClientWithStats) => {
+    setSelectedClient(client);
+    setFormName(client.name);
+    setFormSlug(client.slug);
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (client: ClientWithStats) => {
+    setSelectedClient(client);
+    setIsDeleteModalOpen(true);
+  };
+
+  const filteredClients = clients.filter(client => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      client.name.toLowerCase().includes(searchLower) ||
+      client.slug.toLowerCase().includes(searchLower)
+    );
+  });
+
+  if (!isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-serif font-semibold">{t('clients.title')}</h2>
+          <p className="text-muted-foreground">
+            {language === 'fr' 
+              ? 'Gérez les organisations clientes de DigiCam'
+              : 'Manage DigiCam client organizations'}
+          </p>
+        </div>
+        <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
+          <Plus className="h-4 w-4 mr-2" />
+          {t('clients.addClient')}
+        </Button>
+      </div>
+
+      {/* Search */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={language === 'fr' ? 'Rechercher une organisation...' : 'Search organizations...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('clients.name')}</TableHead>
+                <TableHead>{t('clients.slug')}</TableHead>
+                <TableHead>{t('clients.usersCount')}</TableHead>
+                <TableHead>{t('clients.documentsCount')}</TableHead>
+                <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    {t('common.loading')}
+                  </TableCell>
+                </TableRow>
+              ) : filteredClients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    {language === 'fr' ? 'Aucune organisation trouvée' : 'No organizations found'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredClients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="font-medium">{client.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-sm">
+                      {client.slug}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>{client.usersCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span>{client.documentsCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(client.created_at), 'PPP', {
+                        locale: language === 'fr' ? fr : enUS,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditModal(client)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            {t('clients.editClient')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => openDeleteModal(client)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('documents.delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Add Client Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('clients.addClient')}</DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Créer une nouvelle organisation cliente'
+                : 'Create a new client organization'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('clients.name')}</Label>
+              <Input
+                value={formName}
+                onChange={(e) => {
+                  setFormName(e.target.value);
+                  setFormSlug(generateSlug(e.target.value));
+                }}
+                placeholder={language === 'fr' ? 'Ministère de l\'Éducation' : 'Ministry of Education'}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('clients.slug')}</Label>
+              <Input
+                value={formSlug}
+                onChange={(e) => setFormSlug(e.target.value)}
+                placeholder="ministere-education"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === 'fr' 
+                  ? 'Identifiant unique pour l\'organisation (généré automatiquement)'
+                  : 'Unique identifier for the organization (auto-generated)'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleAddClient} className="btn-institutional">
+              {t('clients.addClient')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('clients.editClient')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('clients.name')}</Label>
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('clients.slug')}</Label>
+              <Input
+                value={formSlug}
+                onChange={(e) => setFormSlug(e.target.value)}
+                className="font-mono text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleEditClient} className="btn-institutional">
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Supprimer l\'organisation' : 'Delete Organization'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? `Êtes-vous sûr de vouloir supprimer "${selectedClient?.name}" ? Cette action supprimera également tous les utilisateurs et documents associés.`
+                : `Are you sure you want to delete "${selectedClient?.name}"? This will also delete all associated users and documents.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteClient}>
+              {t('documents.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
