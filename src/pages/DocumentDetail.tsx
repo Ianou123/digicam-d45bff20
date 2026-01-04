@@ -4,7 +4,6 @@ import {
   ArrowLeft, 
   Download, 
   Edit, 
-  Trash2, 
   Calendar, 
   User, 
   Shield,
@@ -36,7 +35,7 @@ interface DocumentDetail {
   file_size: number | null;
   ocr_text: string | null;
   departments: { name: string } | null;
-  profiles: { full_name: string; email: string } | null;
+  uploaded_by: string;
 }
 
 interface DocumentVersion {
@@ -45,7 +44,6 @@ interface DocumentVersion {
   file_url: string;
   created_at: string;
   change_notes: string | null;
-  profiles: { full_name: string } | null;
 }
 
 const confidentialityColors: Record<string, string> = {
@@ -54,7 +52,7 @@ const confidentialityColors: Record<string, string> = {
   confidential: 'badge-confidential',
 };
 
-export default function DocumentDetail() {
+export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin } = useAuth();
@@ -62,6 +60,7 @@ export default function DocumentDetail() {
   const dateLocale = language === 'fr' ? fr : enUS;
   
   const [document, setDocument] = useState<DocumentDetail | null>(null);
+  const [uploaderName, setUploaderName] = useState<string | null>(null);
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,21 +89,35 @@ export default function DocumentDetail() {
           file_url,
           file_size,
           ocr_text,
-          departments(name),
-          profiles:uploaded_by(full_name, email)
+          uploaded_by,
+          departments(name)
         `)
         .eq('id', id)
         .maybeSingle();
 
       if (error) throw error;
-      setDocument(data as DocumentDetail);
+      
+      if (data) {
+        setDocument(data as unknown as DocumentDetail);
+        
+        // Fetch uploader name separately
+        if (data.uploaded_by) {
+          const { data: uploaderData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', data.uploaded_by)
+            .maybeSingle();
+          
+          setUploaderName(uploaderData?.full_name || null);
+        }
+      }
 
       // Log view
       if (user && profile?.client_id && data) {
         await supabase.from('activity_logs').insert({
           user_id: user.id,
           client_id: profile.client_id,
-          action_type: 'view',
+          action_type: 'view' as const,
           document_id: id,
         });
       }
@@ -123,13 +136,12 @@ export default function DocumentDetail() {
         version_number,
         file_url,
         created_at,
-        change_notes,
-        profiles:uploaded_by(full_name)
+        change_notes
       `)
       .eq('document_id', id)
       .order('version_number', { ascending: false });
 
-    setVersions(data as DocumentVersion[] || []);
+    setVersions((data || []) as DocumentVersion[]);
   };
 
   const handleDownload = async () => {
@@ -139,7 +151,7 @@ export default function DocumentDetail() {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
-        action_type: 'download',
+        action_type: 'download' as const,
         document_id: document.id,
       });
     }
@@ -216,12 +228,10 @@ export default function DocumentDetail() {
             {t('documents.download')}
           </Button>
           {canManageDocuments && (
-            <>
-              <Button variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
-                <Edit className="h-4 w-4 mr-2" />
-                {t('documents.edit')}
-              </Button>
-            </>
+            <Button variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              {t('documents.edit')}
+            </Button>
           )}
         </div>
       </div>
@@ -311,7 +321,7 @@ export default function DocumentDetail() {
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">{t('documents.uploadedBy')}</p>
-                  <p className="text-sm font-medium">{document.profiles?.full_name || 'N/A'}</p>
+                  <p className="text-sm font-medium">{uploaderName || 'N/A'}</p>
                 </div>
               </div>
 

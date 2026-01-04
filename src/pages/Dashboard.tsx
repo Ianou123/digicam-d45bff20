@@ -27,7 +27,7 @@ interface ActivityItem {
   id: string;
   action_type: string;
   created_at: string;
-  search_query?: string;
+  search_query?: string | null;
   documents: { title: string } | null;
 }
 
@@ -149,8 +149,8 @@ export default function Dashboard() {
         totalUsers: usersCount,
         totalClients: clientsCount,
       });
-      setRecentDocuments(recentDocs as Document[] || []);
-      setRecentActivity(activityData as ActivityItem[] || []);
+      setRecentDocuments((recentDocs || []) as unknown as Document[]);
+      setRecentActivity((activityData || []) as unknown as ActivityItem[]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -163,7 +163,6 @@ export default function Dashboard() {
   };
 
   const handleDownloadDocument = async (id: string) => {
-    // Implementation for download
     console.log('Download:', id);
   };
 
@@ -246,7 +245,7 @@ export default function Dashboard() {
                     document={{
                       ...doc,
                       department: doc.departments,
-                      profiles: doc.profiles,
+                      profiles: null,
                     }}
                     onView={handleViewDocument}
                     onDownload={handleDownloadDocument}

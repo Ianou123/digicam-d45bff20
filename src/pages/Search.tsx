@@ -20,7 +20,6 @@ interface Document {
   tags: string[];
   current_version: number;
   departments: { name: string } | null;
-  profiles: { full_name: string } | null;
 }
 
 export default function SearchPage() {
@@ -52,10 +51,9 @@ export default function SearchPage() {
           updated_at,
           tags,
           current_version,
-          departments(name),
-          profiles:uploaded_by(full_name)
+          departments(name)
         `)
-        .or(`title.ilike.%${query}%,ocr_text.ilike.%${query}%,tags.cs.{${query}}`)
+        .or(`title.ilike.%${query}%,ocr_text.ilike.%${query}%`)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -67,14 +65,14 @@ export default function SearchPage() {
 
       if (error) throw error;
 
-      setResults(data as Document[] || []);
+      setResults((data || []) as unknown as Document[]);
 
       // Log search activity
       if (user && profile?.client_id) {
         await supabase.from('activity_logs').insert({
           user_id: user.id,
           client_id: profile.client_id,
-          action_type: 'search',
+          action_type: 'search' as const,
           search_query: query,
         });
       }
@@ -91,14 +89,11 @@ export default function SearchPage() {
   };
 
   const handleDownload = async (id: string) => {
-    const doc = results.find(d => d.id === id);
-    if (!doc) return;
-
     if (user && profile?.client_id) {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
-        action_type: 'download',
+        action_type: 'download' as const,
         document_id: id,
       });
     }
@@ -153,7 +148,7 @@ export default function SearchPage() {
                   document={{
                     ...doc,
                     department: doc.departments,
-                    profiles: doc.profiles,
+                    profiles: null,
                   }}
                   onView={handleView}
                   onDownload={handleDownload}

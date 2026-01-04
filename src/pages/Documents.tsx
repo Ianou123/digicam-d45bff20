@@ -31,7 +31,6 @@ interface Document {
   current_version: number;
   file_url: string;
   departments: { name: string } | null;
-  profiles: { full_name: string } | null;
 }
 
 interface FilterState {
@@ -101,8 +100,7 @@ export default function Documents() {
           tags,
           current_version,
           file_url,
-          departments(name),
-          profiles:uploaded_by(full_name)
+          departments(name)
         `)
         .order('created_at', { ascending: false });
 
@@ -115,10 +113,10 @@ export default function Documents() {
         query = query.eq('department_id', filters.department);
       }
       if (filters.type) {
-        query = query.eq('document_type', filters.type);
+        query = query.eq('document_type', filters.type as any);
       }
       if (filters.confidentiality) {
-        query = query.eq('confidentiality_level', filters.confidentiality);
+        query = query.eq('confidentiality_level', filters.confidentiality as any);
       }
       if (filters.year) {
         const startDate = `${filters.year}-01-01`;
@@ -132,7 +130,7 @@ export default function Documents() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setDocuments(data as Document[] || []);
+      setDocuments((data || []) as unknown as Document[]);
     } catch (error) {
       console.error('Error fetching documents:', error);
       toast.error('Erreur lors du chargement des documents');
@@ -142,12 +140,11 @@ export default function Documents() {
   };
 
   const handleView = async (id: string) => {
-    // Log view activity
     if (user && profile?.client_id) {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
-        action_type: 'view',
+        action_type: 'view' as const,
         document_id: id,
       });
     }
@@ -158,17 +155,15 @@ export default function Documents() {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
 
-    // Log download activity
     if (user && profile?.client_id) {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
-        action_type: 'download',
+        action_type: 'download' as const,
         document_id: id,
       });
     }
 
-    // Open file URL
     window.open(doc.file_url, '_blank');
   };
 
@@ -187,12 +182,11 @@ export default function Documents() {
 
       if (error) throw error;
 
-      // Log delete activity
       if (user && profile?.client_id) {
         await supabase.from('activity_logs').insert({
           user_id: user.id,
           client_id: profile.client_id,
-          action_type: 'delete',
+          action_type: 'delete' as const,
           document_id: documentToDelete,
         });
       }
@@ -274,7 +268,7 @@ export default function Documents() {
               document={{
                 ...doc,
                 department: doc.departments,
-                profiles: doc.profiles,
+                profiles: null,
               }}
               onView={handleView}
               onDownload={handleDownload}

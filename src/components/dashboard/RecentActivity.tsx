@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -17,9 +17,8 @@ interface ActivityItem {
   id: string;
   action_type: string;
   created_at: string;
-  search_query?: string;
+  search_query?: string | null;
   documents?: { title: string } | null;
-  profiles?: { full_name: string } | null;
 }
 
 interface RecentActivityProps {
@@ -100,11 +99,6 @@ export function RecentActivity({ activities, showUser = false }: RecentActivityP
                     <span className="font-medium text-sm">
                       {getActionLabel(activity.action_type)}
                     </span>
-                    {showUser && activity.profiles?.full_name && (
-                      <span className="text-xs text-muted-foreground">
-                        par {activity.profiles.full_name}
-                      </span>
-                    )}
                   </div>
                   {getActivityDescription(activity) && (
                     <p className="text-sm text-muted-foreground truncate">
