@@ -1,0 +1,74 @@
+import { Bell, Globe, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface AppHeaderProps {
+  title?: string;
+  onMenuClick?: () => void;
+}
+
+export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
+  const { language, setLanguage } = useLanguage();
+  const { profile } = useAuth();
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        {title && (
+          <h1 className="text-xl font-serif font-semibold text-foreground">
+            {title}
+          </h1>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        {/* Language Toggle */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Globe className="h-5 w-5" />
+              <span className="absolute -bottom-0.5 -right-0.5 text-[10px] font-medium uppercase">
+                {language}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={() => setLanguage('fr')}
+              className={language === 'fr' ? 'bg-accent' : ''}
+            >
+              🇫🇷 Français
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setLanguage('en')}
+              className={language === 'en' ? 'bg-accent' : ''}
+            >
+              🇬🇧 English
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Notifications */}
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+        </Button>
+      </div>
+    </header>
+  );
+}
