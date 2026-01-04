@@ -14,6 +14,10 @@ import SearchPage from "./pages/Search";
 import Upload from "./pages/Upload";
 import MyDashboard from "./pages/MyDashboard";
 import Settings from "./pages/Settings";
+import Users from "./pages/Users";
+import Clients from "./pages/Clients";
+import Activity from "./pages/Activity";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +46,10 @@ const App = () => (
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/my-dashboard" element={<MyDashboard />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/clients" element={<Clients />} />
+                <Route path="/activity" element={<Activity />} />
+                <Route path="/analytics" element={<Analytics />} />
               </Route>
               
               {/* Catch-all */}
