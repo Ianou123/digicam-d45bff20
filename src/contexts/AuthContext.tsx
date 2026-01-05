@@ -13,6 +13,8 @@ interface UserProfile {
   preferred_language: 'fr' | 'en';
 }
 
+type ClientStatus = 'active' | 'inactive' | 'suspended';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -27,6 +29,8 @@ interface AuthContextType {
   isStaff: boolean;
   canManageDocuments: boolean;
   refreshProfile: () => Promise<void>;
+  clientStatus: ClientStatus | null;
+  isClientSuspended: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clientStatus, setClientStatus] = useState<ClientStatus | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -60,6 +65,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           client_id: profileData.client_id,
           preferred_language: (profileData.preferred_language as 'fr' | 'en') || 'fr',
         });
+
+        // Fetch client status if user has a client
+        if (profileData.client_id) {
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('status')
+            .eq('id', profileData.client_id)
+            .maybeSingle();
+
+          if (clientData) {
+            setClientStatus(clientData.status as ClientStatus);
+          }
+        } else {
+          setClientStatus(null);
+        }
       }
 
       const { data: rolesData, error: rolesError } = await supabase
@@ -151,12 +171,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    setClientStatus(null);
   };
 
   const isSuperAdmin = roles.includes('super_admin');
   const isClientAdmin = roles.includes('client_admin');
   const isStaff = roles.includes('staff') || (!isSuperAdmin && !isClientAdmin && roles.length === 0);
   const canManageDocuments = isSuperAdmin || isClientAdmin;
+  const isClientSuspended = clientStatus === 'suspended';
 
   return (
     <AuthContext.Provider
@@ -174,6 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isStaff,
         canManageDocuments,
         refreshProfile,
+        clientStatus,
+        isClientSuspended,
       }}
     >
       {children}

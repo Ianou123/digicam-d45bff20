@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 export default function Upload() {
   const navigate = useNavigate();
-  const { profile, canManageDocuments, isSuperAdmin } = useAuth();
+  const { profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(true);
@@ -28,10 +28,22 @@ export default function Upload() {
       return;
     }
 
+    // Redirect suspended clients
+    if (isClientSuspended) {
+      toast.error(
+        language === 'fr' 
+          ? 'Téléversements désactivés - organisation suspendue'
+          : 'Uploads disabled - organization suspended',
+        { duration: 4000 }
+      );
+      navigate('/documents', { replace: true });
+      return;
+    }
+
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id, isSuperAdmin, navigate, language]);
+  }, [profile?.client_id, isSuperAdmin, isClientSuspended, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;
@@ -48,8 +60,8 @@ export default function Upload() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show nothing while redirecting for Super Admin
-  if (isSuperAdmin) {
+  // Show nothing while redirecting for Super Admin or suspended clients
+  if (isSuperAdmin || isClientSuspended) {
     return null;
   }
 

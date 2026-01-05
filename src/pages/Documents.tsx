@@ -56,7 +56,7 @@ interface Client {
 
 export default function Documents() {
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -349,8 +349,8 @@ export default function Documents() {
               <Grid className="h-4 w-4" />
             </Button>
           </div>
-          {/* Hide upload button for Super Admin */}
-          {canManageDocuments && !isSuperAdmin && (
+          {/* Hide upload button for Super Admin and suspended clients */}
+          {canManageDocuments && !isSuperAdmin && !isClientSuspended && (
             <Button onClick={() => setUploadModalOpen(true)} className="btn-institutional">
               <Plus className="h-4 w-4 mr-2" />
               {t('documents.newDocument')}
@@ -388,15 +388,15 @@ export default function Documents() {
               }}
               onView={handleView}
               onDownload={handleDownload}
-              onEdit={!isSuperAdmin ? handleEdit : undefined}
-              onDelete={!isSuperAdmin ? confirmDelete : undefined}
+              onEdit={!isSuperAdmin && !isClientSuspended ? handleEdit : undefined}
+              onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-12 border border-dashed border-border rounded-lg">
           <p className="text-muted-foreground">{t('documents.noDocuments')}</p>
-          {canManageDocuments && !isSuperAdmin && (
+          {canManageDocuments && !isSuperAdmin && !isClientSuspended && (
             <Button
               variant="outline"
               className="mt-4"

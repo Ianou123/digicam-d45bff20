@@ -17,6 +17,7 @@ export const translations = {
       analytics: 'Analytiques',
       logout: 'Déconnexion',
       myDashboard: 'Mon espace',
+      auditLogs: 'Journal d\'audit',
     },
     // Auth
     auth: {
@@ -148,6 +149,22 @@ export const translations = {
       codeCopied: 'Code copié',
       regenerateCode: 'Régénérer le code',
     },
+    // Audit Logs
+    auditLogs: {
+      title: 'Journal d\'audit',
+      actionType: 'Type d\'action',
+      targetType: 'Type de cible',
+      performedBy: 'Effectué par',
+      details: 'Détails',
+      noLogs: 'Aucun journal d\'audit',
+    },
+    // Suspension
+    suspension: {
+      banner: 'Votre organisation a été suspendue. Accès en lecture seule.',
+      contactAdmin: 'Contactez votre administrateur pour plus d\'informations.',
+      readOnly: 'Lecture seule',
+      uploadsDisabled: 'Téléversements désactivés - organisation suspendue',
+    },
   },
   en: {
     // Navigation
@@ -163,6 +180,7 @@ export const translations = {
       analytics: 'Analytics',
       logout: 'Logout',
       myDashboard: 'My Dashboard',
+      auditLogs: 'Audit Logs',
     },
     // Auth
     auth: {
@@ -293,6 +311,22 @@ export const translations = {
       copyCode: 'Copy code',
       codeCopied: 'Code copied',
       regenerateCode: 'Regenerate code',
+    },
+    // Audit Logs
+    auditLogs: {
+      title: 'Audit Logs',
+      actionType: 'Action Type',
+      targetType: 'Target Type',
+      performedBy: 'Performed By',
+      details: 'Details',
+      noLogs: 'No audit logs',
+    },
+    // Suspension
+    suspension: {
+      banner: 'Your organization has been suspended. You have read-only access.',
+      contactAdmin: 'Contact your administrator for more information.',
+      readOnly: 'Read-only',
+      uploadsDisabled: 'Uploads disabled - organization suspended',
     },
   },
 } as const;

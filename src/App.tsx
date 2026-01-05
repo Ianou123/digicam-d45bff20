@@ -18,6 +18,7 @@ import Users from "./pages/Users";
 import Clients from "./pages/Clients";
 import Activity from "./pages/Activity";
 import Analytics from "./pages/Analytics";
+import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/activity" element={<Activity />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
               </Route>
               
               {/* Catch-all */}

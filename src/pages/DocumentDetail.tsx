@@ -55,7 +55,7 @@ const confidentialityColors: Record<string, string> = {
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -227,7 +227,7 @@ export default function DocumentDetailPage() {
             <Download className="h-4 w-4 mr-2" />
             {t('documents.download')}
           </Button>
-          {canManageDocuments && (
+          {canManageDocuments && !isClientSuspended && (
             <Button variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
               <Edit className="h-4 w-4 mr-2" />
               {t('documents.edit')}
