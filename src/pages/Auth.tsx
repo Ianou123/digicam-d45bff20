@@ -18,6 +18,7 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   fullName: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   confirmPassword: z.string(),
+  inviteCode: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Les mots de passe ne correspondent pas',
   path: ['confirmPassword'],
@@ -34,6 +35,7 @@ export default function Auth() {
     password: '',
     confirmPassword: '',
     fullName: '',
+    inviteCode: '',
   });
 
   const { user, signIn, signUp } = useAuth();
@@ -81,7 +83,7 @@ export default function Auth() {
           return;
         }
 
-        const { error } = await signUp(formData.email, formData.password, formData.fullName);
+        const { error } = await signUp(formData.email, formData.password, formData.fullName, formData.inviteCode);
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error(t('auth.emailInUse'));
@@ -89,7 +91,7 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Compte créé avec succès');
+          toast.success(language === 'fr' ? 'Compte créé avec succès' : 'Account created successfully');
         }
       }
     } catch (error) {
@@ -221,6 +223,24 @@ export default function Auth() {
                   {errors.confirmPassword && (
                     <p className="text-xs text-destructive">{errors.confirmPassword}</p>
                   )}
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">{t('auth.inviteCode')}</Label>
+                  <Input
+                    id="inviteCode"
+                    value={formData.inviteCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, inviteCode: e.target.value.toUpperCase() }))}
+                    placeholder="ABC123"
+                    className="font-mono uppercase"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'fr' 
+                      ? 'Laissez vide si vous êtes administrateur DigiCam'
+                      : 'Leave empty if you are a DigiCam administrator'}
+                  </p>
                 </div>
               )}
 
