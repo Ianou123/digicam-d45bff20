@@ -10,7 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Documents from "./pages/Documents";
 import DocumentDetailPage from "./pages/DocumentDetail";
-import SearchPage from "./pages/Search";
+
 import Upload from "./pages/Upload";
 import MyDashboard from "./pages/MyDashboard";
 import Settings from "./pages/Settings";
@@ -42,7 +42,7 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/documents/:id" element={<DocumentDetailPage />} />
-                <Route path="/search" element={<SearchPage />} />
+                
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/my-dashboard" element={<MyDashboard />} />
                 <Route path="/settings" element={<Settings />} />

@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, 
   FileText, 
-  Search, 
+   
   Upload, 
   Users, 
   Building2, 
@@ -58,12 +58,6 @@ export function AppSidebar() {
       href: '/documents', 
       icon: FileText, 
       label: t('nav.documents'),
-      show: true 
-    },
-    { 
-      href: '/search', 
-      icon: Search, 
-      label: t('nav.search'),
       show: true 
     },
     { 
