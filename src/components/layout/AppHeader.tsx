@@ -1,4 +1,4 @@
-import { Bell, Globe, Menu } from 'lucide-react';
+import { Bell, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,8 +16,33 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
-  const { language, setLanguage } = useLanguage();
-  const { profile } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const { profile, isSuperAdmin, isClientAdmin } = useAuth();
+
+  const getRoleBadge = () => {
+    if (isSuperAdmin) {
+      return (
+        <Badge variant="default" className="bg-primary/90 text-primary-foreground gap-1">
+          <ShieldCheck className="h-3 w-3" />
+          {t('users.superAdmin')}
+        </Badge>
+      );
+    }
+    if (isClientAdmin) {
+      return (
+        <Badge variant="secondary" className="bg-accent text-accent-foreground gap-1">
+          <Shield className="h-3 w-3" />
+          {t('users.clientAdmin')}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="gap-1">
+        <User className="h-3 w-3" />
+        {t('users.staff')}
+      </Badge>
+    );
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -36,7 +62,10 @@ export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* User Role Badge */}
+        {getRoleBadge()}
+
         {/* Language Toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

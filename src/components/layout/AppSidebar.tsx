@@ -168,7 +168,7 @@ export function AppSidebar() {
                   {profile?.full_name || profile?.email}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {profile?.email}
+                  {isSuperAdmin ? t('users.superAdmin') : isClientAdmin ? t('users.clientAdmin') : t('users.staff')}
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-60" />
