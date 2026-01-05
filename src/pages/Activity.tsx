@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Download, FileText, Eye, Download as DownloadIcon, Upload, Pencil, Trash2, Filter } from 'lucide-react';
+import { Search, Download, FileText, Eye, Download as DownloadIcon, Upload, Pencil, Trash2, Filter, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,21 +42,39 @@ interface ActivityLogWithDetails {
   document_title: string | null;
 }
 
+interface Client {
+  id: string;
+  name: string;
+}
+
 export default function Activity() {
   const { isSuperAdmin, isClientAdmin, profile } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
   
   const [logs, setLogs] = useState<ActivityLogWithDetails[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
 
   useEffect(() => {
     if (isSuperAdmin || isClientAdmin) {
       fetchActivityLogs();
+      if (isSuperAdmin) {
+        fetchClients();
+      }
     }
   }, [isSuperAdmin, isClientAdmin]);
+
+  const fetchClients = async () => {
+    const { data } = await supabase
+      .from('clients')
+      .select('id, name')
+      .order('name');
+    setClients(data || []);
+  };
 
   const fetchActivityLogs = async () => {
     setLoading(true);
@@ -190,8 +208,9 @@ export default function Activity() {
       log.search_query?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesAction = actionFilter === 'all' || log.action_type === actionFilter;
+    const matchesClient = clientFilter === 'all' || log.client_id === clientFilter;
     
-    return matchesSearch && matchesAction;
+    return matchesSearch && matchesAction && matchesClient;
   });
 
   if (!isSuperAdmin && !isClientAdmin) {
@@ -225,7 +244,7 @@ export default function Activity() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{logs.length}</div>
+            <div className="text-2xl font-bold">{filteredLogs.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -236,7 +255,7 @@ export default function Activity() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter(l => l.action_type === 'search').length}
+              {filteredLogs.filter(l => l.action_type === 'search').length}
             </div>
           </CardContent>
         </Card>
@@ -248,7 +267,7 @@ export default function Activity() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter(l => l.action_type === 'view').length}
+              {filteredLogs.filter(l => l.action_type === 'view').length}
             </div>
           </CardContent>
         </Card>
@@ -260,7 +279,7 @@ export default function Activity() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter(l => l.action_type === 'download').length}
+              {filteredLogs.filter(l => l.action_type === 'download').length}
             </div>
           </CardContent>
         </Card>
@@ -279,6 +298,21 @@ export default function Activity() {
                 className="pl-10"
               />
             </div>
+            {/* Organization filter for Super Admin */}
+            {isSuperAdmin && (
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder={language === 'fr' ? 'Toutes les organisations' : 'All organizations'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="h-4 w-4 mr-2" />

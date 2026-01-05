@@ -5,19 +5,33 @@ import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function Upload() {
-  const { profile, canManageDocuments } = useAuth();
-  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const { profile, canManageDocuments, isSuperAdmin } = useAuth();
+  const { t, language } = useLanguage();
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(true);
 
   useEffect(() => {
+    // Redirect Super Admin to Clients page
+    if (isSuperAdmin) {
+      toast.info(
+        language === 'fr' 
+          ? 'Veuillez sélectionner une organisation pour téléverser des documents'
+          : 'Please select an organization to upload documents',
+        { duration: 4000 }
+      );
+      navigate('/clients', { replace: true });
+      return;
+    }
+
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id]);
+  }, [profile?.client_id, isSuperAdmin, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;
@@ -32,6 +46,11 @@ export default function Upload() {
 
   if (!canManageDocuments) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Show nothing while redirecting for Super Admin
+  if (isSuperAdmin) {
+    return null;
   }
 
   return (

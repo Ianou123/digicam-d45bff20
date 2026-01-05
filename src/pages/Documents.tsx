@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Grid, List } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
@@ -9,6 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,13 +49,20 @@ interface FilterState {
   confidentiality: string;
 }
 
+interface Client {
+  id: string;
+  name: string;
+}
+
 export default function Documents() {
   const navigate = useNavigate();
   const { user, profile, canManageDocuments, isSuperAdmin } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -67,11 +82,22 @@ export default function Documents() {
     fetchDocuments();
     fetchDepartments();
     fetchSearchHistory();
-  }, [profile?.client_id]);
+    if (isSuperAdmin) {
+      fetchClients();
+    }
+  }, [profile?.client_id, isSuperAdmin]);
 
   useEffect(() => {
     fetchDocuments();
-  }, [filters]);
+  }, [filters, selectedClientId]);
+
+  const fetchClients = async () => {
+    const { data } = await supabase
+      .from('clients')
+      .select('id, name')
+      .order('name');
+    setClients(data || []);
+  };
 
   const fetchSearchHistory = async () => {
     if (!user) return;
@@ -159,7 +185,10 @@ export default function Documents() {
         `)
         .order('created_at', { ascending: false });
 
-      if (!isSuperAdmin && profile?.client_id) {
+      // Apply client filter for Super Admin
+      if (isSuperAdmin && selectedClientId !== 'all') {
+        query = query.eq('client_id', selectedClientId);
+      } else if (!isSuperAdmin && profile?.client_id) {
         query = query.eq('client_id', profile.client_id);
       }
 
@@ -264,6 +293,21 @@ export default function Documents() {
 
   return (
     <div className="space-y-6">
+      {/* Super Admin Warning */}
+      {isSuperAdmin && (
+        <Alert variant="destructive" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <ShieldAlert className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">
+            {language === 'fr' ? 'Accès système' : 'System-level access'}
+          </AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            {language === 'fr' 
+              ? 'Les modifications ici affectent directement les données des clients. Utilisez les vues spécifiques aux clients quand possible.'
+              : 'Changes here directly affect client data. Use client-specific views when possible.'}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -273,6 +317,20 @@ export default function Documents() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Organization Filter for Super Admin */}
+          {isSuperAdmin && (
+            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={language === 'fr' ? 'Toutes les organisations' : 'All organizations'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center border border-border rounded-md">
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
@@ -291,7 +349,8 @@ export default function Documents() {
               <Grid className="h-4 w-4" />
             </Button>
           </div>
-          {canManageDocuments && (
+          {/* Hide upload button for Super Admin */}
+          {canManageDocuments && !isSuperAdmin && (
             <Button onClick={() => setUploadModalOpen(true)} className="btn-institutional">
               <Plus className="h-4 w-4 mr-2" />
               {t('documents.newDocument')}
@@ -329,15 +388,15 @@ export default function Documents() {
               }}
               onView={handleView}
               onDownload={handleDownload}
-              onEdit={handleEdit}
-              onDelete={confirmDelete}
+              onEdit={!isSuperAdmin ? handleEdit : undefined}
+              onDelete={!isSuperAdmin ? confirmDelete : undefined}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-12 border border-dashed border-border rounded-lg">
           <p className="text-muted-foreground">{t('documents.noDocuments')}</p>
-          {canManageDocuments && (
+          {canManageDocuments && !isSuperAdmin && (
             <Button
               variant="outline"
               className="mt-4"
@@ -350,13 +409,15 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Upload Modal */}
-      <UploadModal
-        open={uploadModalOpen}
-        onOpenChange={setUploadModalOpen}
-        departments={departments}
-        onSuccess={fetchDocuments}
-      />
+      {/* Upload Modal - only for non-super admin */}
+      {!isSuperAdmin && (
+        <UploadModal
+          open={uploadModalOpen}
+          onOpenChange={setUploadModalOpen}
+          departments={departments}
+          onSuccess={fetchDocuments}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

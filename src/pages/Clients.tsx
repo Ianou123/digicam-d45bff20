@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText, Copy, RefreshCw, Check } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText, Copy, RefreshCw, Check, Ban, CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -26,12 +27,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
 interface ClientWithStats {
@@ -41,12 +43,14 @@ interface ClientWithStats {
   logo_url: string | null;
   created_at: string;
   invite_code: string | null;
+  status: 'active' | 'inactive' | 'suspended';
+  last_activity_at: string | null;
   usersCount: number;
   documentsCount: number;
 }
 
 export default function Clients() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
   
@@ -56,6 +60,7 @@ export default function Clients() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientWithStats | null>(null);
   
   // Form state
@@ -72,7 +77,7 @@ export default function Clients() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      // Fetch clients
+      // Fetch clients with new columns
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('*')
@@ -100,6 +105,7 @@ export default function Clients() {
         const documentsCount = documents?.filter(d => d.client_id === client.id).length || 0;
         return {
           ...client,
+          status: client.status as 'active' | 'inactive' | 'suspended',
           usersCount,
           documentsCount,
         };
@@ -183,9 +189,12 @@ export default function Clients() {
       const inviteCode = generateInviteCode();
       const { error } = await supabase
         .from('clients')
-        .insert({ name: formName, slug: formSlug, invite_code: inviteCode });
+        .insert({ name: formName, slug: formSlug, invite_code: inviteCode, status: 'active' });
 
       if (error) throw error;
+
+      // Log admin action
+      await logAdminAction('create_client', 'client', undefined, { name: formName });
 
       toast({
         title: t('common.success'),
@@ -216,6 +225,8 @@ export default function Clients() {
 
       if (error) throw error;
 
+      await logAdminAction('update_client', 'client', selectedClient.id, { name: formName });
+
       toast({
         title: t('common.success'),
         description: language === 'fr' ? 'Organisation mise à jour' : 'Organization updated',
@@ -234,6 +245,44 @@ export default function Clients() {
     }
   };
 
+  const handleStatusChange = async (newStatus: 'active' | 'inactive' | 'suspended') => {
+    if (!selectedClient) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ status: newStatus })
+        .eq('id', selectedClient.id);
+
+      if (error) throw error;
+
+      await logAdminAction(
+        newStatus === 'suspended' ? 'suspend_client' : newStatus === 'active' ? 'unsuspend_client' : 'deactivate_client', 
+        'client', 
+        selectedClient.id, 
+        { name: selectedClient.name, new_status: newStatus }
+      );
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' 
+          ? `Organisation ${newStatus === 'suspended' ? 'suspendue' : newStatus === 'active' ? 'réactivée' : 'désactivée'}`
+          : `Organization ${newStatus === 'suspended' ? 'suspended' : newStatus === 'active' ? 'reactivated' : 'deactivated'}`,
+      });
+
+      setIsSuspendModalOpen(false);
+      setSelectedClient(null);
+      fetchClients();
+    } catch (error: any) {
+      console.error('Error updating client status:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message,
+      });
+    }
+  };
+
   const handleDeleteClient = async () => {
     if (!selectedClient) return;
 
@@ -244,6 +293,8 @@ export default function Clients() {
         .eq('id', selectedClient.id);
 
       if (error) throw error;
+
+      await logAdminAction('delete_client', 'client', selectedClient.id, { name: selectedClient.name });
 
       toast({
         title: t('common.success'),
@@ -263,6 +314,21 @@ export default function Clients() {
     }
   };
 
+  const logAdminAction = async (actionType: string, targetType: string, targetId?: string, metadata?: Record<string, unknown>) => {
+    if (!user) return;
+    try {
+      await supabase.from('super_admin_audit_logs').insert({
+        user_id: user.id,
+        action_type: actionType,
+        target_type: targetType,
+        target_id: targetId || null,
+        metadata: metadata || {},
+      });
+    } catch (error) {
+      console.error('Error logging admin action:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormName('');
     setFormSlug('');
@@ -279,6 +345,32 @@ export default function Clients() {
   const openDeleteModal = (client: ClientWithStats) => {
     setSelectedClient(client);
     setIsDeleteModalOpen(true);
+  };
+
+  const openSuspendModal = (client: ClientWithStats) => {
+    setSelectedClient(client);
+    setIsSuspendModalOpen(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500/10 text-green-600 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />{language === 'fr' ? 'Actif' : 'Active'}</Badge>;
+      case 'inactive':
+        return <Badge variant="secondary"><XCircle className="h-3 w-3 mr-1" />{language === 'fr' ? 'Inactif' : 'Inactive'}</Badge>;
+      case 'suspended':
+        return <Badge variant="destructive"><Ban className="h-3 w-3 mr-1" />{language === 'fr' ? 'Suspendu' : 'Suspended'}</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getLastActivityText = (lastActivity: string | null) => {
+    if (!lastActivity) return language === 'fr' ? 'Aucune activité' : 'No activity';
+    return formatDistanceToNow(new Date(lastActivity), { 
+      addSuffix: true, 
+      locale: language === 'fr' ? fr : enUS 
+    });
   };
 
   const filteredClients = clients.filter(client => {
@@ -329,11 +421,11 @@ export default function Clients() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('clients.name')}</TableHead>
-                <TableHead>{t('clients.slug')}</TableHead>
+                <TableHead>{language === 'fr' ? 'Statut' : 'Status'}</TableHead>
                 <TableHead>{t('clients.inviteCode')}</TableHead>
                 <TableHead>{t('clients.usersCount')}</TableHead>
                 <TableHead>{t('clients.documentsCount')}</TableHead>
-                <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
+                <TableHead>{language === 'fr' ? 'Dernière activité' : 'Last Activity'}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -358,11 +450,14 @@ export default function Clients() {
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                           <Building2 className="h-5 w-5 text-primary" />
                         </div>
-                        <span className="font-medium">{client.name}</span>
+                        <div>
+                          <span className="font-medium">{client.name}</span>
+                          <p className="text-xs text-muted-foreground font-mono">{client.slug}</p>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-sm">
-                      {client.slug}
+                    <TableCell>
+                      {getStatusBadge(client.status)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -407,10 +502,11 @@ export default function Clients() {
                         <span>{client.documentsCount}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(client.created_at), 'PPP', {
-                        locale: language === 'fr' ? fr : enUS,
-                      })}
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="text-sm">{getLastActivityText(client.last_activity_at)}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -424,6 +520,25 @@ export default function Clients() {
                             <Pencil className="h-4 w-4 mr-2" />
                             {t('clients.editClient')}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {client.status !== 'suspended' ? (
+                            <DropdownMenuItem 
+                              onClick={() => openSuspendModal(client)}
+                              className="text-amber-600 focus:text-amber-600"
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              {language === 'fr' ? 'Suspendre' : 'Suspend'}
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={() => { setSelectedClient(client); handleStatusChange('active'); }}
+                              className="text-green-600 focus:text-green-600"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              {language === 'fr' ? 'Réactiver' : 'Reactivate'}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={() => openDeleteModal(client)}
                             className="text-destructive focus:text-destructive"
@@ -520,6 +635,36 @@ export default function Clients() {
             </Button>
             <Button onClick={handleEditClient} className="btn-institutional">
               {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend Confirmation Modal */}
+      <Dialog open={isSuspendModalOpen} onOpenChange={setIsSuspendModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {language === 'fr' ? 'Suspendre l\'organisation' : 'Suspend Organization'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? `Les utilisateurs de "${selectedClient?.name}" ne pourront plus accéder à leurs documents. Cette action peut être annulée.`
+                : `Users of "${selectedClient?.name}" will no longer be able to access their documents. This action can be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSuspendModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => handleStatusChange('suspended')}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              {language === 'fr' ? 'Suspendre' : 'Suspend'}
             </Button>
           </DialogFooter>
         </DialogContent>

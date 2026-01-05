@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserPlus, Building2, Clock, UserX, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -40,7 +41,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
 interface UserWithRole {
@@ -51,6 +52,12 @@ interface UserWithRole {
   client_id: string | null;
   created_at: string;
   role: 'super_admin' | 'client_admin' | 'staff' | null;
+  last_active?: string | null;
+}
+
+interface Client {
+  id: string;
+  name: string;
 }
 
 export default function Users() {
@@ -59,8 +66,11 @@ export default function Users() {
   const { toast } = useToast();
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [clientFilter, setClientFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -70,13 +80,23 @@ export default function Users() {
   const [formEmail, setFormEmail] = useState('');
   const [formFullName, setFormFullName] = useState('');
   const [formRole, setFormRole] = useState<'client_admin' | 'staff'>('staff');
-  const [formPassword, setFormPassword] = useState('');
 
   useEffect(() => {
     if (isSuperAdmin || isClientAdmin) {
       fetchUsers();
+      if (isSuperAdmin) {
+        fetchClients();
+      }
     }
   }, [isSuperAdmin, isClientAdmin]);
+
+  const fetchClients = async () => {
+    const { data } = await supabase
+      .from('clients')
+      .select('id, name')
+      .order('name');
+    setClients(data || []);
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -96,12 +116,27 @@ export default function Users() {
 
       if (rolesError) throw rolesError;
 
-      // Merge profiles with roles
+      // Fetch last activity for each user
+      const { data: activityData } = await supabase
+        .from('activity_logs')
+        .select('user_id, created_at')
+        .order('created_at', { ascending: false });
+
+      // Get last activity per user
+      const lastActivityMap: Record<string, string> = {};
+      activityData?.forEach(a => {
+        if (!lastActivityMap[a.user_id]) {
+          lastActivityMap[a.user_id] = a.created_at;
+        }
+      });
+
+      // Merge profiles with roles and last activity
       const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
         const userRole = roles?.find(r => r.user_id === profile.id);
         return {
           ...profile,
           role: userRole?.role || null,
+          last_active: lastActivityMap[profile.id] || null,
         };
       });
 
@@ -118,24 +153,27 @@ export default function Users() {
     }
   };
 
-  const handleAddUser = async () => {
-    if (!formEmail || !formPassword || !formFullName) {
+  const handleInviteUser = async () => {
+    if (!formEmail || !formFullName) {
       toast({
         variant: 'destructive',
         title: t('common.error'),
-        description: 'Please fill all required fields',
+        description: language === 'fr' ? 'Veuillez remplir tous les champs' : 'Please fill all required fields',
       });
       return;
     }
 
     try {
+      // Generate a random password for the invite
+      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+      
       // Create user via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formEmail,
-        password: formPassword,
+        password: tempPassword,
         options: {
           data: { full_name: formFullName },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
 
@@ -161,18 +199,20 @@ export default function Users() {
 
       toast({
         title: t('common.success'),
-        description: 'User created successfully',
+        description: language === 'fr' 
+          ? 'Invitation envoyée par email' 
+          : 'Invitation sent by email',
       });
 
       setIsAddModalOpen(false);
       resetForm();
       fetchUsers();
     } catch (error: any) {
-      console.error('Error creating user:', error);
+      console.error('Error inviting user:', error);
       toast({
         variant: 'destructive',
         title: t('common.error'),
-        description: error.message || 'Failed to create user',
+        description: error.message || 'Failed to invite user',
       });
     }
   };
@@ -203,7 +243,7 @@ export default function Users() {
 
       toast({
         title: t('common.success'),
-        description: 'User updated successfully',
+        description: language === 'fr' ? 'Utilisateur mis à jour' : 'User updated successfully',
       });
 
       setIsEditModalOpen(false);
@@ -219,34 +259,30 @@ export default function Users() {
     }
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeactivateUser = async () => {
     if (!selectedUser) return;
 
     try {
-      // Delete role first
+      // Delete role (effectively deactivates the user)
       await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', selectedUser.id);
 
-      // Note: We cannot delete from auth.users directly via client
-      // The profile will be orphaned but that's acceptable for this use case
-      // In production, you'd use an edge function with service role
-
       toast({
         title: t('common.success'),
-        description: 'User removed successfully',
+        description: language === 'fr' ? 'Utilisateur désactivé' : 'User deactivated',
       });
 
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (error: any) {
-      console.error('Error deleting user:', error);
+      console.error('Error deactivating user:', error);
       toast({
         variant: 'destructive',
         title: t('common.error'),
-        description: error.message || 'Failed to delete user',
+        description: error.message || 'Failed to deactivate user',
       });
     }
   };
@@ -255,7 +291,6 @@ export default function Users() {
     setFormEmail('');
     setFormFullName('');
     setFormRole('staff');
-    setFormPassword('');
     setSelectedUser(null);
   };
 
@@ -266,7 +301,7 @@ export default function Users() {
     setIsEditModalOpen(true);
   };
 
-  const openDeleteModal = (user: UserWithRole) => {
+  const openDeactivateModal = (user: UserWithRole) => {
     setSelectedUser(user);
     setIsDeleteModalOpen(true);
   };
@@ -285,16 +320,27 @@ export default function Users() {
       case 'staff':
         return <Badge variant="outline">{t('users.staff')}</Badge>;
       default:
-        return <Badge variant="outline">{t('users.staff')}</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground">{language === 'fr' ? 'Aucun rôle' : 'No role'}</Badge>;
     }
+  };
+
+  const getLastActiveText = (lastActive: string | null) => {
+    if (!lastActive) return language === 'fr' ? 'Jamais' : 'Never';
+    return formatDistanceToNow(new Date(lastActive), { 
+      addSuffix: true, 
+      locale: language === 'fr' ? fr : enUS 
+    });
   };
 
   const filteredUsers = users.filter(user => {
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = 
       user.email.toLowerCase().includes(searchLower) ||
-      (user.full_name?.toLowerCase().includes(searchLower) ?? false)
-    );
+      (user.full_name?.toLowerCase().includes(searchLower) ?? false);
+    const matchesClient = clientFilter === 'all' || user.client_id === clientFilter;
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter || (roleFilter === 'none' && !user.role);
+    
+    return matchesSearch && matchesClient && matchesRole;
   });
 
   if (!isSuperAdmin && !isClientAdmin) {
@@ -314,22 +360,52 @@ export default function Users() {
           </p>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
-          <UserPlus className="h-4 w-4 mr-2" />
-          {t('users.addUser')}
+          <Mail className="h-4 w-4 mr-2" />
+          {language === 'fr' ? 'Inviter un utilisateur' : 'Invite User'}
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Search and Filters */}
       <Card>
         <CardHeader className="pb-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={language === 'fr' ? 'Rechercher un utilisateur...' : 'Search users...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={language === 'fr' ? 'Rechercher un utilisateur...' : 'Search users...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {/* Organization filter for Super Admin */}
+            {isSuperAdmin && (
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder={language === 'fr' ? 'Organisation' : 'Organization'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {/* Role filter */}
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder={language === 'fr' ? 'Rôle' : 'Role'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Tous les rôles' : 'All roles'}</SelectItem>
+                {isSuperAdmin && <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>}
+                <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                <SelectItem value="staff">{t('users.staff')}</SelectItem>
+                <SelectItem value="none">{language === 'fr' ? 'Aucun rôle' : 'No role'}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -338,20 +414,21 @@ export default function Users() {
               <TableRow>
                 <TableHead>{language === 'fr' ? 'Utilisateur' : 'User'}</TableHead>
                 <TableHead>{t('users.role')}</TableHead>
-                <TableHead>{language === 'fr' ? 'Date d\'inscription' : 'Joined'}</TableHead>
+                <TableHead>{language === 'fr' ? 'Dernière activité' : 'Last Active'}</TableHead>
+                <TableHead>{language === 'fr' ? 'Inscrit le' : 'Joined'}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     {language === 'fr' ? 'Aucun utilisateur trouvé' : 'No users found'}
                   </TableCell>
                 </TableRow>
@@ -373,6 +450,12 @@ export default function Users() {
                       </div>
                     </TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="text-sm">{getLastActiveText(user.last_active)}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {format(new Date(user.created_at), 'PPP', {
                         locale: language === 'fr' ? fr : enUS,
@@ -388,14 +471,15 @@ export default function Users() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEditModal(user)}>
                             <Pencil className="h-4 w-4 mr-2" />
-                            {t('documents.edit')}
+                            {language === 'fr' ? 'Modifier le rôle' : 'Change Role'}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={() => openDeleteModal(user)}
+                            onClick={() => openDeactivateModal(user)}
                             className="text-destructive focus:text-destructive"
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {t('documents.delete')}
+                            <UserX className="h-4 w-4 mr-2" />
+                            {language === 'fr' ? 'Désactiver' : 'Deactivate'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -408,15 +492,15 @@ export default function Users() {
         </CardContent>
       </Card>
 
-      {/* Add User Modal */}
+      {/* Invite User Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('users.addUser')}</DialogTitle>
+            <DialogTitle>{language === 'fr' ? 'Inviter un utilisateur' : 'Invite User'}</DialogTitle>
             <DialogDescription>
               {language === 'fr' 
-                ? 'Créer un nouvel utilisateur dans votre organisation'
-                : 'Create a new user in your organization'}
+                ? 'Envoyez une invitation par email pour rejoindre l\'organisation'
+                : 'Send an email invitation to join the organization'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -438,24 +522,13 @@ export default function Users() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('auth.password')}</Label>
-              <Input
-                type="password"
-                value={formPassword}
-                onChange={(e) => setFormPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-            <div className="space-y-2">
               <Label>{t('users.role')}</Label>
               <Select value={formRole} onValueChange={(v: 'client_admin' | 'staff') => setFormRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {isClientAdmin && (
-                    <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
-                  )}
+                  <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -465,8 +538,9 @@ export default function Users() {
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={handleAddUser} className="btn-institutional">
-              {t('users.addUser')}
+            <Button onClick={handleInviteUser} className="btn-institutional">
+              <Mail className="h-4 w-4 mr-2" />
+              {language === 'fr' ? 'Envoyer l\'invitation' : 'Send Invitation'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -510,25 +584,26 @@ export default function Users() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
+      {/* Deactivate Confirmation Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {language === 'fr' ? 'Supprimer l\'utilisateur' : 'Delete User'}
+              {language === 'fr' ? 'Désactiver l\'utilisateur' : 'Deactivate User'}
             </DialogTitle>
             <DialogDescription>
               {language === 'fr' 
-                ? `Êtes-vous sûr de vouloir supprimer ${selectedUser?.full_name || selectedUser?.email} ? Cette action est irréversible.`
-                : `Are you sure you want to delete ${selectedUser?.full_name || selectedUser?.email}? This action cannot be undone.`}
+                ? `L'utilisateur ${selectedUser?.full_name || selectedUser?.email} ne pourra plus accéder à l'application. Vous pourrez le réactiver ultérieurement.`
+                : `${selectedUser?.full_name || selectedUser?.email} will no longer be able to access the application. You can reactivate them later.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>
-              {t('documents.delete')}
+            <Button variant="destructive" onClick={handleDeactivateUser}>
+              <UserX className="h-4 w-4 mr-2" />
+              {language === 'fr' ? 'Désactiver' : 'Deactivate'}
             </Button>
           </DialogFooter>
         </DialogContent>
