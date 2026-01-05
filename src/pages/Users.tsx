@@ -72,6 +72,7 @@ export default function Users() {
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -392,8 +393,9 @@ export default function Users() {
       (user.full_name?.toLowerCase().includes(searchLower) ?? false);
     const matchesClient = clientFilter === 'all' || user.client_id === clientFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter || (roleFilter === 'none' && !user.role);
+    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
-    return matchesSearch && matchesClient && matchesRole;
+    return matchesSearch && matchesClient && matchesRole && matchesStatus;
   });
 
   if (!isSuperAdmin && !isClientAdmin) {
@@ -459,6 +461,19 @@ export default function Users() {
                 <SelectItem value="none">{language === 'fr' ? 'Aucun rôle' : 'No role'}</SelectItem>
               </SelectContent>
             </Select>
+            {/* Status filter for Super Admin */}
+            {isSuperAdmin && (
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder={t('users.status')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'fr' ? 'Tous les statuts' : 'All statuses'}</SelectItem>
+                  <SelectItem value="active">{t('users.active')}</SelectItem>
+                  <SelectItem value="deactivated">{t('deactivation.deactivated')}</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
