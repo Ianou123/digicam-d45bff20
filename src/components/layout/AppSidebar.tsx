@@ -64,7 +64,7 @@ export function AppSidebar() {
       href: '/upload', 
       icon: Upload, 
       label: t('nav.upload'),
-      show: canManageDocuments 
+      show: canManageDocuments && !isSuperAdmin 
     },
   ];
 

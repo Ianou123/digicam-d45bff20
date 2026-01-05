@@ -67,27 +67,33 @@ export type Database = {
           created_at: string
           id: string
           invite_code: string | null
+          last_activity_at: string | null
           logo_url: string | null
           name: string
           slug: string
+          status: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           invite_code?: string | null
+          last_activity_at?: string | null
           logo_url?: string | null
           name: string
           slug: string
+          status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           invite_code?: string | null
+          last_activity_at?: string | null
           logo_url?: string | null
           name?: string
           slug?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -271,6 +277,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      super_admin_audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

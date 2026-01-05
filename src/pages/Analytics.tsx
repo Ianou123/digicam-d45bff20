@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp, Users, FileText, Eye, Download, Search as SearchIcon } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Users, FileText, Eye, Download, Search as SearchIcon, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -21,6 +21,13 @@ import {
   Legend,
 } from 'recharts';
 
+interface TopClient {
+  id: string;
+  name: string;
+  activityCount: number;
+  trend: number;
+}
+
 export default function Analytics() {
   const { isSuperAdmin, isClientAdmin, profile } = useAuth();
   const { t, language } = useLanguage();
@@ -33,9 +40,11 @@ export default function Analytics() {
     totalDownloads: 0,
     totalSearches: 0,
   });
+  const [activityTrend, setActivityTrend] = useState({ current: 0, previous: 0, percentChange: 0 });
   const [dailyActivity, setDailyActivity] = useState<{ date: string; count: number }[]>([]);
   const [actionDistribution, setActionDistribution] = useState<{ name: string; value: number }[]>([]);
   const [topDocuments, setTopDocuments] = useState<{ title: string; views: number }[]>([]);
+  const [topClients, setTopClients] = useState<TopClient[]>([]);
 
   useEffect(() => {
     if (isSuperAdmin || isClientAdmin) {
@@ -59,7 +68,7 @@ export default function Analytics() {
       // Fetch activity logs for stats
       const { data: activityData } = await supabase
         .from('activity_logs')
-        .select('action_type, document_id, created_at');
+        .select('action_type, document_id, client_id, created_at');
 
       const views = activityData?.filter(a => a.action_type === 'view').length || 0;
       const downloads = activityData?.filter(a => a.action_type === 'download').length || 0;
@@ -72,6 +81,23 @@ export default function Analytics() {
         totalDownloads: downloads,
         totalSearches: searches,
       });
+
+      // Activity trend (last 7 days vs previous 7 days)
+      const now = new Date();
+      const sevenDaysAgo = startOfDay(subDays(now, 7));
+      const fourteenDaysAgo = startOfDay(subDays(now, 14));
+
+      const currentWeekActivity = activityData?.filter(a => new Date(a.created_at) >= sevenDaysAgo).length || 0;
+      const previousWeekActivity = activityData?.filter(a => {
+        const date = new Date(a.created_at);
+        return date >= fourteenDaysAgo && date < sevenDaysAgo;
+      }).length || 0;
+
+      const percentChange = previousWeekActivity > 0 
+        ? Math.round(((currentWeekActivity - previousWeekActivity) / previousWeekActivity) * 100)
+        : currentWeekActivity > 0 ? 100 : 0;
+
+      setActivityTrend({ current: currentWeekActivity, previous: previousWeekActivity, percentChange });
 
       // Calculate daily activity for last 7 days
       const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -126,6 +152,51 @@ export default function Analytics() {
           };
         });
         setTopDocuments(topDocsWithViews);
+      }
+
+      // Top 5 most active clients (Super Admin only)
+      if (isSuperAdmin) {
+        const clientActivity: Record<string, { current: number; previous: number }> = {};
+        
+        activityData?.forEach(a => {
+          if (!a.client_id) return;
+          if (!clientActivity[a.client_id]) {
+            clientActivity[a.client_id] = { current: 0, previous: 0 };
+          }
+          const activityDate = new Date(a.created_at);
+          if (activityDate >= sevenDaysAgo) {
+            clientActivity[a.client_id].current++;
+          } else if (activityDate >= fourteenDaysAgo && activityDate < sevenDaysAgo) {
+            clientActivity[a.client_id].previous++;
+          }
+        });
+
+        const topClientIds = Object.entries(clientActivity)
+          .sort(([, a], [, b]) => (b.current + b.previous) - (a.current + a.previous))
+          .slice(0, 5)
+          .map(([id]) => id);
+
+        if (topClientIds.length > 0) {
+          const { data: clientsData } = await supabase
+            .from('clients')
+            .select('id, name')
+            .in('id', topClientIds);
+
+          const topClientsWithActivity: TopClient[] = topClientIds.map(id => {
+            const client = clientsData?.find(c => c.id === id);
+            const activity = clientActivity[id];
+            const trend = activity.previous > 0 
+              ? Math.round(((activity.current - activity.previous) / activity.previous) * 100)
+              : activity.current > 0 ? 100 : 0;
+            return {
+              id,
+              name: client?.name || 'Unknown',
+              activityCount: activity.current + activity.previous,
+              trend,
+            };
+          });
+          setTopClients(topClientsWithActivity);
+        }
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -209,12 +280,21 @@ export default function Analytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t('activity.search')}
+              {language === 'fr' ? 'Tendance (7j)' : 'Trend (7d)'}
             </CardTitle>
-            <SearchIcon className="h-4 w-4 text-muted-foreground" />
+            {activityTrend.percentChange >= 0 ? (
+              <TrendingUp className="h-4 w-4 text-green-500" />
+            ) : (
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            )}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSearches}</div>
+            <div className="text-2xl font-bold">
+              {activityTrend.percentChange >= 0 ? '+' : ''}{activityTrend.percentChange}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {language === 'fr' ? 'vs semaine précédente' : 'vs previous week'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -303,38 +383,86 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Top Documents */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {language === 'fr' ? 'Documents les plus consultés' : 'Most Viewed Documents'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topDocuments.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {topDocuments.map((doc, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
-                    {index + 1}
+      {/* Bottom Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Top Documents */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {language === 'fr' ? 'Documents les plus consultés' : 'Most Viewed Documents'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topDocuments.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {topDocuments.map((doc, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{doc.title}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Eye className="h-4 w-4" />
+                      <span>{doc.views}</span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{doc.title}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Eye className="h-4 w-4" />
-                    <span>{doc.views}</span>
-                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Clients (Super Admin only) */}
+        {isSuperAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                {language === 'fr' ? 'Clients les plus actifs' : 'Most Active Clients'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {topClients.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  {language === 'fr' ? 'Aucune donnée disponible' : 'No data available'}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {topClients.map((client, index) => (
+                    <div key={client.id} className="flex items-center gap-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{client.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {client.activityCount} {language === 'fr' ? 'actions' : 'actions'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {client.trend >= 0 ? (
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-destructive" />
+                        )}
+                        <span className={client.trend >= 0 ? 'text-green-600' : 'text-destructive'}>
+                          {client.trend >= 0 ? '+' : ''}{client.trend}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
