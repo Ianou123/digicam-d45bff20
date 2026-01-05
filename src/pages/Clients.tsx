@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Json } from '@/integrations/supabase/types';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText, Copy, RefreshCw, Check, Ban, CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -317,13 +318,13 @@ export default function Clients() {
   const logAdminAction = async (actionType: string, targetType: string, targetId?: string, metadata?: Record<string, unknown>) => {
     if (!user) return;
     try {
-      await supabase.from('super_admin_audit_logs').insert({
+      await supabase.from('super_admin_audit_logs').insert([{
         user_id: user.id,
         action_type: actionType,
         target_type: targetType,
         target_id: targetId || null,
-        metadata: metadata || {},
-      });
+        metadata: (metadata || {}) as Json,
+      }]);
     } catch (error) {
       console.error('Error logging admin action:', error);
     }
