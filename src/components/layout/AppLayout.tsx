@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
+import { SuspendedBanner } from './SuspendedBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
 
@@ -66,6 +67,9 @@ export function AppLayout() {
 
       {/* Main content */}
       <div className="lg:pl-64">
+        {/* Show suspended banner if client is suspended and user is not super admin */}
+        {isClientSuspended && !isSuperAdmin && <SuspendedBanner />}
+        
         <AppHeader
           title={pageTitle}
           onMenuClick={() => setSidebarOpen(true)}

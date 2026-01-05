@@ -10,7 +10,8 @@ import {
   BarChart3,
   LogOut,
   User,
-  ChevronDown
+  ChevronDown,
+  Shield
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,12 @@ export function AppSidebar() {
       icon: BarChart3, 
       label: t('nav.analytics'),
       show: isSuperAdmin || isClientAdmin 
+    },
+    { 
+      href: '/audit-logs', 
+      icon: Shield, 
+      label: t('nav.auditLogs'),
+      show: isSuperAdmin 
     },
   ];
 
