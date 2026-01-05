@@ -1,4 +1,4 @@
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,13 +23,15 @@ interface DocumentFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   departments: { id: string; name: string }[];
+  searchHistory?: string[];
+  onSearchHistoryClick?: (query: string) => void;
 }
 
 const documentTypes = ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => (currentYear - i).toString());
 
-export function DocumentFilters({ filters, onFiltersChange, departments }: DocumentFiltersProps) {
+export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick }: DocumentFiltersProps) {
   const { t } = useLanguage();
 
   const updateFilter = (key: keyof FilterState, value: string) => {
@@ -61,6 +63,25 @@ export function DocumentFilters({ filters, onFiltersChange, departments }: Docum
         />
       </div>
 
+      {/* Search History */}
+      {searchHistory.length > 0 && !filters.search && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{t('documents.recentSearches')}:</span>
+          </div>
+          {searchHistory.map((query, index) => (
+            <Badge
+              key={index}
+              variant="secondary"
+              className="cursor-pointer hover:bg-secondary/80 transition-colors"
+              onClick={() => onSearchHistoryClick?.(query)}
+            >
+              {query}
+            </Badge>
+          ))}
+        </div>
+      )}
       {/* Filter Row */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 text-sm text-muted-foreground">

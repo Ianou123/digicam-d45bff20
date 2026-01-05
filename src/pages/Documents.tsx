@@ -53,6 +53,7 @@ export default function Documents() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -65,7 +66,61 @@ export default function Documents() {
   useEffect(() => {
     fetchDocuments();
     fetchDepartments();
-  }, [profile?.client_id, filters]);
+    fetchSearchHistory();
+  }, [profile?.client_id]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [filters]);
+
+  const fetchSearchHistory = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('search_query')
+      .eq('user_id', user.id)
+      .eq('action_type', 'search')
+      .not('search_query', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (data) {
+      const uniqueSearches = [...new Set(data.map(d => d.search_query).filter(Boolean))] as string[];
+      setSearchHistory(uniqueSearches.slice(0, 5));
+    }
+  };
+
+  const logSearch = async (query: string) => {
+    if (!user || !profile?.client_id || !query.trim()) return;
+
+    await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      client_id: profile.client_id,
+      action_type: 'search' as const,
+      search_query: query.trim(),
+    });
+
+    fetchSearchHistory();
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    const previousSearch = filters.search;
+    setFilters(newFilters);
+    
+    // Log search when user changes the search term
+    if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
+      // Debounce: only log after user stops typing
+      const timeoutId = setTimeout(() => {
+        logSearch(newFilters.search);
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  };
+
+  const handleSearchHistoryClick = (query: string) => {
+    setFilters(prev => ({ ...prev, search: query }));
+  };
 
   const fetchDepartments = async () => {
     if (!profile?.client_id && !isSuperAdmin) return;
@@ -248,8 +303,10 @@ export default function Documents() {
       {/* Filters */}
       <DocumentFilters
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={handleFiltersChange}
         departments={departments}
+        searchHistory={searchHistory}
+        onSearchHistoryClick={handleSearchHistoryClick}
       />
 
       {/* Documents */}
