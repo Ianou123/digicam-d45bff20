@@ -11,6 +11,7 @@ interface UserProfile {
   avatar_url: string | null;
   client_id: string | null;
   preferred_language: 'fr' | 'en';
+  status: 'active' | 'deactivated';
 }
 
 type ClientStatus = 'active' | 'inactive' | 'suspended';
@@ -31,6 +32,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   clientStatus: ClientStatus | null;
   isClientSuspended: boolean;
+  isUserDeactivated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: profileData.avatar_url,
           client_id: profileData.client_id,
           preferred_language: (profileData.preferred_language as 'fr' | 'en') || 'fr',
+          status: (profileData.status as 'active' | 'deactivated') || 'active',
         });
 
         // Fetch client status if user has a client
@@ -179,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isStaff = roles.includes('staff') || (!isSuperAdmin && !isClientAdmin && roles.length === 0);
   const canManageDocuments = isSuperAdmin || isClientAdmin;
   const isClientSuspended = clientStatus === 'suspended';
+  const isUserDeactivated = profile?.status === 'deactivated';
 
   return (
     <AuthContext.Provider
@@ -198,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile,
         clientStatus,
         isClientSuspended,
+        isUserDeactivated,
       }}
     >
       {children}

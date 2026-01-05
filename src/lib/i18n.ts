@@ -165,6 +165,18 @@ export const translations = {
       readOnly: 'Lecture seule',
       uploadsDisabled: 'Téléversements désactivés - organisation suspendue',
     },
+    // Deactivation
+    deactivation: {
+      title: 'Compte désactivé',
+      message: 'Votre compte a été désactivé.',
+      contactAdmin: 'Contactez votre administrateur pour réactiver votre compte.',
+      signOut: 'Déconnexion',
+      deactivatedUsers: 'Utilisateurs désactivés',
+      reactivate: 'Réactiver',
+      selectRole: 'Sélectionner un rôle',
+      deactivated: 'Désactivé',
+      noDeactivatedUsers: 'Aucun utilisateur désactivé',
+    },
   },
   en: {
     // Navigation
@@ -327,6 +339,18 @@ export const translations = {
       contactAdmin: 'Contact your administrator for more information.',
       readOnly: 'Read-only',
       uploadsDisabled: 'Uploads disabled - organization suspended',
+    },
+    // Deactivation
+    deactivation: {
+      title: 'Account Deactivated',
+      message: 'Your account has been deactivated.',
+      contactAdmin: 'Contact your administrator to reactivate your account.',
+      signOut: 'Sign Out',
+      deactivatedUsers: 'Deactivated Users',
+      reactivate: 'Reactivate',
+      selectRole: 'Select a role',
+      deactivated: 'Deactivated',
+      noDeactivatedUsers: 'No deactivated users',
     },
   },
 } as const;
