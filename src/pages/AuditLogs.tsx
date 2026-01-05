@@ -37,11 +37,17 @@ interface AuditLog {
   action_type: string;
   target_type: string;
   target_id: string | null;
+  target_name?: string | null;
+  client_id?: string | null;
   metadata: Json;
   created_at: string;
+  source: 'super_admin' | 'admin';
   profiles?: {
     full_name: string | null;
     email: string;
+  } | null;
+  client?: {
+    name: string;
   } | null;
 }
 
@@ -78,53 +84,89 @@ export default function AuditLogs() {
   }, [actionTypeFilter, targetTypeFilter, adminFilter]);
 
   const fetchAdminUsers = async () => {
-    // Get all users who have made audit log entries
-    const { data } = await supabase
+    // Get all users who have made audit log entries from both tables
+    const { data: superAdminLogs } = await supabase
       .from('super_admin_audit_logs')
       .select('user_id')
       .order('created_at', { ascending: false });
 
-    if (data) {
-      const uniqueUserIds = [...new Set(data.map(d => d.user_id))];
-      
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', uniqueUserIds);
+    const { data: adminLogs } = await supabase
+      .from('admin_audit_logs')
+      .select('user_id')
+      .order('created_at', { ascending: false });
 
-      setAdminUsers((profiles || []).map(p => ({
-        id: p.id,
-        full_name: p.full_name,
-        email: p.email,
-      })));
-    }
+    const allUserIds = [
+      ...(superAdminLogs || []).map(d => d.user_id),
+      ...(adminLogs || []).map(d => d.user_id),
+    ];
+    const uniqueUserIds = [...new Set(allUserIds)];
+    
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', uniqueUserIds);
+
+    setAdminUsers((profiles || []).map(p => ({
+      id: p.id,
+      full_name: p.full_name,
+      email: p.email,
+    })));
   };
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      let query = supabase
+      // Fetch from super_admin_audit_logs
+      let superAdminQuery = supabase
         .from('super_admin_audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (actionTypeFilter !== 'all') {
-        query = query.eq('action_type', actionTypeFilter);
+        superAdminQuery = superAdminQuery.eq('action_type', actionTypeFilter);
       }
       if (targetTypeFilter !== 'all') {
-        query = query.eq('target_type', targetTypeFilter);
+        superAdminQuery = superAdminQuery.eq('target_type', targetTypeFilter);
       }
       if (adminFilter !== 'all') {
-        query = query.eq('user_id', adminFilter);
+        superAdminQuery = superAdminQuery.eq('user_id', adminFilter);
       }
 
-      const { data, error } = await query;
+      const { data: superAdminData, error: superAdminError } = await superAdminQuery;
+      if (superAdminError) throw superAdminError;
 
-      if (error) throw error;
+      // Fetch from admin_audit_logs (includes client admin actions)
+      let adminQuery = supabase
+        .from('admin_audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (actionTypeFilter !== 'all') {
+        adminQuery = adminQuery.eq('action_type', actionTypeFilter);
+      }
+      if (targetTypeFilter !== 'all') {
+        adminQuery = adminQuery.eq('target_type', targetTypeFilter);
+      }
+      if (adminFilter !== 'all') {
+        adminQuery = adminQuery.eq('user_id', adminFilter);
+      }
+
+      const { data: adminData, error: adminError } = await adminQuery;
+      if (adminError) throw adminError;
+
+      // Combine and deduplicate logs (prefer admin_audit_logs as it's more complete)
+      const adminLogIds = new Set((adminData || []).map(l => l.id));
+      const combinedLogs = [
+        ...(adminData || []).map(l => ({ ...l, source: 'admin' as const })),
+        ...(superAdminData || [])
+          .filter(l => !adminLogIds.has(l.id))
+          .map(l => ({ ...l, source: 'super_admin' as const })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       // Fetch profile info for each log
-      const userIds = [...new Set((data || []).map(d => d.user_id))];
+      const userIds = [...new Set(combinedLogs.map(d => d.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
@@ -132,9 +174,23 @@ export default function AuditLogs() {
 
       const profileMap = new Map(profiles?.map(p => [p.id, p]));
 
-      const logsWithProfiles = (data || []).map(log => ({
+      // Fetch client info for admin_audit_logs
+      const clientIds = [...new Set(combinedLogs
+        .filter(l => 'client_id' in l && l.client_id)
+        .map(l => (l as { client_id: string }).client_id)
+      )];
+      const { data: clients } = clientIds.length > 0 
+        ? await supabase.from('clients').select('id, name').in('id', clientIds)
+        : { data: [] };
+
+      const clientMap = new Map((clients || []).map(c => [c.id, c]));
+
+      const logsWithProfiles = combinedLogs.map(log => ({
         ...log,
         profiles: profileMap.get(log.user_id) || null,
+        client: 'client_id' in log && log.client_id 
+          ? clientMap.get(log.client_id as string) || null 
+          : null,
       }));
 
       setLogs(logsWithProfiles as AuditLog[]);
@@ -168,13 +224,17 @@ export default function AuditLogs() {
     const labels: Record<string, { fr: string; en: string }> = {
       create_client: { fr: 'Création organisation', en: 'Create organization' },
       edit_client: { fr: 'Modification organisation', en: 'Edit organization' },
+      update_client: { fr: 'Modification organisation', en: 'Update organization' },
       delete_client: { fr: 'Suppression organisation', en: 'Delete organization' },
       suspend_client: { fr: 'Suspension organisation', en: 'Suspend organization' },
       unsuspend_client: { fr: 'Réactivation organisation', en: 'Unsuspend organization' },
+      deactivate_client: { fr: 'Désactivation organisation', en: 'Deactivate organization' },
       regenerate_invite: { fr: 'Régénération code', en: 'Regenerate invite' },
       create_user: { fr: 'Création utilisateur', en: 'Create user' },
       edit_user: { fr: 'Modification utilisateur', en: 'Edit user' },
       delete_user: { fr: 'Suppression utilisateur', en: 'Delete user' },
+      deactivate_user: { fr: 'Désactivation utilisateur', en: 'Deactivate user' },
+      reactivate_user: { fr: 'Réactivation utilisateur', en: 'Reactivate user' },
       change_role: { fr: 'Changement de rôle', en: 'Change role' },
     };
     return labels[action]?.[language] || action;
@@ -190,6 +250,10 @@ export default function AuditLogs() {
   };
 
   const getTargetName = (log: AuditLog): string => {
+    // First try target_name from admin_audit_logs
+    if (log.target_name) return log.target_name;
+    
+    // Then try from metadata
     const metadata = log.metadata as Record<string, unknown>;
     return (metadata?.name as string) || (metadata?.client_name as string) || (metadata?.email as string) || log.target_id || 'N/A';
   };

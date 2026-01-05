@@ -40,6 +40,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 import { Navigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
@@ -62,9 +63,33 @@ interface Client {
 }
 
 export default function Users() {
-  const { profile, isSuperAdmin, isClientAdmin } = useAuth();
+  const { profile, isSuperAdmin, isClientAdmin, user } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
+
+  // Helper function to log admin actions
+  const logAdminAction = async (
+    actionType: string,
+    targetType: string,
+    targetId: string,
+    targetName: string | null,
+    metadata?: Record<string, unknown>
+  ) => {
+    if (!user) return;
+    try {
+      await supabase.from('admin_audit_logs').insert({
+        user_id: user.id,
+        action_type: actionType,
+        target_type: targetType,
+        target_id: targetId,
+        target_name: targetName,
+        client_id: profile?.client_id || null,
+        metadata: (metadata || {}) as Json,
+      });
+    } catch (error) {
+      console.error('Error logging admin action:', error);
+    }
+  };
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -279,6 +304,18 @@ export default function Users() {
         .update({ status: 'deactivated' })
         .eq('id', selectedUser.id);
 
+      // Log the deactivation action
+      await logAdminAction(
+        'deactivate_user',
+        'user',
+        selectedUser.id,
+        selectedUser.full_name || selectedUser.email,
+        { 
+          email: selectedUser.email,
+          previous_role: selectedUser.role,
+        }
+      );
+
       toast({
         title: t('common.success'),
         description: language === 'fr' ? 'Utilisateur désactivé' : 'User deactivated',
@@ -311,6 +348,18 @@ export default function Users() {
       await supabase
         .from('user_roles')
         .insert({ user_id: selectedUser.id, role: formRole });
+
+      // Log the reactivation action
+      await logAdminAction(
+        'reactivate_user',
+        'user',
+        selectedUser.id,
+        selectedUser.full_name || selectedUser.email,
+        { 
+          email: selectedUser.email,
+          new_role: formRole,
+        }
+      );
 
       toast({
         title: t('common.success'),

@@ -318,6 +318,7 @@ export default function Clients() {
   const logAdminAction = async (actionType: string, targetType: string, targetId?: string, metadata?: Record<string, unknown>) => {
     if (!user) return;
     try {
+      // Log to super_admin_audit_logs for backward compatibility
       await supabase.from('super_admin_audit_logs').insert([{
         user_id: user.id,
         action_type: actionType,
@@ -325,6 +326,17 @@ export default function Clients() {
         target_id: targetId || null,
         metadata: (metadata || {}) as Json,
       }]);
+      
+      // Also log to admin_audit_logs for the unified audit view
+      await supabase.from('admin_audit_logs').insert({
+        user_id: user.id,
+        action_type: actionType,
+        target_type: targetType,
+        target_id: targetId || null,
+        target_name: (metadata as any)?.name || null,
+        client_id: targetType === 'client' ? targetId : null,
+        metadata: (metadata || {}) as Json,
+      });
     } catch (error) {
       console.error('Error logging admin action:', error);
     }
