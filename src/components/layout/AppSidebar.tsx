@@ -46,7 +46,13 @@ export function AppSidebar() {
       href: '/dashboard', 
       icon: LayoutDashboard, 
       label: t('nav.dashboard'),
-      show: true 
+      show: isSuperAdmin || isClientAdmin 
+    },
+    { 
+      href: '/my-dashboard', 
+      icon: LayoutDashboard, 
+      label: t('nav.myDashboard'),
+      show: !isSuperAdmin && !isClientAdmin 
     },
     { 
       href: '/documents', 
@@ -65,12 +71,6 @@ export function AppSidebar() {
       icon: Upload, 
       label: t('nav.upload'),
       show: canManageDocuments 
-    },
-    { 
-      href: '/my-dashboard', 
-      icon: User, 
-      label: t('nav.myDashboard'),
-      show: !canManageDocuments 
     },
   ];
 
