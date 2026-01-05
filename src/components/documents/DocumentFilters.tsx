@@ -50,14 +50,14 @@ export function DocumentFilters({ filters, onFiltersChange, departments }: Docum
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
+      {/* Prominent Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
           placeholder={t('documents.searchPlaceholder')}
           value={filters.search}
           onChange={(e) => updateFilter('search', e.target.value)}
-          className="pl-10 input-search"
+          className="pl-12 h-12 text-base border-2 focus:border-primary shadow-sm"
         />
       </div>
 
