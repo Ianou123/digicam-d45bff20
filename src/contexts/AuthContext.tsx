@@ -171,10 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    setRoles([]);
-    setClientStatus(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+      }
+    } catch (error) {
+      console.error('Error in signOut:', error);
+    } finally {
+      // Always clear state regardless of API response
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setRoles([]);
+      setClientStatus(null);
+    }
   };
 
   const isSuperAdmin = roles.includes('super_admin');
