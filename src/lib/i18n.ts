@@ -71,6 +71,7 @@ export const translations = {
       versions: 'Historique des versions',
       changeNotes: 'Notes de modification',
       ocrText: 'Texte OCR',
+      recentSearches: 'Recherches récentes',
     },
     // Dashboard
     dashboard: {
@@ -211,6 +212,7 @@ export const translations = {
       versions: 'Version history',
       changeNotes: 'Change notes',
       ocrText: 'OCR Text',
+      recentSearches: 'Recent searches',
     },
     // Dashboard
     dashboard: {
