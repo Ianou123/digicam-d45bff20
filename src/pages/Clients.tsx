@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Building2, Users, FileText, Copy, RefreshCw, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -40,6 +40,7 @@ interface ClientWithStats {
   slug: string;
   logo_url: string | null;
   created_at: string;
+  invite_code: string | null;
   usersCount: number;
   documentsCount: number;
 }
@@ -60,6 +61,7 @@ export default function Clients() {
   // Form state
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -123,6 +125,50 @@ export default function Clients() {
       .replace(/^-|-$/g, '');
   };
 
+  const generateInviteCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const copyToClipboard = async (code: string) => {
+    await navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+    toast({
+      title: t('common.success'),
+      description: t('clients.codeCopied'),
+    });
+  };
+
+  const regenerateInviteCode = async (clientId: string) => {
+    const newCode = generateInviteCode();
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ invite_code: newCode })
+        .eq('id', clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Code régénéré' : 'Code regenerated',
+      });
+      fetchClients();
+    } catch (error: any) {
+      console.error('Error regenerating code:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message,
+      });
+    }
+  };
+
   const handleAddClient = async () => {
     if (!formName || !formSlug) {
       toast({
@@ -134,9 +180,10 @@ export default function Clients() {
     }
 
     try {
+      const inviteCode = generateInviteCode();
       const { error } = await supabase
         .from('clients')
-        .insert({ name: formName, slug: formSlug });
+        .insert({ name: formName, slug: formSlug, invite_code: inviteCode });
 
       if (error) throw error;
 
@@ -283,6 +330,7 @@ export default function Clients() {
               <TableRow>
                 <TableHead>{t('clients.name')}</TableHead>
                 <TableHead>{t('clients.slug')}</TableHead>
+                <TableHead>{t('clients.inviteCode')}</TableHead>
                 <TableHead>{t('clients.usersCount')}</TableHead>
                 <TableHead>{t('clients.documentsCount')}</TableHead>
                 <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
@@ -292,13 +340,13 @@ export default function Clients() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     {language === 'fr' ? 'Aucune organisation trouvée' : 'No organizations found'}
                   </TableCell>
                 </TableRow>
@@ -315,6 +363,37 @@ export default function Clients() {
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-sm">
                       {client.slug}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
+                          {client.invite_code || '-'}
+                        </code>
+                        {client.invite_code && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => copyToClipboard(client.invite_code!)}
+                            >
+                              {copiedCode === client.invite_code ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => regenerateInviteCode(client.id)}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">

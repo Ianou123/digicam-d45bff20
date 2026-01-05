@@ -66,6 +66,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          invite_code: string | null
           logo_url: string | null
           name: string
           slug: string
@@ -74,6 +75,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          invite_code?: string | null
           logo_url?: string | null
           name: string
           slug: string
@@ -82,6 +84,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          invite_code?: string | null
           logo_url?: string | null
           name?: string
           slug?: string
@@ -295,6 +298,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

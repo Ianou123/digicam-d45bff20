@@ -36,6 +36,7 @@ export const translations = {
       invalidCredentials: 'Identifiants invalides',
       emailInUse: 'Cette adresse e-mail est déjà utilisée',
       passwordMismatch: 'Les mots de passe ne correspondent pas',
+      inviteCode: 'Code d\'invitation',
     },
     // Documents
     documents: {
@@ -142,6 +143,10 @@ export const translations = {
       logo: 'Logo',
       usersCount: 'Nombre d\'utilisateurs',
       documentsCount: 'Nombre de documents',
+      inviteCode: 'Code d\'invitation',
+      copyCode: 'Copier le code',
+      codeCopied: 'Code copié',
+      regenerateCode: 'Régénérer le code',
     },
   },
   en: {
@@ -177,6 +182,7 @@ export const translations = {
       invalidCredentials: 'Invalid credentials',
       emailInUse: 'This email is already in use',
       passwordMismatch: 'Passwords do not match',
+      inviteCode: 'Invite code',
     },
     // Documents
     documents: {
@@ -283,6 +289,10 @@ export const translations = {
       logo: 'Logo',
       usersCount: 'Number of users',
       documentsCount: 'Number of documents',
+      inviteCode: 'Invite code',
+      copyCode: 'Copy code',
+      codeCopied: 'Code copied',
+      regenerateCode: 'Regenerate code',
     },
   },
 } as const;
