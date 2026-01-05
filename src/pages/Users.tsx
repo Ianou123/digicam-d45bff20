@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserPlus, Building2, Clock, UserX, Mail } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserPlus, Building2, Clock, UserX, Mail, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +53,7 @@ interface UserWithRole {
   created_at: string;
   role: 'super_admin' | 'client_admin' | 'staff' | null;
   last_active?: string | null;
+  status: 'active' | 'deactivated';
 }
 
 interface Client {
@@ -74,6 +75,7 @@ export default function Users() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   
   // Form state
@@ -137,6 +139,7 @@ export default function Users() {
           ...profile,
           role: userRole?.role || null,
           last_active: lastActivityMap[profile.id] || null,
+          status: (profile.status as 'active' | 'deactivated') || 'active',
         };
       });
 
@@ -269,6 +272,12 @@ export default function Users() {
         .delete()
         .eq('user_id', selectedUser.id);
 
+      // Update profile status to deactivated
+      await supabase
+        .from('profiles')
+        .update({ status: 'deactivated' })
+        .eq('id', selectedUser.id);
+
       toast({
         title: t('common.success'),
         description: language === 'fr' ? 'Utilisateur désactivé' : 'User deactivated',
@@ -283,6 +292,39 @@ export default function Users() {
         variant: 'destructive',
         title: t('common.error'),
         description: error.message || 'Failed to deactivate user',
+      });
+    }
+  };
+
+  const handleReactivateUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      // Update profile status to active
+      await supabase
+        .from('profiles')
+        .update({ status: 'active' })
+        .eq('id', selectedUser.id);
+
+      // Insert new role
+      await supabase
+        .from('user_roles')
+        .insert({ user_id: selectedUser.id, role: formRole });
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Utilisateur réactivé' : 'User reactivated',
+      });
+
+      setIsReactivateModalOpen(false);
+      resetForm();
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error reactivating user:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to reactivate user',
       });
     }
   };
@@ -306,13 +348,24 @@ export default function Users() {
     setIsDeleteModalOpen(true);
   };
 
+  const openReactivateModal = (user: UserWithRole) => {
+    setSelectedUser(user);
+    setFormRole('staff');
+    setIsReactivateModalOpen(true);
+  };
+
   const getInitials = (name: string | null) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const getRoleBadge = (role: string | null) => {
-    switch (role) {
+  const getRoleBadge = (user: UserWithRole) => {
+    // Show deactivated badge if user is deactivated
+    if (user.status === 'deactivated') {
+      return <Badge variant="destructive">{t('deactivation.deactivated')}</Badge>;
+    }
+    
+    switch (user.role) {
       case 'super_admin':
         return <Badge className="bg-primary">{t('users.superAdmin')}</Badge>;
       case 'client_admin':
@@ -449,7 +502,7 @@ export default function Users() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>{getRoleBadge(user)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Clock className="h-3.5 w-3.5" />
@@ -469,18 +522,30 @@ export default function Users() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditModal(user)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            {language === 'fr' ? 'Modifier le rôle' : 'Change Role'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => openDeactivateModal(user)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <UserX className="h-4 w-4 mr-2" />
-                            {language === 'fr' ? 'Désactiver' : 'Deactivate'}
-                          </DropdownMenuItem>
+                          {user.status === 'deactivated' ? (
+                            <DropdownMenuItem 
+                              onClick={() => openReactivateModal(user)}
+                              className="text-green-600 focus:text-green-600"
+                            >
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              {t('deactivation.reactivate')}
+                            </DropdownMenuItem>
+                          ) : (
+                            <>
+                              <DropdownMenuItem onClick={() => openEditModal(user)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {language === 'fr' ? 'Modifier le rôle' : 'Change Role'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => openDeactivateModal(user)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <UserX className="h-4 w-4 mr-2" />
+                                {language === 'fr' ? 'Désactiver' : 'Deactivate'}
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -604,6 +669,45 @@ export default function Users() {
             <Button variant="destructive" onClick={handleDeactivateUser}>
               <UserX className="h-4 w-4 mr-2" />
               {language === 'fr' ? 'Désactiver' : 'Deactivate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reactivate User Modal */}
+      <Dialog open={isReactivateModalOpen} onOpenChange={setIsReactivateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t('deactivation.reactivate')} {selectedUser?.full_name || selectedUser?.email}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Sélectionnez un rôle pour réactiver cet utilisateur.'
+                : 'Select a role to reactivate this user.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t('users.role')}</Label>
+              <Select value={formRole} onValueChange={(v: 'client_admin' | 'staff') => setFormRole(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  <SelectItem value="staff">{t('users.staff')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReactivateModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleReactivateUser} className="bg-green-600 hover:bg-green-700">
+              <UserCheck className="h-4 w-4 mr-2" />
+              {t('deactivation.reactivate')}
             </Button>
           </DialogFooter>
         </DialogContent>

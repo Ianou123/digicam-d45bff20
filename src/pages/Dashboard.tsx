@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, Building2, TrendingUp, TrendingDown, HardDrive, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Users, Building2, TrendingUp, TrendingDown, HardDrive, CheckCircle, XCircle, AlertTriangle, UserX, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -46,6 +46,14 @@ interface ClientAttention {
   last_activity_at: string | null;
 }
 
+interface DeactivatedUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  client_id: string | null;
+  clients: { name: string } | null;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
@@ -61,6 +69,7 @@ export default function Dashboard() {
   const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [clientsNeedingAttention, setClientsNeedingAttention] = useState<ClientAttention[]>([]);
+  const [deactivatedUsers, setDeactivatedUsers] = useState<DeactivatedUser[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -115,6 +124,15 @@ export default function Dashboard() {
             .slice(0, 5);
           setClientsNeedingAttention(attentionClients);
         }
+
+        // Fetch deactivated users
+        const { data: deactivatedUsersData } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, client_id, clients(name)')
+          .eq('status', 'deactivated')
+          .limit(5);
+        
+        setDeactivatedUsers((deactivatedUsersData || []) as unknown as DeactivatedUser[]);
 
         // Fetch activity trend (last 7 days vs previous 7 days)
         const now = new Date();
@@ -344,7 +362,7 @@ export default function Dashboard() {
         {/* Content Grid */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Clients Needing Attention */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-serif">
@@ -384,6 +402,49 @@ export default function Dashboard() {
                   <div className="text-center py-8 text-muted-foreground">
                     <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-30" />
                     <p>{language === 'fr' ? 'Tous les clients sont en bonne santé' : 'All clients are healthy'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Deactivated Users */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg font-serif">
+                  {t('deactivation.deactivatedUsers')}
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+                  {language === 'fr' ? 'Voir tous' : 'View all'}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {deactivatedUsers.length > 0 ? (
+                  <div className="space-y-3">
+                    {deactivatedUsers.map((user) => (
+                      <div 
+                        key={user.id} 
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                        onClick={() => navigate('/users')}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                            <UserX className="h-5 w-5 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{user.full_name || user.email}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {user.clients?.name || (language === 'fr' ? 'Aucune organisation' : 'No organization')}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="destructive">{t('deactivation.deactivated')}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>{t('deactivation.noDeactivatedUsers')}</p>
                   </div>
                 )}
               </CardContent>

@@ -246,6 +246,7 @@ export type Database = {
           full_name: string | null
           id: string
           preferred_language: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -256,6 +257,7 @@ export type Database = {
           full_name?: string | null
           id: string
           preferred_language?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -266,6 +268,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           preferred_language?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -346,6 +349,7 @@ export type Database = {
       is_client_admin: { Args: { _user_id: string }; Returns: boolean }
       is_client_suspended: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_user_deactivated: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       action_type:

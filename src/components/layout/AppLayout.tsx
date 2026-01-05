@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { SuspendedBanner } from './SuspendedBanner';
+import { DeactivatedUserPage } from '@/components/DeactivatedUserPage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,7 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading, isClientSuspended, isSuperAdmin } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
 
@@ -39,6 +40,11 @@ export function AppLayout() {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Block deactivated users with full-page message
+  if (isUserDeactivated) {
+    return <DeactivatedUserPage />;
   }
 
   const titleKey = pageTitles[location.pathname];
