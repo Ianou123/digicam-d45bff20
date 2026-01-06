@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserPlus, Building2, Clock, UserX, Mail, UserCheck } from 'lucide-react';
+import { Search, MoreHorizontal, Pencil, Building2, UserX, Mail, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +42,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 import { Navigate } from 'react-router-dom';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
 interface UserWithRole {
@@ -53,7 +53,6 @@ interface UserWithRole {
   client_id: string | null;
   created_at: string;
   role: 'super_admin' | 'client_admin' | 'staff' | null;
-  last_active?: string | null;
   status: 'active' | 'deactivated';
 }
 
@@ -144,27 +143,12 @@ export default function Users() {
 
       if (rolesError) throw rolesError;
 
-      // Fetch last activity for each user
-      const { data: activityData } = await supabase
-        .from('activity_logs')
-        .select('user_id, created_at')
-        .order('created_at', { ascending: false });
-
-      // Get last activity per user
-      const lastActivityMap: Record<string, string> = {};
-      activityData?.forEach(a => {
-        if (!lastActivityMap[a.user_id]) {
-          lastActivityMap[a.user_id] = a.created_at;
-        }
-      });
-
-      // Merge profiles with roles and last activity
+      // Merge profiles with roles
       const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
         const userRole = roles?.find(r => r.user_id === profile.id);
         return {
           ...profile,
           role: userRole?.role || null,
-          last_active: lastActivityMap[profile.id] || null,
           status: (profile.status as 'active' | 'deactivated') || 'active',
         };
       });
@@ -246,10 +230,38 @@ export default function Users() {
     }
   };
 
+  // Helper function to count Client Admins in the organization
+  const countClientAdmins = () => {
+    return users.filter(u => 
+      u.role === 'client_admin' && 
+      u.status === 'active' && 
+      u.client_id === profile?.client_id
+    ).length;
+  };
+
   const handleEditUser = async () => {
     if (!selectedUser) return;
 
     try {
+      // Check if demoting the last Client Admin
+      if (
+        !isSuperAdmin &&
+        selectedUser.role === 'client_admin' && 
+        formRole === 'staff'
+      ) {
+        const adminCount = countClientAdmins();
+        if (adminCount <= 1) {
+          toast({
+            variant: 'destructive',
+            title: t('common.error'),
+            description: language === 'fr' 
+              ? 'Votre organisation doit toujours avoir au moins un administrateur client.'
+              : 'Your organization must always have at least one Client Admin.',
+          });
+          return;
+        }
+      }
+
       // Update profile
       await supabase
         .from('profiles')
@@ -292,6 +304,22 @@ export default function Users() {
     if (!selectedUser) return;
 
     try {
+      // Check if deactivating the last Client Admin
+      if (!isSuperAdmin && selectedUser.role === 'client_admin') {
+        const adminCount = countClientAdmins();
+        if (adminCount <= 1) {
+          toast({
+            variant: 'destructive',
+            title: t('common.error'),
+            description: language === 'fr' 
+              ? 'Votre organisation doit toujours avoir au moins un administrateur client.'
+              : 'Your organization must always have at least one Client Admin.',
+          });
+          setIsDeleteModalOpen(false);
+          return;
+        }
+      }
+
       // Delete role (effectively deactivates the user)
       await supabase
         .from('user_roles')
@@ -427,13 +455,6 @@ export default function Users() {
     }
   };
 
-  const getLastActiveText = (lastActive: string | null) => {
-    if (!lastActive) return language === 'fr' ? 'Jamais' : 'Never';
-    return formatDistanceToNow(new Date(lastActive), { 
-      addSuffix: true, 
-      locale: language === 'fr' ? fr : enUS 
-    });
-  };
 
   const filteredUsers = users.filter(user => {
     const searchLower = searchQuery.toLowerCase();
@@ -531,7 +552,6 @@ export default function Users() {
               <TableRow>
                 <TableHead>{language === 'fr' ? 'Utilisateur' : 'User'}</TableHead>
                 <TableHead>{t('users.role')}</TableHead>
-                <TableHead>{language === 'fr' ? 'Dernière activité' : 'Last Active'}</TableHead>
                 <TableHead>{language === 'fr' ? 'Inscrit le' : 'Joined'}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -539,13 +559,13 @@ export default function Users() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     {language === 'fr' ? 'Aucun utilisateur trouvé' : 'No users found'}
                   </TableCell>
                 </TableRow>
@@ -567,12 +587,6 @@ export default function Users() {
                       </div>
                     </TableCell>
                     <TableCell>{getRoleBadge(user)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span className="text-sm">{getLastActiveText(user.last_active)}</span>
-                      </div>
-                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {format(new Date(user.created_at), 'PPP', {
                         locale: language === 'fr' ? fr : enUS,
