@@ -8,6 +8,7 @@ export const translations = {
     nav: {
       dashboard: 'Tableau de bord',
       documents: 'Documents',
+      departments: 'Services',
       search: 'Recherche',
       upload: 'Téléverser',
       users: 'Utilisateurs',
@@ -70,6 +71,7 @@ export const translations = {
       public: 'Public',
       internal: 'Interne',
       confidential: 'Confidentiel',
+      unassigned: 'Non assigné',
       versions: 'Historique des versions',
       changeNotes: 'Notes de modification',
       ocrText: 'Texte OCR',
@@ -199,6 +201,7 @@ export const translations = {
     nav: {
       dashboard: 'Dashboard',
       documents: 'Documents',
+      departments: 'Departments',
       search: 'Search',
       upload: 'Upload',
       users: 'Users',
@@ -261,6 +264,7 @@ export const translations = {
       public: 'Public',
       internal: 'Internal',
       confidential: 'Confidential',
+      unassigned: 'Unassigned',
       versions: 'Version history',
       changeNotes: 'Change notes',
       ocrText: 'OCR Text',
