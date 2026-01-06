@@ -12,7 +12,7 @@ export default function Upload() {
   const navigate = useNavigate();
   const { profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(true);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function Upload() {
 
     const { data } = await supabase
       .from('departments')
-      .select('id, name')
+      .select('id, name, archived_at')
       .eq('client_id', profile.client_id);
 
     setDepartments(data || []);

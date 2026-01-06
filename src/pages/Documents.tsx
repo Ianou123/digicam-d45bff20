@@ -63,7 +63,7 @@ export default function Documents() {
   const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
@@ -159,7 +159,7 @@ export default function Documents() {
   const fetchDepartments = async () => {
     if (!profile?.client_id && !isSuperAdmin) return;
 
-    let query = supabase.from('departments').select('id, name');
+    let query = supabase.from('departments').select('id, name, archived_at');
     
     if (!isSuperAdmin && profile?.client_id) {
       query = query.eq('client_id', profile.client_id);
@@ -209,7 +209,9 @@ export default function Documents() {
       }
 
       // Apply filters
-      if (filters.department) {
+      if (filters.department === 'unassigned') {
+        query = query.is('department_id', null);
+      } else if (filters.department) {
         query = query.eq('department_id', filters.department);
       }
       if (filters.type) {

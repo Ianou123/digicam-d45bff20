@@ -22,7 +22,7 @@ interface FilterState {
 interface DocumentFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
-  departments: { id: string; name: string }[];
+  departments: { id: string; name: string; archived_at?: string | null }[];
   searchHistory?: string[];
   onSearchHistoryClick?: (query: string) => void;
 }
@@ -98,9 +98,11 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('documents.allDepartments')}</SelectItem>
+            <SelectItem value="unassigned">{t('documents.unassigned') || 'Non assigné'}</SelectItem>
+            {/* Show all departments in filters (including archived) so users can filter existing docs */}
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>
-                {dept.name}
+                {dept.name} {dept.archived_at ? '(archivé)' : ''}
               </SelectItem>
             ))}
           </SelectContent>

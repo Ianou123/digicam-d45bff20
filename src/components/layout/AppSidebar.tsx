@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, 
   FileText, 
-   
+  FolderOpen,
   Upload, 
   Users, 
   Building2, 
@@ -60,6 +60,12 @@ export function AppSidebar() {
       icon: FileText, 
       label: t('nav.documents'),
       show: true 
+    },
+    { 
+      href: '/departments', 
+      icon: FolderOpen, 
+      label: t('nav.departments'),
+      show: isSuperAdmin || isClientAdmin 
     },
     { 
       href: '/upload', 

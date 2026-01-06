@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 interface UploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  departments: { id: string; name: string }[];
+  departments: { id: string; name: string; archived_at?: string | null }[];
   onSuccess?: () => void;
 }
 
@@ -244,22 +244,27 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
             />
           </div>
 
-          {/* Department */}
+          {/* Department - Only show active (non-archived) departments */}
           <div className="space-y-2">
             <Label>{t('documents.department')}</Label>
             <Select
               value={formData.departmentId}
-              onValueChange={(v) => setFormData(prev => ({ ...prev, departmentId: v }))}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, departmentId: v === 'unassigned' ? '' : v }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('documents.allDepartments')} />
               </SelectTrigger>
               <SelectContent>
-                {departments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="unassigned">
+                  {t('documents.unassigned') || 'Non assigné'}
+                </SelectItem>
+                {departments
+                  .filter(dept => !dept.archived_at)
+                  .map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
