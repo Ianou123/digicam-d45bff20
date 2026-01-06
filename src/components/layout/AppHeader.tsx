@@ -1,4 +1,4 @@
-import { Bell, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
+import { Bell, Building2, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
-  const { profile, isSuperAdmin, isClientAdmin } = useAuth();
+  const { profile, isSuperAdmin, isClientAdmin, clientName } = useAuth();
 
   const getRoleBadge = () => {
     if (isSuperAdmin) {
@@ -63,6 +63,14 @@ export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Organization Name - visible for non-super-admins */}
+        {!isSuperAdmin && clientName && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">{clientName}</span>
+          </div>
+        )}
+
         {/* User Role Badge */}
         {getRoleBadge()}
 
