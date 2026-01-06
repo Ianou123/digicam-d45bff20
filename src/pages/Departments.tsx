@@ -133,7 +133,7 @@ export default function Departments() {
 
       await logAdminAction('create_department', data.id, data.name);
       
-      toast.success(language === 'fr' ? 'Service créé avec succès' : 'Department created successfully');
+      toast.success(language === 'fr' ? 'Département créé avec succès' : 'Department created successfully');
       setCreateModalOpen(false);
       setDepartmentName('');
       fetchDepartments();
@@ -163,7 +163,7 @@ export default function Departments() {
         new_name: departmentName.trim(),
       });
       
-      toast.success(language === 'fr' ? 'Service renommé avec succès' : 'Department renamed successfully');
+      toast.success(language === 'fr' ? 'Département renommé avec succès' : 'Department renamed successfully');
       setEditModalOpen(false);
       setSelectedDepartment(null);
       setDepartmentName('');
@@ -190,7 +190,7 @@ export default function Departments() {
 
       await logAdminAction('archive_department', selectedDepartment.id, selectedDepartment.name);
       
-      toast.success(language === 'fr' ? 'Service archivé avec succès' : 'Department archived successfully');
+      toast.success(language === 'fr' ? 'Département archivé avec succès' : 'Department archived successfully');
       setArchiveDialogOpen(false);
       setSelectedDepartment(null);
       fetchDepartments();
@@ -215,7 +215,7 @@ export default function Departments() {
 
       await logAdminAction('restore_department', dept.id, dept.name);
       
-      toast.success(language === 'fr' ? 'Service restauré avec succès' : 'Department restored successfully');
+      toast.success(language === 'fr' ? 'Département restauré avec succès' : 'Department restored successfully');
       fetchDepartments();
     } catch (error) {
       console.error('Error restoring department:', error);
@@ -252,12 +252,12 @@ export default function Departments() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif font-semibold">
-            {language === 'fr' ? 'Services' : 'Departments'}
+            {language === 'fr' ? 'Départements' : 'Departments'}
           </h2>
           <p className="text-muted-foreground">
             {isSuperAdmin 
-              ? (language === 'fr' ? 'Aperçu des services par organisation' : 'Overview of departments by organization')
-              : (language === 'fr' ? 'Gérez les services de votre organisation' : 'Manage your organization\'s departments')
+              ? (language === 'fr' ? 'Aperçu des départements par organisation' : 'Overview of departments by organization')
+              : (language === 'fr' ? 'Gérez les départements de votre organisation' : 'Manage your organization\'s departments')
             }
           </p>
         </div>
@@ -265,7 +265,7 @@ export default function Departments() {
         {canManage && (
           <Button onClick={() => setCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Nouveau service' : 'New Department'}
+            {language === 'fr' ? 'Nouveau département' : 'New Department'}
           </Button>
         )}
       </div>
@@ -301,14 +301,14 @@ export default function Departments() {
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
               {showArchived 
-                ? (language === 'fr' ? 'Aucun service archivé' : 'No archived departments')
-                : (language === 'fr' ? 'Aucun service actif' : 'No active departments')
+                ? (language === 'fr' ? 'Aucun département archivé' : 'No archived departments')
+                : (language === 'fr' ? 'Aucun département actif' : 'No active departments')
               }
             </p>
             {canManage && !showArchived && (
               <Button className="mt-4" onClick={() => setCreateModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                {language === 'fr' ? 'Créer un service' : 'Create Department'}
+                {language === 'fr' ? 'Créer un département' : 'Create Department'}
               </Button>
             )}
           </CardContent>
@@ -376,12 +376,12 @@ export default function Departments() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {language === 'fr' ? 'Nouveau service' : 'New Department'}
+              {language === 'fr' ? 'Nouveau département' : 'New Department'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input
-              placeholder={language === 'fr' ? 'Nom du service' : 'Department name'}
+              placeholder={language === 'fr' ? 'Nom du département' : 'Department name'}
               value={departmentName}
               onChange={(e) => setDepartmentName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -404,12 +404,12 @@ export default function Departments() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {language === 'fr' ? 'Renommer le service' : 'Rename Department'}
+              {language === 'fr' ? 'Renommer le département' : 'Rename Department'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input
-              placeholder={language === 'fr' ? 'Nom du service' : 'Department name'}
+              placeholder={language === 'fr' ? 'Nom du département' : 'Department name'}
               value={departmentName}
               onChange={(e) => setDepartmentName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleRename()}
@@ -432,11 +432,11 @@ export default function Departments() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {language === 'fr' ? 'Archiver ce service ?' : 'Archive this department?'}
+              {language === 'fr' ? 'Archiver ce département ?' : 'Archive this department?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {language === 'fr' 
-                ? 'Ce service ne sera plus sélectionnable pour de nouveaux documents. Les documents existants conserveront leur association à ce service.'
+                ? 'Ce département ne sera plus sélectionnable pour de nouveaux documents. Les documents existants conserveront leur association à ce département.'
                 : 'This department will no longer be selectable for new documents. Existing documents will retain their association with this department.'
               }
             </AlertDialogDescription>
