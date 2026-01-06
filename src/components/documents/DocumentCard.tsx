@@ -8,11 +8,14 @@ import {
   MoreVertical,
   Calendar,
   User,
-  Shield
+  Shield,
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,10 +42,14 @@ interface DocumentCardProps {
     department?: { name: string } | null;
     profiles?: { full_name: string } | null;
   };
+  isInTrash?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onRestore?: (id: string) => void;
 }
 
 const documentTypeIcons: Record<string, any> = {
@@ -65,10 +72,14 @@ const confidentialityColors: Record<string, string> = {
 
 export function DocumentCard({
   document,
+  isInTrash = false,
+  selected = false,
+  onSelect,
   onView,
   onDownload,
   onEdit,
   onDelete,
+  onRestore,
 }: DocumentCardProps) {
   const { t, language } = useLanguage();
   const { canManageDocuments } = useAuth();
@@ -86,9 +97,20 @@ export function DocumentCard({
   };
 
   return (
-    <Card className="document-card group">
+    <Card className={cn("document-card group", selected && "ring-2 ring-primary")}>
       <CardContent className="p-0">
         <div className="flex gap-4">
+          {/* Selection Checkbox */}
+          {onSelect && (
+            <div className="flex-shrink-0 flex items-start pt-1">
+              <Checkbox 
+                checked={selected} 
+                onCheckedChange={onSelect}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
           {/* Icon */}
           <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
             <Icon className="h-6 w-6 text-muted-foreground" />
@@ -118,42 +140,77 @@ export function DocumentCard({
 
               {/* Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onView?.(document.id)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onDownload?.(document.id)}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                {canManageDocuments && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit?.(document.id)}>
-                        {t('documents.edit')}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => onDelete?.(document.id)}
-                        className="text-destructive focus:text-destructive"
+                {isInTrash ? (
+                  // Trash view actions
+                  <>
+                    {onRestore && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onRestore(document.id)}
+                        title={t('documents.restore')}
                       >
-                        {t('documents.delete')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => onDelete(document.id)}
+                        title={t('documents.deletePermanently')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  // Normal view actions
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onView?.(document.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onDownload?.(document.id)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    {canManageDocuments && (onEdit || onDelete) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {onEdit && (
+                            <DropdownMenuItem onClick={() => onEdit(document.id)}>
+                              {t('documents.edit')}
+                            </DropdownMenuItem>
+                          )}
+                          {onEdit && onDelete && <DropdownMenuSeparator />}
+                          {onDelete && (
+                            <DropdownMenuItem 
+                              onClick={() => onDelete(document.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              {t('documents.moveToTrash')}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </>
                 )}
               </div>
             </div>

@@ -221,6 +221,7 @@ export type Database = {
           confidentiality_level: Database["public"]["Enums"]["confidentiality_level"]
           created_at: string
           current_version: number
+          deleted_at: string | null
           department_id: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size: number | null
@@ -237,6 +238,7 @@ export type Database = {
           confidentiality_level?: Database["public"]["Enums"]["confidentiality_level"]
           created_at?: string
           current_version?: number
+          deleted_at?: string | null
           department_id?: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
@@ -253,6 +255,7 @@ export type Database = {
           confidentiality_level?: Database["public"]["Enums"]["confidentiality_level"]
           created_at?: string
           current_version?: number
+          deleted_at?: string | null
           department_id?: string | null
           document_type?: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
