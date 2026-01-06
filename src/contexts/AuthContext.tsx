@@ -31,6 +31,7 @@ interface AuthContextType {
   canManageDocuments: boolean;
   refreshProfile: () => Promise<void>;
   clientStatus: ClientStatus | null;
+  clientName: string | null;
   isClientSuspended: boolean;
   isUserDeactivated: boolean;
 }
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [clientStatus, setClientStatus] = useState<ClientStatus | null>(null);
+  const [clientName, setClientName] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -69,19 +71,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status: (profileData.status as 'active' | 'deactivated') || 'active',
         });
 
-        // Fetch client status if user has a client
+        // Fetch client status and name if user has a client
         if (profileData.client_id) {
           const { data: clientData } = await supabase
             .from('clients')
-            .select('status')
+            .select('status, name')
             .eq('id', profileData.client_id)
             .maybeSingle();
 
           if (clientData) {
             setClientStatus(clientData.status as ClientStatus);
+            setClientName(clientData.name);
           }
         } else {
           setClientStatus(null);
+          setClientName(null);
         }
       }
 
@@ -185,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setRoles([]);
       setClientStatus(null);
+      setClientName(null);
     }
   };
 
@@ -212,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         canManageDocuments,
         refreshProfile,
         clientStatus,
+        clientName,
         isClientSuspended,
         isUserDeactivated,
       }}
