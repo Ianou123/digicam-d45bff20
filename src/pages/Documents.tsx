@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Document {
   id: string;
@@ -38,6 +40,7 @@ interface Document {
   tags: string[];
   current_version: number;
   file_url: string;
+  deleted_at: string | null;
   departments: { name: string } | null;
 }
 
@@ -70,6 +73,12 @@ export default function Documents() {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   
+  // Trash & Selection state
+  const [showTrash, setShowTrash] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState<'trash' | 'restore' | 'delete'>('trash');
+  
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     department: '',
@@ -89,7 +98,8 @@ export default function Documents() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [filters, selectedClientId]);
+    setSelectedDocuments(new Set()); // Clear selection when view changes
+  }, [filters, selectedClientId, showTrash]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -134,9 +144,7 @@ export default function Documents() {
     const previousSearch = filters.search;
     setFilters(newFilters);
     
-    // Log search when user changes the search term
     if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
-      // Debounce: only log after user stops typing
       const timeoutId = setTimeout(() => {
         logSearch(newFilters.search);
       }, 1000);
@@ -181,9 +189,17 @@ export default function Documents() {
           tags,
           current_version,
           file_url,
+          deleted_at,
           departments(name)
         `)
         .order('created_at', { ascending: false });
+
+      // Filter by trash status
+      if (showTrash) {
+        query = query.not('deleted_at', 'is', null);
+      } else {
+        query = query.is('deleted_at', null);
+      }
 
       // Apply client filter for Super Admin
       if (isSuperAdmin && selectedClientId !== 'all') {
@@ -217,7 +233,7 @@ export default function Documents() {
       setDocuments((data || []) as unknown as Document[]);
     } catch (error) {
       console.error('Error fetching documents:', error);
-      toast.error('Erreur lors du chargement des documents');
+      toast.error(language === 'fr' ? 'Erreur lors du chargement des documents' : 'Error loading documents');
     } finally {
       setLoading(false);
     }
@@ -255,41 +271,167 @@ export default function Documents() {
     navigate(`/documents/${id}/edit`);
   };
 
-  const handleDelete = async () => {
-    if (!documentToDelete) return;
+  // Soft delete - move to trash
+  const handleMoveToTrash = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', ids);
 
+      if (error) throw error;
+
+      toast.success(t('documents.movedToTrash'));
+      setSelectedDocuments(new Set());
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error moving to trash:', error);
+      toast.error(language === 'fr' ? 'Erreur lors du déplacement' : 'Error moving to trash');
+    }
+  };
+
+  // Restore from trash
+  const handleRestore = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ deleted_at: null })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      toast.success(t('documents.restored'));
+      setSelectedDocuments(new Set());
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error restoring:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la restauration' : 'Error restoring');
+    }
+  };
+
+  // Permanent delete
+  const handlePermanentDelete = async (ids: string[]) => {
     try {
       const { error } = await supabase
         .from('documents')
         .delete()
-        .eq('id', documentToDelete);
+        .in('id', ids);
 
       if (error) throw error;
 
       if (user && profile?.client_id) {
+        for (const id of ids) {
+          await supabase.from('activity_logs').insert({
+            user_id: user.id,
+            client_id: profile.client_id,
+            action_type: 'delete' as const,
+            document_id: id,
+          });
+        }
+      }
+
+      toast.success(t('documents.permanentlyDeleted'));
+      setSelectedDocuments(new Set());
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error deleting permanently:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la suppression' : 'Error deleting');
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    const selectedDocs = documents.filter(d => selectedDocuments.has(d.id));
+    
+    for (const doc of selectedDocs) {
+      if (user && profile?.client_id) {
         await supabase.from('activity_logs').insert({
           user_id: user.id,
           client_id: profile.client_id,
-          action_type: 'delete' as const,
-          document_id: documentToDelete,
+          action_type: 'download' as const,
+          document_id: doc.id,
         });
       }
+      window.open(doc.file_url, '_blank');
+    }
+    
+    setSelectedDocuments(new Set());
+  };
 
-      toast.success('Document supprimé');
-      fetchDocuments();
-    } catch (error) {
-      console.error('Error deleting document:', error);
-      toast.error('Erreur lors de la suppression');
-    } finally {
-      setDeleteDialogOpen(false);
-      setDocumentToDelete(null);
+  const confirmBulkAction = (type: 'trash' | 'restore' | 'delete') => {
+    setBulkActionType(type);
+    setBulkActionDialogOpen(true);
+  };
+
+  const executeBulkAction = async () => {
+    const ids = Array.from(selectedDocuments);
+    setBulkActionDialogOpen(false);
+    
+    switch (bulkActionType) {
+      case 'trash':
+        await handleMoveToTrash(ids);
+        break;
+      case 'restore':
+        await handleRestore(ids);
+        break;
+      case 'delete':
+        await handlePermanentDelete(ids);
+        break;
     }
   };
 
   const confirmDelete = (id: string) => {
-    setDocumentToDelete(id);
-    setDeleteDialogOpen(true);
+    if (showTrash) {
+      setSelectedDocuments(new Set([id]));
+      confirmBulkAction('delete');
+    } else {
+      setSelectedDocuments(new Set([id]));
+      confirmBulkAction('trash');
+    }
   };
+
+  const handleRestoreSingle = (id: string) => {
+    handleRestore([id]);
+  };
+
+  const toggleDocumentSelection = (id: string) => {
+    const newSelection = new Set(selectedDocuments);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedDocuments(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDocuments.size === documents.length) {
+      setSelectedDocuments(new Set());
+    } else {
+      setSelectedDocuments(new Set(documents.map(d => d.id)));
+    }
+  };
+
+  const getBulkActionDialogContent = () => {
+    switch (bulkActionType) {
+      case 'trash':
+        return {
+          title: language === 'fr' ? 'Déplacer vers la corbeille' : 'Move to trash',
+          description: t('documents.confirmMoveToTrash'),
+        };
+      case 'restore':
+        return {
+          title: language === 'fr' ? 'Restaurer les documents' : 'Restore documents',
+          description: language === 'fr' ? 'Les documents seront restaurés.' : 'Documents will be restored.',
+        };
+      case 'delete':
+        return {
+          title: language === 'fr' ? 'Supprimer définitivement' : 'Delete permanently',
+          description: t('documents.confirmPermanentDelete'),
+        };
+    }
+  };
+
+  const dialogContent = getBulkActionDialogContent();
 
   return (
     <div className="space-y-6">
@@ -313,10 +455,23 @@ export default function Documents() {
         <div>
           <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
           <p className="text-muted-foreground">
-            {documents.length} document{documents.length !== 1 ? 's' : ''} trouvé{documents.length !== 1 ? 's' : ''}
+            {documents.length} document{documents.length !== 1 ? 's' : ''} {language === 'fr' ? 'trouvé' : 'found'}{documents.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Trash Toggle */}
+          {canManageDocuments && !isSuperAdmin && (
+            <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
+              <TabsList>
+                <TabsTrigger value="active">{t('documents.activeDocuments')}</TabsTrigger>
+                <TabsTrigger value="trash" className="flex items-center gap-1">
+                  <Trash2 className="h-3 w-3" />
+                  {t('documents.trash')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
           {/* Organization Filter for Super Admin */}
           {isSuperAdmin && (
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
@@ -350,7 +505,7 @@ export default function Documents() {
             </Button>
           </div>
           {/* Hide upload button for Super Admin and suspended clients */}
-          {canManageDocuments && !isSuperAdmin && !isClientSuspended && (
+          {canManageDocuments && !isSuperAdmin && !isClientSuspended && !showTrash && (
             <Button onClick={() => setUploadModalOpen(true)} className="btn-institutional">
               <Plus className="h-4 w-4 mr-2" />
               {t('documents.newDocument')}
@@ -358,6 +513,39 @@ export default function Documents() {
           )}
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedDocuments.size > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
+        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+          <span className="text-sm text-muted-foreground">
+            {t('documents.selectedCount').replace('{count}', selectedDocuments.size.toString())}
+          </span>
+          <div className="flex-1" />
+          {!showTrash ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleBulkDownload}>
+                <Download className="h-4 w-4 mr-1" />
+                {t('documents.bulkDownload')}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('trash')}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t('documents.moveToTrash')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('restore')}>
+                <RotateCcw className="h-4 w-4 mr-1" />
+                {t('documents.restore')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => confirmBulkAction('delete')}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t('documents.deletePermanently')}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <DocumentFilters
@@ -367,6 +555,19 @@ export default function Documents() {
         searchHistory={searchHistory}
         onSearchHistoryClick={handleSearchHistoryClick}
       />
+
+      {/* Select All Header */}
+      {documents.length > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={selectedDocuments.size === documents.length && documents.length > 0}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedDocuments.size === documents.length ? t('documents.deselectAll') : t('documents.selectAll')}
+          </span>
+        </div>
+      )}
 
       {/* Documents */}
       {loading ? (
@@ -386,17 +587,23 @@ export default function Documents() {
                 department: doc.departments,
                 profiles: null,
               }}
+              isInTrash={showTrash}
+              selected={selectedDocuments.has(doc.id)}
+              onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
               onView={handleView}
               onDownload={handleDownload}
-              onEdit={!isSuperAdmin && !isClientSuspended ? handleEdit : undefined}
+              onEdit={!isSuperAdmin && !isClientSuspended && !showTrash ? handleEdit : undefined}
               onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
+              onRestore={showTrash && !isSuperAdmin && !isClientSuspended ? handleRestoreSingle : undefined}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-12 border border-dashed border-border rounded-lg">
-          <p className="text-muted-foreground">{t('documents.noDocuments')}</p>
-          {canManageDocuments && !isSuperAdmin && !isClientSuspended && (
+          <p className="text-muted-foreground">
+            {showTrash ? t('documents.emptyTrash') : t('documents.noDocuments')}
+          </p>
+          {canManageDocuments && !isSuperAdmin && !isClientSuspended && !showTrash && (
             <Button
               variant="outline"
               className="mt-4"
@@ -419,22 +626,22 @@ export default function Documents() {
         />
       )}
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Bulk Action Confirmation */}
+      <AlertDialog open={bulkActionDialogOpen} onOpenChange={setBulkActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Le document sera définitivement supprimé.
+              {dialogContent.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={executeBulkAction}
+              className={bulkActionType === 'delete' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
-              {t('documents.delete')}
+              {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
