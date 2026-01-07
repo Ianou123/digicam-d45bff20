@@ -156,7 +156,14 @@ export default function DocumentDetailPage() {
       });
     }
 
-    window.open(document.file_url, '_blank');
+    // Use anchor tag click instead of window.open to avoid pop-up blockers
+    const link = window.document.createElement('a');
+    link.href = document.file_url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    window.document.body.appendChild(link);
+    link.click();
+    window.document.body.removeChild(link);
   };
 
   const formatFileSize = (bytes: number | null) => {
