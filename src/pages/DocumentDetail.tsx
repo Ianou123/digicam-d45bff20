@@ -246,11 +246,31 @@ export default function DocumentDetailPage() {
             </CardHeader>
             <CardContent>
               {document.document_type === 'pdf' ? (
-                <iframe
-                  src={document.file_url}
-                  className="w-full h-[600px] border border-border rounded-lg"
-                  title={document.title}
-                />
+                <div className="w-full h-[600px] border border-border rounded-lg overflow-hidden">
+                  <object
+                    data={document.file_url}
+                    type="application/pdf"
+                    className="w-full h-full"
+                  >
+                    {/* Fallback if browser can't display PDF */}
+                    <div className="flex flex-col items-center justify-center h-full bg-muted/30 text-muted-foreground">
+                      <FileText className="h-16 w-16 mb-4 opacity-30" />
+                      <p className="mb-2">Impossible d'afficher le PDF dans le navigateur</p>
+                      <Button variant="outline" onClick={handleDownload}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger le PDF
+                      </Button>
+                      <a 
+                        href={document.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-2 text-sm text-primary hover:underline"
+                      >
+                        Ouvrir dans un nouvel onglet
+                      </a>
+                    </div>
+                  </object>
+                </div>
               ) : ['jpg', 'png'].includes(document.document_type) ? (
                 <img
                   src={document.file_url}
