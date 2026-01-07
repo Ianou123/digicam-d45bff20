@@ -16,7 +16,7 @@ export function PdfViewer({ url, className = '' }: PdfViewerProps) {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
-  const [scale, setScale] = useState(1.2);
+  const [scale, setScale] = useState(0.75);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
