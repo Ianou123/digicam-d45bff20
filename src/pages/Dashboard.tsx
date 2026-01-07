@@ -85,10 +85,11 @@ export default function Dashboard() {
     }
 
     try {
-      // Fetch documents count
+      // Fetch documents count (exclude trashed)
       let documentsQuery = supabase
         .from('documents')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null);
       
       if (!isSuperAdmin && profile?.client_id) {
         documentsQuery = documentsQuery.eq('client_id', profile.client_id);
@@ -174,6 +175,7 @@ export default function Dashboard() {
             current_version,
             departments(name)
           `)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(5);
 
