@@ -41,6 +41,7 @@ interface Document {
   current_version: number;
   file_url: string;
   deleted_at: string | null;
+  ocr_text: string | null;
   departments: { name: string } | null;
 }
 
@@ -190,6 +191,7 @@ export default function Documents() {
           current_version,
           file_url,
           deleted_at,
+          ocr_text,
           departments(name)
         `)
         .order('created_at', { ascending: false });
@@ -226,7 +228,8 @@ export default function Documents() {
         query = query.gte('created_at', startDate).lte('created_at', endDate);
       }
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,ocr_text.ilike.%${filters.search}%`);
+        // Search in title, tags (as text array), and ocr_text
+        query = query.or(`title.ilike.%${filters.search}%,tags.cs.{${filters.search}},ocr_text.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query;

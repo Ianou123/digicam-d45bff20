@@ -310,6 +310,9 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
               rows={3}
               placeholder="Texte extrait par OCR (optionnel)"
             />
+            <p className="text-xs text-muted-foreground">
+              {t('documents.ocrHint')}
+            </p>
           </div>
 
           {/* Actions */}

@@ -10,7 +10,9 @@ import {
   User,
   Shield,
   RotateCcw,
-  Trash2
+  Trash2,
+  Search,
+  FileSearch
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +41,7 @@ interface DocumentCardProps {
     updated_at: string;
     tags: string[];
     current_version: number;
+    ocr_text?: string | null;
     department?: { name: string } | null;
     profiles?: { full_name: string } | null;
   };
@@ -217,6 +220,18 @@ export function DocumentCard({
 
             {/* Tags and metadata */}
             <div className="flex flex-wrap items-center gap-2 mt-3">
+              {/* Search capability badge */}
+              {document.ocr_text ? (
+                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                  <FileSearch className="h-3 w-3 mr-1" />
+                  {t('documents.fullTextSearchable')}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                  <Search className="h-3 w-3 mr-1" />
+                  {t('documents.metadataOnly')}
+                </Badge>
+              )}
               <Badge 
                 variant="outline" 
                 className={cn('text-xs', confidentialityColors[document.confidentiality_level])}
