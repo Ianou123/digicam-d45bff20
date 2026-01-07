@@ -157,14 +157,26 @@ export default function DocumentDetailPage() {
       });
     }
 
-    // Use anchor tag click instead of window.open to avoid pop-up blockers
-    const link = window.document.createElement('a');
-    link.href = document.file_url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    window.document.body.appendChild(link);
-    link.click();
-    window.document.body.removeChild(link);
+    try {
+      // Fetch the file and create a blob to force download
+      const response = await fetch(document.file_url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = window.document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${document.title}.${document.document_type}`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      // Fallback: open in same tab
+      window.location.href = document.file_url;
+    }
   };
 
   const formatFileSize = (bytes: number | null) => {
