@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Globe, Bell, Lock } from 'lucide-react';
+import { User, Globe, Bell, Lock, Building2, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,14 +19,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, isClientAdmin, clientName, clientInviteCode } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState({
     fullName: profile?.full_name || '',
     email: profile?.email || '',
   });
+
+  const handleCopyInviteCode = async () => {
+    if (!clientInviteCode) return;
+    try {
+      await navigator.clipboard.writeText(clientInviteCode);
+      setCopied(true);
+      toast.success(t('settings.copied'));
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy');
+    }
+  };
 
   const handleSave = async () => {
     if (!profile) return;
@@ -97,6 +110,56 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Organization - Only visible to Client Admins */}
+      {isClientAdmin && clientInviteCode && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {t('settings.organization')}
+            </CardTitle>
+            <CardDescription>
+              {t('settings.organizationDesc')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t('settings.organizationName')}</Label>
+              <Input
+                value={clientName || ''}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('settings.inviteCode')}</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={clientInviteCode}
+                  disabled
+                  className="bg-muted font-mono"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyInviteCode}
+                  className="shrink-0"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('settings.inviteCodeHint')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Language */}
       <Card>

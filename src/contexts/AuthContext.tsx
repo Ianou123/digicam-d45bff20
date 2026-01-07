@@ -16,6 +16,12 @@ interface UserProfile {
 
 type ClientStatus = 'active' | 'inactive' | 'suspended';
 
+interface ClientInfo {
+  name: string | null;
+  status: ClientStatus | null;
+  inviteCode: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -32,6 +38,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   clientStatus: ClientStatus | null;
   clientName: string | null;
+  clientInviteCode: string | null;
   isClientSuspended: boolean;
   isUserDeactivated: boolean;
 }
@@ -46,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [clientStatus, setClientStatus] = useState<ClientStatus | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
+  const [clientInviteCode, setClientInviteCode] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -71,21 +79,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status: (profileData.status as 'active' | 'deactivated') || 'active',
         });
 
-        // Fetch client status and name if user has a client
+        // Fetch client status, name, and invite code if user has a client
         if (profileData.client_id) {
           const { data: clientData } = await supabase
             .from('clients')
-            .select('status, name')
+            .select('status, name, invite_code')
             .eq('id', profileData.client_id)
             .maybeSingle();
 
           if (clientData) {
             setClientStatus(clientData.status as ClientStatus);
             setClientName(clientData.name);
+            setClientInviteCode(clientData.invite_code);
           }
         } else {
           setClientStatus(null);
           setClientName(null);
+          setClientInviteCode(null);
         }
       }
 
@@ -190,6 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRoles([]);
       setClientStatus(null);
       setClientName(null);
+      setClientInviteCode(null);
     }
   };
 
@@ -218,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile,
         clientStatus,
         clientName,
+        clientInviteCode,
         isClientSuspended,
         isUserDeactivated,
       }}

@@ -198,6 +198,15 @@ export const translations = {
       deactivated: 'Désactivé',
       noDeactivatedUsers: 'Aucun utilisateur désactivé',
     },
+    // Settings - Organization
+    settings: {
+      organization: 'Organisation',
+      organizationDesc: 'Informations sur votre organisation',
+      organizationName: 'Nom de l\'organisation',
+      inviteCode: 'Code d\'invitation',
+      inviteCodeHint: 'Partagez ce code avec les membres de votre équipe pour leur permettre de rejoindre votre organisation.',
+      copied: 'Copié !',
+    },
   },
   en: {
     // Navigation
@@ -393,6 +402,15 @@ export const translations = {
       selectRole: 'Select a role',
       deactivated: 'Deactivated',
       noDeactivatedUsers: 'No deactivated users',
+    },
+    // Settings - Organization
+    settings: {
+      organization: 'Organization',
+      organizationDesc: 'Your organization information',
+      organizationName: 'Organization name',
+      inviteCode: 'Invite code',
+      inviteCodeHint: 'Share this code with staff members to allow them to join your organization.',
+      copied: 'Copied!',
     },
   },
 } as const;
