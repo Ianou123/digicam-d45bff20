@@ -75,6 +75,9 @@ export const translations = {
       versions: 'Historique des versions',
       changeNotes: 'Notes de modification',
       ocrText: 'Texte OCR',
+      ocrHint: 'Ajoutez le texte OCR pour activer la recherche en texte intégral.',
+      fullTextSearchable: 'Recherche texte intégral',
+      metadataOnly: 'Métadonnées uniquement',
       recentSearches: 'Recherches récentes',
       // Trash & Bulk Actions
       trash: 'Corbeille',
@@ -268,6 +271,9 @@ export const translations = {
       versions: 'Version history',
       changeNotes: 'Change notes',
       ocrText: 'OCR Text',
+      ocrHint: 'Add OCR text to enable full-text search.',
+      fullTextSearchable: 'Full-text searchable',
+      metadataOnly: 'Metadata only',
       recentSearches: 'Recent searches',
       // Trash & Bulk Actions
       trash: 'Trash',
