@@ -100,9 +100,13 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
 
     setLoading(true);
     try {
-      // Upload file to storage
+      // Upload file to storage with sanitized filename (remove spaces and special chars)
       const fileExt = file.name.split('.').pop();
-      const filePath = `${profile.client_id}/${Date.now()}_${file.name}`;
+      const sanitizedName = file.name
+        .replace(/\.[^/.]+$/, '') // Remove extension
+        .replace(/[^a-zA-Z0-9]/g, '_') // Replace special chars with underscore
+        .substring(0, 50); // Limit length
+      const filePath = `${profile.client_id}/${Date.now()}_${sanitizedName}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('documents')
