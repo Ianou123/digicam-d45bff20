@@ -24,18 +24,26 @@ export function PdfViewer({ url, className = '' }: PdfViewerProps) {
   useEffect(() => {
     setLoading(true);
     setError(null);
+    
+    console.log('PdfViewer: Loading PDF from URL:', url);
 
     const loadPdf = async () => {
       try {
-        const loadingTask = pdfjsLib.getDocument(url);
+        const loadingTask = pdfjsLib.getDocument({
+          url: url,
+          withCredentials: false,
+        });
+        console.log('PdfViewer: getDocument task created');
         const pdf = await loadingTask.promise;
+        console.log('PdfViewer: PDF loaded, pages:', pdf.numPages);
         setPdfDoc(pdf);
         setNumPages(pdf.numPages);
         setPageNum(1);
-      } catch (err) {
-        console.error('Error loading PDF:', err);
-        setError('Impossible de charger le PDF');
-      } finally {
+        setLoading(false);
+      } catch (err: any) {
+        console.error('PdfViewer: Error loading PDF:', err);
+        console.error('PdfViewer: Error message:', err?.message);
+        setError(`Erreur: ${err?.message || 'Impossible de charger le PDF'}`);
         setLoading(false);
       }
     };
