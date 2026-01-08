@@ -66,6 +66,13 @@
     --info: 210 80% 50%;
     --info-foreground: 0 0% 100%;
 
+    /* Chart colors */
+    --chart-1: 345 60% 35%;
+    --chart-2: 210 80% 50%;
+    --chart-3: 145 60% 40%;
+    --chart-4: 40 90% 50%;
+    --chart-5: 280 60% 50%;
+
     /* Document states */
     --confidential: 0 70% 50%;
     --internal: 40 80% 50%;
@@ -114,6 +121,13 @@
     --sidebar-accent-foreground: 220 10% 90%;
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 345 55% 55%;
+
+    /* Chart colors (dark) */
+    --chart-1: 345 55% 50%;
+    --chart-2: 210 70% 55%;
+    --chart-3: 145 50% 45%;
+    --chart-4: 40 80% 55%;
+    --chart-5: 280 50% 55%;
   }
 }
 
