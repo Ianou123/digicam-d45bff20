@@ -65,7 +65,7 @@ export function AppSidebar() {
       href: '/departments', 
       icon: FolderOpen, 
       label: t('nav.departments'),
-      show: isSuperAdmin || isClientAdmin 
+      show: isClientAdmin && !isSuperAdmin 
     },
     { 
       href: '/upload', 
