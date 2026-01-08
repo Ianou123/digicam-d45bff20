@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
@@ -54,6 +54,7 @@ export default function Clients() {
   const { isSuperAdmin, user } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [clients, setClients] = useState<ClientWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,10 +94,11 @@ export default function Clients() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch document counts per client
+      // Fetch document counts per client (exclude deleted)
       const { data: documents, error: documentsError } = await supabase
         .from('documents')
-        .select('client_id');
+        .select('client_id')
+        .is('deleted_at', null);
 
       if (documentsError) throw documentsError;
 
@@ -457,7 +459,11 @@ export default function Clients() {
                 </TableRow>
               ) : (
                 filteredClients.map((client) => (
-                  <TableRow key={client.id}>
+                  <TableRow 
+                    key={client.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -472,7 +478,7 @@ export default function Clients() {
                     <TableCell>
                       {getStatusBadge(client.status)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
                           {client.invite_code || '-'}
@@ -521,7 +527,7 @@ export default function Clients() {
                         <span className="text-sm">{getLastActivityText(client.last_activity_at)}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">

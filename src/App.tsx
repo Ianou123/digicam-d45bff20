@@ -16,6 +16,7 @@ import MyDashboard from "./pages/MyDashboard";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
+import OrganizationDetail from "./pages/OrganizationDetail";
 import Activity from "./pages/Activity";
 import Analytics from "./pages/Analytics";
 import AuditLogs from "./pages/AuditLogs";
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/clients" element={<Clients />} />
+                <Route path="/clients/:id" element={<OrganizationDetail />} />
                 <Route path="/activity" element={<Activity />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
