@@ -131,7 +131,7 @@ export function DocumentCard({
                     {document.document_type}
                   </span>
                   <span>•</span>
-                  <span>v{document.current_version}</span>
+                  <span>Version {document.current_version}</span>
                   {document.department && (
                     <>
                       <span>•</span>
