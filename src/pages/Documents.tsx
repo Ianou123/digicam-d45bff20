@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, CheckSquare, Square } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
 import { UploadModal } from '@/components/documents/UploadModal';
+import { EmptyState } from '@/components/documents/EmptyState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +61,7 @@ interface Client {
 
 export default function Documents() {
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName } = useAuth();
   const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -460,7 +461,16 @@ export default function Documents() {
         <div>
           <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
           <p className="text-muted-foreground">
-            {documents.length} document{documents.length !== 1 ? 's' : ''} {language === 'fr' ? 'trouvé' : 'found'}{documents.length !== 1 ? 's' : ''}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {language === 'fr' ? 'Recherche en cours...' : 'Searching...'}
+              </span>
+            ) : (
+              <>
+                {documents.length} {language === 'fr' ? 'résultat' : 'result'}{documents.length !== 1 ? 's' : ''} {language === 'fr' ? 'trouvé' : 'found'}{documents.length !== 1 && language === 'fr' ? 's' : ''}
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -603,23 +613,22 @@ export default function Documents() {
             />
           ))}
         </div>
-      ) : (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg">
-          <p className="text-muted-foreground">
-            {showTrash ? t('documents.emptyTrash') : t('documents.noDocuments')}
-          </p>
-          {canManageDocuments && !isSuperAdmin && !isClientSuspended && !showTrash && (
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => setUploadModalOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {t('documents.uploadDocument')}
-            </Button>
-          )}
-        </div>
-      )}
+      ) : documents.length === 0 ? (
+        showTrash ? (
+          <EmptyState type="emptyTrash" />
+        ) : filters.search ? (
+          <EmptyState 
+            type="noResults" 
+            searchQuery={filters.search} 
+          />
+        ) : (
+          <EmptyState 
+            type="noDocuments" 
+            organizationName={clientName || undefined}
+            canUpload={canManageDocuments && !isSuperAdmin && !isClientSuspended}
+            onUpload={() => setUploadModalOpen(true)}
+          />
+        )
 
       {/* Upload Modal - only for non-super admin */}
       {!isSuperAdmin && (
