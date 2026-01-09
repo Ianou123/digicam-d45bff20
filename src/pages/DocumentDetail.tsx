@@ -294,7 +294,7 @@ export default function DocumentDetailPage() {
                 {formatConfidentiality(document.confidentiality_level)}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                v{document.current_version}
+                Version {document.current_version}
               </span>
               <span className="text-sm text-muted-foreground">
                 •
