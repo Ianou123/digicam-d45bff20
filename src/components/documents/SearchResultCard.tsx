@@ -32,6 +32,7 @@ interface SearchResultCardProps {
   searchQuery: string;
   matchedInContent: boolean;
   onView: (id: string) => void;
+  onClickTrack?: (documentId: string) => void;
 }
 
 const documentTypeIcons: Record<string, any> = {
@@ -107,6 +108,7 @@ export function SearchResultCard({
   searchQuery,
   matchedInContent,
   onView,
+  onClickTrack,
 }: SearchResultCardProps) {
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
@@ -123,10 +125,15 @@ export function SearchResultCard({
     locale: dateLocale 
   });
 
+  const handleClick = () => {
+    onClickTrack?.(document.id);
+    onView(document.id);
+  };
+
   return (
     <Card 
       className="p-4 cursor-pointer hover:bg-muted/50 transition-colors group"
-      onClick={() => onView(document.id)}
+      onClick={handleClick}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}

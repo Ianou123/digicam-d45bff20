@@ -397,6 +397,44 @@ export default function Users() {
     }
   };
 
+  const handlePermanentDelete = async (transferToUserId?: string) => {
+    if (!selectedUser || !isSuperAdmin) return;
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
+
+      const response = await supabase.functions.invoke('delete-user', {
+        body: {
+          userId: selectedUser.id,
+          transferToUserId: transferToUserId || null,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete user');
+      }
+
+      toast({
+        title: t('common.success'),
+        description: language === 'fr' ? 'Utilisateur supprimé définitivement' : 'User permanently deleted',
+      });
+
+      setIsDeleteModalOpen(false);
+      resetForm();
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error permanently deleting user:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to permanently delete user',
+      });
+    }
+  };
+
   const handleReactivateUser = async () => {
     if (!selectedUser) return;
 
@@ -775,6 +813,7 @@ export default function Users() {
         user={selectedUser}
         onDeactivate={handleDeactivateUser}
         onTransferOwnership={handleTransferOwnership}
+        onPermanentDelete={isSuperAdmin ? handlePermanentDelete : undefined}
         availableUsers={users.filter(u => 
           u.status === 'active' && 
           (u.role === 'client_admin' || u.role === 'staff') &&
