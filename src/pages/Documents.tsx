@@ -130,14 +130,23 @@ export default function Documents() {
     }
   };
 
-  const logSearch = async (query: string) => {
+  const logSearch = async (query: string, resultCount?: number) => {
     if (!user || !profile?.client_id || !query.trim()) return;
 
+    // Log to activity_logs for existing functionality
     await supabase.from('activity_logs').insert({
       user_id: user.id,
       client_id: profile.client_id,
       action_type: 'search' as const,
       search_query: query.trim(),
+    });
+
+    // Log to search_logs for V2 analytics (write-only for now)
+    await supabase.from('search_logs').insert({
+      user_id: user.id,
+      client_id: profile.client_id,
+      query_text: query.trim(),
+      result_count: resultCount ?? 0,
     });
 
     fetchSearchHistory();
@@ -147,10 +156,12 @@ export default function Documents() {
     const previousSearch = filters.search;
     setFilters(newFilters);
     
+    // Defer search logging to after documents have loaded
     if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
       const timeoutId = setTimeout(() => {
-        logSearch(newFilters.search);
-      }, 1000);
+        // Note: result_count will be logged with a small delay after documents load
+        logSearch(newFilters.search, documents.length);
+      }, 1500);
       return () => clearTimeout(timeoutId);
     }
   };
