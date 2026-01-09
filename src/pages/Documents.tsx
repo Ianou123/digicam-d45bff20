@@ -629,7 +629,7 @@ export default function Documents() {
             onUpload={() => setUploadModalOpen(true)}
           />
         )
-
+      ) : null}
       {/* Upload Modal - only for non-super admin */}
       {!isSuperAdmin && (
         <UploadModal
