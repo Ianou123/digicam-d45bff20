@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { EmptyState } from '@/components/documents/EmptyState';
+import { SearchResultCard } from '@/components/documents/SearchResultCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -590,29 +591,56 @@ export default function Documents() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : documents.length > 0 ? (
-        <div className={viewMode === 'grid' 
-          ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' 
-          : 'space-y-3'
-        }>
-          {documents.map((doc) => (
-            <DocumentCard
-              key={doc.id}
-              document={{
-                ...doc,
-                department: doc.departments,
-                profiles: null,
-              }}
-              isInTrash={showTrash}
-              selected={selectedDocuments.has(doc.id)}
-              onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
-              onView={handleView}
-              onDownload={handleDownload}
-              onEdit={!isSuperAdmin && !isClientSuspended && !showTrash ? handleEdit : undefined}
-              onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
-              onRestore={showTrash && !isSuperAdmin && !isClientSuspended ? handleRestoreSingle : undefined}
-            />
-          ))}
-        </div>
+        /* Use SearchResultCard when there's an active search, otherwise DocumentCard */
+        filters.search && filters.search.length >= 2 ? (
+          <div className="space-y-3">
+            {documents.map((doc) => {
+              const matchedInContent = doc.ocr_text 
+                ? doc.ocr_text.toLowerCase().includes(filters.search.toLowerCase())
+                : false;
+              return (
+                <SearchResultCard
+                  key={doc.id}
+                  document={{
+                    id: doc.id,
+                    title: doc.title,
+                    document_type: doc.document_type,
+                    file_size: null,
+                    updated_at: doc.updated_at,
+                    ocr_text: doc.ocr_text,
+                  }}
+                  searchQuery={filters.search}
+                  matchedInContent={matchedInContent}
+                  onView={handleView}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' 
+            ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' 
+            : 'space-y-3'
+          }>
+            {documents.map((doc) => (
+              <DocumentCard
+                key={doc.id}
+                document={{
+                  ...doc,
+                  department: doc.departments,
+                  profiles: null,
+                }}
+                isInTrash={showTrash}
+                selected={selectedDocuments.has(doc.id)}
+                onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
+                onView={handleView}
+                onDownload={handleDownload}
+                onEdit={!isSuperAdmin && !isClientSuspended && !showTrash ? handleEdit : undefined}
+                onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
+                onRestore={showTrash && !isSuperAdmin && !isClientSuspended ? handleRestoreSingle : undefined}
+              />
+            ))}
+          </div>
+        )
       ) : documents.length === 0 ? (
         showTrash ? (
           <EmptyState type="emptyTrash" />
