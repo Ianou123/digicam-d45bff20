@@ -152,6 +152,20 @@ export default function Documents() {
     fetchSearchHistory();
   };
 
+  // Track when user clicks a search result
+  const logSearchResultClick = async (documentId: string) => {
+    if (!user || !profile?.client_id || !filters.search.trim()) return;
+
+    // Log the click as a new search_logs entry with clicked_document_id
+    await supabase.from('search_logs').insert({
+      user_id: user.id,
+      client_id: profile.client_id,
+      query_text: filters.search.trim(),
+      result_count: documents.length,
+      clicked_document_id: documentId,
+    });
+  };
+
   const handleFiltersChange = (newFilters: FilterState) => {
     const previousSearch = filters.search;
     setFilters(newFilters);
@@ -623,6 +637,7 @@ export default function Documents() {
                   searchQuery={filters.search}
                   matchedInContent={matchedInContent}
                   onView={handleView}
+                  onClickTrack={logSearchResultClick}
                 />
               );
             })}

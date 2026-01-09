@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, FileText, UserX, UserMinus, ArrowRightLeft } from 'lucide-react';
+import { AlertTriangle, FileText, UserX, UserMinus, ArrowRightLeft, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,6 +31,7 @@ interface DeleteUserModalProps {
   } | null;
   onDeactivate: () => void;
   onTransferOwnership?: (newOwnerId: string) => void;
+  onPermanentDelete?: (transferToUserId?: string) => void;
   availableUsers?: { id: string; full_name: string | null; email: string }[];
   isSuperAdmin?: boolean;
 }
@@ -41,13 +42,14 @@ export function DeleteUserModal({
   user,
   onDeactivate,
   onTransferOwnership,
+  onPermanentDelete,
   availableUsers = [],
   isSuperAdmin = false,
 }: DeleteUserModalProps) {
   const { language } = useLanguage();
   const [documentCount, setDocumentCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<'deactivate' | 'transfer'>('deactivate');
+  const [selectedAction, setSelectedAction] = useState<'deactivate' | 'transfer' | 'permanent'>('deactivate');
   const [transferToUser, setTransferToUser] = useState<string>('');
 
   useEffect(() => {
@@ -77,6 +79,8 @@ export function DeleteUserModal({
   const handleConfirm = () => {
     if (selectedAction === 'transfer' && transferToUser && onTransferOwnership) {
       onTransferOwnership(transferToUser);
+    } else if (selectedAction === 'permanent' && onPermanentDelete) {
+      onPermanentDelete(transferToUser || undefined);
     } else {
       onDeactivate();
     }
@@ -219,6 +223,62 @@ export function DeleteUserModal({
                 </div>
               </div>
             )}
+
+            {/* Permanent Delete Option - Super Admin Only */}
+            {isSuperAdmin && onPermanentDelete && (
+              <div 
+                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                  selectedAction === 'permanent' 
+                    ? 'border-destructive bg-destructive/5' 
+                    : 'border-border hover:border-muted-foreground/50'
+                }`}
+                onClick={() => setSelectedAction('permanent')}
+              >
+                <div className="flex items-start gap-3">
+                  <Trash2 className="h-5 w-5 text-destructive mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-destructive">
+                        {language === 'fr' ? 'Supprimer définitivement' : 'Permanently Delete'}
+                      </p>
+                      <Badge variant="destructive" className="text-xs">
+                        {language === 'fr' ? 'Irréversible' : 'Irreversible'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'fr' 
+                        ? 'Supprimer définitivement le compte et toutes les données associées. Cette action est irréversible.'
+                        : 'Permanently delete the account and all associated data. This action cannot be undone.'}
+                    </p>
+                    
+                    {selectedAction === 'permanent' && documentCount > 0 && availableUsers.length > 0 && (
+                      <div className="mt-3">
+                        <Label className="text-xs">
+                          {language === 'fr' ? 'Transférer les documents à (optionnel) :' : 'Transfer documents to (optional):'}
+                        </Label>
+                        <Select value={transferToUser} onValueChange={setTransferToUser}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder={language === 'fr' ? 'Ne pas transférer' : 'Do not transfer'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">
+                              {language === 'fr' ? 'Ne pas transférer' : 'Do not transfer'}
+                            </SelectItem>
+                            {availableUsers
+                              .filter(u => u.id !== user?.id)
+                              .map(u => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.full_name || u.email}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -229,12 +289,18 @@ export function DeleteUserModal({
           <Button 
             variant="destructive" 
             onClick={handleConfirm}
-            disabled={selectedAction === 'transfer' && !transferToUser}
+            disabled={(selectedAction === 'transfer' && !transferToUser)}
           >
-            <UserX className="h-4 w-4 mr-2" />
+            {selectedAction === 'permanent' ? (
+              <Trash2 className="h-4 w-4 mr-2" />
+            ) : (
+              <UserX className="h-4 w-4 mr-2" />
+            )}
             {selectedAction === 'transfer' 
               ? (language === 'fr' ? 'Transférer et désactiver' : 'Transfer & Deactivate')
-              : (language === 'fr' ? 'Désactiver' : 'Deactivate')}
+              : selectedAction === 'permanent'
+                ? (language === 'fr' ? 'Supprimer définitivement' : 'Delete Permanently')
+                : (language === 'fr' ? 'Désactiver' : 'Deactivate')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -57,7 +57,7 @@ export function VersionHistory({ versions, currentVersion }: VersionHistoryProps
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">
-                      v{version.version_number}
+                      {language === 'fr' ? 'Version' : 'Version'} {version.version_number}
                     </span>
                     {version.version_number === currentVersion && (
                       <Badge 
@@ -65,6 +65,14 @@ export function VersionHistory({ versions, currentVersion }: VersionHistoryProps
                         className="text-xs bg-primary/10 text-primary border-primary/30"
                       >
                         {language === 'fr' ? 'Actuelle' : 'Current'}
+                      </Badge>
+                    )}
+                    {version.version_number === 1 && (
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                      >
+                        {language === 'fr' ? 'Initial' : 'Initial'}
                       </Badge>
                     )}
                   </div>
