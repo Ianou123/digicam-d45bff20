@@ -106,7 +106,7 @@ export default function Users() {
   // Form state
   const [formEmail, setFormEmail] = useState('');
   const [formFullName, setFormFullName] = useState('');
-  const [formRole, setFormRole] = useState<'client_admin' | 'staff'>('staff');
+  const [formRole, setFormRole] = useState<'super_admin' | 'client_admin' | 'staff'>('staff');
 
   useEffect(() => {
     if (isSuperAdmin || isClientAdmin) {
@@ -666,11 +666,14 @@ export default function Users() {
             </div>
             <div className="space-y-2">
               <Label>{t('users.role')}</Label>
-              <Select value={formRole} onValueChange={(v: 'client_admin' | 'staff') => setFormRole(v)}>
+              <Select value={formRole} onValueChange={(v: 'super_admin' | 'client_admin' | 'staff') => setFormRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {isSuperAdmin && (
+                    <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
@@ -705,11 +708,14 @@ export default function Users() {
             </div>
             <div className="space-y-2">
               <Label>{t('users.role')}</Label>
-              <Select value={formRole} onValueChange={(v: 'client_admin' | 'staff') => setFormRole(v)}>
+              <Select value={formRole} onValueChange={(v: 'super_admin' | 'client_admin' | 'staff') => setFormRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {isSuperAdmin && (
+                    <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
@@ -768,11 +774,14 @@ export default function Users() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>{t('users.role')}</Label>
-              <Select value={formRole} onValueChange={(v: 'client_admin' | 'staff') => setFormRole(v)}>
+              <Select value={formRole} onValueChange={(v: 'super_admin' | 'client_admin' | 'staff') => setFormRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {isSuperAdmin && (
+                    <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
