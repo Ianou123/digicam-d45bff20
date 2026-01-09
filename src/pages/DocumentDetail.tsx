@@ -22,6 +22,10 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { PdfViewer } from '@/components/documents/PdfViewer';
+import { ConfidentialityBanner } from '@/components/documents/ConfidentialityBanner';
+import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
+import { LatestBadge } from '@/components/documents/LatestBadge';
+import { VersionHistory } from '@/components/documents/VersionHistory';
 
 interface DocumentDetail {
   id: string;
@@ -45,6 +49,7 @@ interface DocumentVersion {
   file_url: string;
   created_at: string;
   change_notes: string | null;
+  uploaded_by: string;
 }
 
 const confidentialityColors: Record<string, string> = {
@@ -62,8 +67,9 @@ export default function DocumentDetailPage() {
   
   const [document, setDocument] = useState<DocumentDetail | null>(null);
   const [uploaderName, setUploaderName] = useState<string | null>(null);
-  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [versions, setVersions] = useState<(DocumentVersion & { uploaded_by_name?: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showConfidentialModal, setShowConfidentialModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -137,15 +143,45 @@ export default function DocumentDetailPage() {
         version_number,
         file_url,
         created_at,
-        change_notes
+        change_notes,
+        uploaded_by
       `)
       .eq('document_id', id)
       .order('version_number', { ascending: false });
 
-    setVersions((data || []) as DocumentVersion[]);
+    if (data && data.length > 0) {
+      // Fetch uploader names for all versions
+      const uploaderIds = [...new Set(data.map(v => v.uploaded_by))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', uploaderIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      
+      const versionsWithNames = data.map(v => ({
+        ...v,
+        uploaded_by_name: profileMap.get(v.uploaded_by) || undefined,
+      }));
+      
+      setVersions(versionsWithNames);
+    } else {
+      setVersions([]);
+    }
   };
 
-  const handleDownload = async () => {
+  const handleDownloadClick = () => {
+    if (!document) return;
+    
+    // Show warning modal for confidential documents
+    if (document.confidentiality_level === 'confidential') {
+      setShowConfidentialModal(true);
+    } else {
+      executeDownload();
+    }
+  };
+
+  const executeDownload = async () => {
     if (!document) return;
 
     if (user && profile?.client_id) {
@@ -177,6 +213,8 @@ export default function DocumentDetailPage() {
       // Fallback: open in same tab
       window.location.href = document.file_url;
     }
+    
+    setShowConfidentialModal(false);
   };
 
   const formatFileSize = (bytes: number | null) => {
@@ -193,6 +231,15 @@ export default function DocumentDetailPage() {
       case 'confidential': return t('documents.confidential');
       default: return level;
     }
+  };
+
+  // Format "Updated on DD MMM YYYY"
+  const formatUpdatedOn = (dateString: string) => {
+    const date = new Date(dateString);
+    const formattedDate = format(date, 'd MMM yyyy', { locale: dateLocale });
+    return language === 'fr' 
+      ? `Mis à jour le ${formattedDate}`
+      : `Updated on ${formattedDate}`;
   };
 
   if (loading) {
@@ -215,8 +262,15 @@ export default function DocumentDetailPage() {
     );
   }
 
+  const showConfidentialityBanner = document.confidentiality_level === 'internal' || document.confidentiality_level === 'confidential';
+
   return (
     <div className="space-y-6">
+      {/* Confidentiality Banner */}
+      {showConfidentialityBanner && (
+        <ConfidentialityBanner level={document.confidentiality_level as 'internal' | 'confidential'} />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
@@ -224,7 +278,10 @@ export default function DocumentDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-serif font-semibold">{document.title}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-serif font-semibold">{document.title}</h1>
+              <LatestBadge />
+            </div>
             <div className="flex items-center gap-3 mt-2">
               <Badge variant="outline" className="uppercase text-xs">
                 {document.document_type}
@@ -239,11 +296,17 @@ export default function DocumentDetailPage() {
               <span className="text-sm text-muted-foreground">
                 v{document.current_version}
               </span>
+              <span className="text-sm text-muted-foreground">
+                •
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {formatUpdatedOn(document.updated_at)}
+              </span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleDownload}>
+          <Button variant="outline" onClick={handleDownloadClick}>
             <Download className="h-4 w-4 mr-2" />
             {t('documents.download')}
           </Button>
@@ -262,12 +325,14 @@ export default function DocumentDetailPage() {
           {/* Document Preview */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-serif">Aperçu du document</CardTitle>
+              <CardTitle className="text-lg font-serif">
+                {language === 'fr' ? 'Aperçu du document' : 'Document Preview'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {document.document_type === 'pdf' ? (
-                <PdfViewer url={document.file_url} />
-              ) : ['jpg', 'png'].includes(document.document_type) ? (
+                <PdfViewer url={document.file_url} autoFit />
+              ) : ['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(document.document_type.toLowerCase()) ? (
                 <img
                   src={document.file_url}
                   alt={document.title}
@@ -276,10 +341,14 @@ export default function DocumentDetailPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <FileText className="h-16 w-16 mb-4 opacity-30" />
-                  <p>Aperçu non disponible pour ce type de fichier</p>
-                  <Button variant="outline" className="mt-4" onClick={handleDownload}>
+                  <p className="text-center">
+                    {language === 'fr' 
+                      ? 'Aperçu non disponible. Téléchargez pour visualiser.'
+                      : 'Preview not available. Download to view.'}
+                  </p>
+                  <Button variant="outline" className="mt-4" onClick={handleDownloadClick}>
                     <Download className="h-4 w-4 mr-2" />
-                    Télécharger pour visualiser
+                    {language === 'fr' ? 'Télécharger pour visualiser' : 'Download to view'}
                   </Button>
                 </div>
               )}
@@ -306,7 +375,9 @@ export default function DocumentDetailPage() {
           {/* Metadata */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-serif">Informations</CardTitle>
+              <CardTitle className="text-lg font-serif">
+                {language === 'fr' ? 'Informations' : 'Information'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -354,7 +425,9 @@ export default function DocumentDetailPage() {
               <Separator />
               
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Taille du fichier</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  {language === 'fr' ? 'Taille du fichier' : 'File size'}
+                </p>
                 <p className="text-sm font-medium">{formatFileSize(document.file_size)}</p>
               </div>
             </CardContent>
@@ -381,44 +454,23 @@ export default function DocumentDetailPage() {
             </Card>
           )}
 
-          {/* Version History */}
-          {(isSuperAdmin || isClientAdmin) && versions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-serif">{t('documents.versions')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="flex items-start justify-between p-3 rounded-lg bg-muted/50"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">Version {version.version_number}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(version.created_at), 'PPp', { locale: dateLocale })}
-                      </p>
-                      {version.change_notes && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {version.change_notes}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => window.open(version.file_url, '_blank')}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+          {/* Version History (Admin only) */}
+          {(isSuperAdmin || isClientAdmin) && (
+            <VersionHistory 
+              versions={versions} 
+              currentVersion={document.current_version} 
+            />
           )}
         </div>
       </div>
+
+      {/* Confidential Download Modal */}
+      <ConfidentialDownloadModal
+        open={showConfidentialModal}
+        onOpenChange={setShowConfidentialModal}
+        onConfirm={executeDownload}
+        documentTitle={document.title}
+      />
     </div>
   );
 }

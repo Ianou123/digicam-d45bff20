@@ -44,6 +44,7 @@ import type { Json } from '@/integrations/supabase/types';
 import { Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { DeleteUserModal } from '@/components/users/DeleteUserModal';
 
 interface UserWithRole {
   id: string;
@@ -358,6 +359,40 @@ export default function Users() {
         variant: 'destructive',
         title: t('common.error'),
         description: error.message || 'Failed to deactivate user',
+      });
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId: string) => {
+    if (!selectedUser) return;
+
+    try {
+      // Transfer all documents owned by this user to the new owner
+      await supabase
+        .from('documents')
+        .update({ uploaded_by: newOwnerId })
+        .eq('uploaded_by', selectedUser.id);
+
+      // Log the transfer action
+      await logAdminAction(
+        'transfer_ownership',
+        'user',
+        selectedUser.id,
+        selectedUser.full_name || selectedUser.email,
+        { 
+          email: selectedUser.email,
+          transferred_to: newOwnerId,
+        }
+      );
+
+      // Then deactivate the user
+      await handleDeactivateUser();
+    } catch (error: any) {
+      console.error('Error transferring ownership:', error);
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: error.message || 'Failed to transfer ownership',
       });
     }
   };
@@ -733,30 +768,20 @@ export default function Users() {
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'fr' ? 'Désactiver l\'utilisateur' : 'Deactivate User'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'fr' 
-                ? `L'utilisateur ${selectedUser?.full_name || selectedUser?.email} ne pourra plus accéder à l'application. Vous pourrez le réactiver ultérieurement.`
-                : `${selectedUser?.full_name || selectedUser?.email} will no longer be able to access the application. You can reactivate them later.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="destructive" onClick={handleDeactivateUser}>
-              <UserX className="h-4 w-4 mr-2" />
-              {language === 'fr' ? 'Désactiver' : 'Deactivate'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete/Deactivate User Modal with Impact Analysis */}
+      <DeleteUserModal
+        open={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        user={selectedUser}
+        onDeactivate={handleDeactivateUser}
+        onTransferOwnership={handleTransferOwnership}
+        availableUsers={users.filter(u => 
+          u.status === 'active' && 
+          (u.role === 'client_admin' || u.role === 'staff') &&
+          u.client_id === selectedUser?.client_id
+        )}
+        isSuperAdmin={isSuperAdmin}
+      />
 
       {/* Reactivate User Modal */}
       <Dialog open={isReactivateModalOpen} onOpenChange={setIsReactivateModalOpen}>

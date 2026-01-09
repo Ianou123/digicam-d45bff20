@@ -331,6 +331,36 @@ export type Database = {
           },
         ]
       }
+      search_logs: {
+        Row: {
+          clicked_document_id: string | null
+          client_id: string
+          created_at: string
+          id: string
+          query_text: string
+          result_count: number
+          user_id: string
+        }
+        Insert: {
+          clicked_document_id?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          query_text: string
+          result_count?: number
+          user_id: string
+        }
+        Update: {
+          clicked_document_id?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          query_text?: string
+          result_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       super_admin_audit_logs: {
         Row: {
           action_type: string
