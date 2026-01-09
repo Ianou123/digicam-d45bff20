@@ -9,16 +9,19 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 interface PdfViewerProps {
   url: string;
   className?: string;
+  autoFit?: boolean;
 }
 
-export function PdfViewer({ url, className = '' }: PdfViewerProps) {
+export function PdfViewer({ url, className = '', autoFit = true }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
-  const [scale, setScale] = useState(0.25);
+  const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialScaleSet, setInitialScaleSet] = useState(false);
 
   // Load PDF document
   useEffect(() => {
@@ -55,9 +58,31 @@ export function PdfViewer({ url, className = '' }: PdfViewerProps) {
     };
   }, [url]);
 
+  // Calculate auto-fit scale based on container width
+  useEffect(() => {
+    if (!pdfDoc || !containerRef.current || initialScaleSet) return;
+
+    const calculateAutoFitScale = async () => {
+      try {
+        const page = await pdfDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 1 });
+        const containerWidth = containerRef.current!.clientWidth - 32; // padding
+        const autoFitScale = Math.min(containerWidth / viewport.width, 2);
+        setScale(autoFit ? autoFitScale : 1);
+        setInitialScaleSet(true);
+      } catch (err) {
+        console.error('Error calculating auto-fit scale:', err);
+        setScale(1);
+        setInitialScaleSet(true);
+      }
+    };
+
+    calculateAutoFitScale();
+  }, [pdfDoc, autoFit, initialScaleSet]);
+
   // Render current page
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    if (!pdfDoc || !canvasRef.current || !initialScaleSet) return;
 
     const renderPage = async () => {
       try {
@@ -79,7 +104,7 @@ export function PdfViewer({ url, className = '' }: PdfViewerProps) {
     };
 
     renderPage();
-  }, [pdfDoc, pageNum, scale]);
+  }, [pdfDoc, pageNum, scale, initialScaleSet]);
 
   const goToPrevPage = () => {
     setPageNum((prev) => Math.max(prev - 1, 1));
@@ -150,7 +175,10 @@ export function PdfViewer({ url, className = '' }: PdfViewerProps) {
       </div>
 
       {/* Canvas container */}
-      <div className="overflow-auto h-[550px] border border-t-0 border-border rounded-b-lg bg-muted/20">
+      <div 
+        ref={containerRef}
+        className="overflow-auto h-[550px] border border-t-0 border-border rounded-b-lg bg-muted/20"
+      >
         <div className="flex justify-center p-4">
           <canvas ref={canvasRef} className="shadow-lg" />
         </div>
