@@ -42,7 +42,7 @@ const notificationIcons: Record<string, typeof Bell> = {
 
 export function NotificationCenter() {
   const { user, profile } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -84,7 +84,6 @@ export function NotificationCenter() {
     setLoading(true);
 
     try {
-      // Use rpc or raw query for new tables not yet in types
       const { data, error } = await supabase
         .from('notifications' as any)
         .select('*')
@@ -141,7 +140,6 @@ export function NotificationCenter() {
       markAsRead(notification.id);
     }
 
-    // Navigate based on notification type
     const documentId = notification.metadata?.document_id;
     if (documentId) {
       navigate(`/documents/${documentId}`);
@@ -185,12 +183,12 @@ export function NotificationCenter() {
       <PopoverContent className="w-96 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h4 className="font-semibold">
-            {language === 'fr' ? 'Notifications' : 'Notifications'}
+            {t('notifications.title')}
           </h4>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" onClick={markAllAsRead}>
               <CheckCheck className="h-4 w-4 mr-1" />
-              {language === 'fr' ? 'Tout marquer lu' : 'Mark all read'}
+              {t('notifications.markAllRead')}
             </Button>
           )}
         </div>
@@ -245,9 +243,7 @@ export function NotificationCenter() {
             <div className="p-8 text-center text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p className="text-sm">
-                {language === 'fr' 
-                  ? 'Aucune notification'
-                  : 'No notifications'}
+                {t('notifications.noNotifications')}
               </p>
             </div>
           )}
