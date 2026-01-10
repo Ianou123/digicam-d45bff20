@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
+import { GlobalImportButton } from './GlobalImportButton';
 import { SuspendedBanner } from './SuspendedBanner';
 import { DeactivatedUserPage } from '@/components/DeactivatedUserPage';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,7 +19,7 @@ const pageTitles: Record<string, string> = {
   '/activity': 'nav.activity',
   '/analytics': 'nav.analytics',
   '/settings': 'nav.settings',
-  '/my-dashboard': 'nav.myDashboard',
+  '/admin': 'nav.admin',
 };
 
 export function AppLayout() {
@@ -79,6 +80,7 @@ export function AppLayout() {
         <AppHeader
           title={pageTitle}
           onMenuClick={() => setSidebarOpen(true)}
+          rightContent={<GlobalImportButton />}
         />
         <main className="p-6 animate-fade-in">
           <Outlet />

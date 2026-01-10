@@ -13,7 +13,6 @@ import DocumentDetailPage from "./pages/DocumentDetail";
 import DocumentEdit from "./pages/DocumentEdit";
 import Departments from "./pages/Departments";
 import Upload from "./pages/Upload";
-import MyDashboard from "./pages/MyDashboard";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
@@ -48,7 +47,6 @@ const App = () => (
                 <Route path="/documents/:id/edit" element={<DocumentEdit />} />
                 <Route path="/departments" element={<Departments />} />
                 <Route path="/upload" element={<Upload />} />
-                <Route path="/my-dashboard" element={<MyDashboard />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/clients" element={<Clients />} />

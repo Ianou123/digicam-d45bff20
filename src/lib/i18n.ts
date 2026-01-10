@@ -17,8 +17,8 @@ export const translations = {
       activity: 'Activité',
       analytics: 'Analytiques',
       logout: 'Déconnexion',
-      myDashboard: 'Mon espace',
       auditLogs: 'Journal d\'audit',
+      admin: 'Administration',
     },
     // Auth
     auth: {
@@ -222,8 +222,8 @@ export const translations = {
       activity: 'Activity',
       analytics: 'Analytics',
       logout: 'Logout',
-      myDashboard: 'My Dashboard',
       auditLogs: 'Audit Logs',
+      admin: 'Admin',
     },
     // Auth
     auth: {

@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, Building2, TrendingUp, TrendingDown, HardDrive, CheckCircle, XCircle, AlertTriangle, UserX, UserCheck } from 'lucide-react';
+import { FileText, Users, Building2, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, UserX, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatsCard } from '@/components/dashboard/StatsCard';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { DocumentCard } from '@/components/documents/DocumentCard';
+import { StatusCards } from '@/components/dashboard/StatusCards';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
+import { RecentDocuments } from '@/components/dashboard/RecentDocuments';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { subDays, startOfDay, endOfDay } from 'date-fns';
+import { subDays, startOfDay } from 'date-fns';
 
 interface Document {
   id: string;
   title: string;
   document_type: string;
   confidentiality_level: string;
+  status?: string;
   created_at: string;
   updated_at: string;
   tags: string[];
@@ -54,9 +57,17 @@ interface DeactivatedUser {
   clients: { name: string } | null;
 }
 
+interface StatusStats {
+  processing: number;
+  pendingValidation: number;
+  archived: number;
+  confidential: number;
+  shared: number;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
+  const { profile, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
   
   const [stats, setStats] = useState({
@@ -64,13 +75,20 @@ export default function Dashboard() {
     totalUsers: 0,
     totalClients: 0,
   });
+  const [statusStats, setStatusStats] = useState<StatusStats>({
+    processing: 0,
+    pendingValidation: 0,
+    archived: 0,
+    confidential: 0,
+    shared: 0,
+  });
   const [clientStatus, setClientStatus] = useState<ClientStatus>({ active: 0, inactive: 0, suspended: 0 });
   const [activityTrend, setActivityTrend] = useState({ current: 0, previous: 0, percentChange: 0 });
   const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [clientsNeedingAttention, setClientsNeedingAttention] = useState<ClientAttention[]>([]);
   const [deactivatedUsers, setDeactivatedUsers] = useState<DeactivatedUser[]>([]);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -88,14 +106,42 @@ export default function Dashboard() {
       // Fetch documents count (exclude trashed)
       let documentsQuery = supabase
         .from('documents')
-        .select('id', { count: 'exact', head: true })
+        .select('id, status, confidentiality_level', { count: 'exact' })
         .is('deleted_at', null);
       
       if (!isSuperAdmin && profile?.client_id) {
         documentsQuery = documentsQuery.eq('client_id', profile.client_id);
       }
       
-      const { count: docsCount } = await documentsQuery;
+      const { data: documentsData, count: docsCount } = await documentsQuery;
+
+      // Calculate status stats from documents data
+      if (documentsData) {
+        const statusCounts: StatusStats = {
+          processing: 0,
+          pendingValidation: 0,
+          archived: 0,
+          confidential: 0,
+          shared: 0,
+        };
+        
+        documentsData.forEach((doc: any) => {
+          if (doc.status === 'processing') statusCounts.processing++;
+          if (doc.status === 'pending_validation') statusCounts.pendingValidation++;
+          if (doc.status === 'archived') statusCounts.archived++;
+          if (doc.confidentiality_level === 'confidential') statusCounts.confidential++;
+        });
+        
+        // Count shared documents (last 7 days)
+        const sevenDaysAgo = startOfDay(subDays(new Date(), 7));
+        const { count: sharedCount } = await supabase
+          .from('shares')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', sevenDaysAgo.toISOString());
+        
+        statusCounts.shared = sharedCount || 0;
+        setStatusStats(statusCounts);
+      }
 
       // Super Admin specific data
       if (isSuperAdmin) {
@@ -160,32 +206,31 @@ export default function Dashboard() {
         setActivityTrend({ current, previous, percentChange });
       }
       
-      // Non-Super Admin: fetch recent documents
-      if (!isSuperAdmin) {
-        let recentDocsQuery = supabase
-          .from('documents')
-          .select(`
-            id,
-            title,
-            document_type,
-            confidentiality_level,
-            created_at,
-            updated_at,
-            tags,
-            current_version,
-            departments(name)
-          `)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
-          .limit(5);
+      // Fetch recent documents for all users
+      let recentDocsQuery = supabase
+        .from('documents')
+        .select(`
+          id,
+          title,
+          document_type,
+          confidentiality_level,
+          status,
+          created_at,
+          updated_at,
+          tags,
+          current_version,
+          departments(name)
+        `)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-        if (profile?.client_id) {
-          recentDocsQuery = recentDocsQuery.eq('client_id', profile.client_id);
-        }
-
-        const { data: recentDocs } = await recentDocsQuery;
-        setRecentDocuments((recentDocs || []) as unknown as Document[]);
+      if (!isSuperAdmin && profile?.client_id) {
+        recentDocsQuery = recentDocsQuery.eq('client_id', profile.client_id);
       }
+
+      const { data: recentDocs } = await recentDocsQuery;
+      setRecentDocuments((recentDocs || []) as unknown as Document[]);
 
       // Fetch recent activity
       let activityQuery = supabase
@@ -210,7 +255,7 @@ export default function Dashboard() {
       if (profile?.client_id) {
         const { data: depts } = await supabase
           .from('departments')
-          .select('id, name')
+          .select('id, name, archived_at')
           .eq('client_id', profile.client_id);
         setDepartments(depts || []);
       }
@@ -252,12 +297,16 @@ export default function Dashboard() {
     }
   };
 
-  const handleViewDocument = (id: string) => {
-    navigate(`/documents/${id}`);
-  };
-
-  const handleDownloadDocument = async (id: string) => {
-    console.log('Download:', id);
+  const handleStatusCardClick = (status: string) => {
+    // Navigate to documents with filter
+    const filterMap: Record<string, string> = {
+      processing: 'status=processing',
+      pendingValidation: 'status=pending_validation',
+      archived: 'status=archived',
+      confidential: 'confidentiality=confidential',
+      shared: '', // TODO: Add shared filter
+    };
+    navigate(`/documents?${filterMap[status] || ''}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -453,116 +502,51 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Activity */}
-          <div>
-            <RecentActivity 
-              activities={recentActivity} 
-              showUser={true}
-            />
-          </div>
+          {/* Activity Timeline */}
+          <ActivityTimeline activities={recentActivity} showUser maxItems={8} />
         </div>
       </div>
     );
   }
 
-  // Client Admin / Staff Dashboard (unchanged)
+  // Regular User / Client Admin Dashboard
   return (
     <div className="space-y-6">
       {/* Welcome */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-serif font-semibold">
-            {t('dashboard.welcome')}, {profile?.full_name || 'Utilisateur'}
-          </h2>
-          <p className="text-muted-foreground">
-            Voici un aperçu de votre espace documentaire
-          </p>
-        </div>
-        {canManageDocuments && (
-          <Button onClick={() => setUploadModalOpen(true)} className="btn-institutional">
-            <FileText className="h-4 w-4 mr-2" />
-            {t('documents.newDocument')}
-          </Button>
-        )}
+      <div>
+        <h2 className="text-2xl font-serif font-semibold">
+          {t('dashboard.welcome')}, {profile?.full_name?.split(' ')[0] || (language === 'fr' ? 'Utilisateur' : 'User')}
+        </h2>
+        <p className="text-muted-foreground">
+          {language === 'fr' 
+            ? 'Prenez le contrôle de vos documents en 5 secondes'
+            : 'Take control of your documents in 5 seconds'}
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title={t('dashboard.totalDocuments')}
-          value={stats.totalDocuments}
-          icon={FileText}
-          trend={{ value: 12, isPositive: true }}
-        />
-        {isClientAdmin && (
-          <StatsCard
-            title={t('nav.users')}
-            value={stats.totalUsers}
-            icon={Users}
-          />
-        )}
-        <StatsCard
-          title="Ce mois"
-          value={recentDocuments.length}
-          icon={TrendingUp}
-          description="Documents ajoutés"
-        />
-      </div>
+      {/* Status Cards */}
+      <StatusCards stats={statusStats} onCardClick={handleStatusCardClick} />
+
+      {/* Quick Actions */}
+      <QuickActions 
+        onImportClick={() => {
+          if (isClientSuspended) return;
+          setUploadModalOpen(true);
+        }}
+      />
 
       {/* Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Documents */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-serif">
-                {t('dashboard.recentDocuments')}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/documents')}>
-                Voir tout
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentDocuments.length > 0 ? (
-                recentDocuments.map((doc) => (
-                  <DocumentCard
-                    key={doc.id}
-                    document={{
-                      ...doc,
-                      department: doc.departments,
-                      profiles: null,
-                    }}
-                    onView={handleViewDocument}
-                    onDownload={handleDownloadDocument}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p>{t('documents.noDocuments')}</p>
-                  {canManageDocuments && (
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => setUploadModalOpen(true)}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {t('documents.uploadDocument')}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Activity */}
-        <div>
-          <RecentActivity 
-            activities={recentActivity} 
-            showUser={isClientAdmin}
+        <div className="lg:col-span-2">
+          <RecentDocuments 
+            documents={recentDocuments}
+            onViewAll={() => navigate('/documents')}
           />
         </div>
+
+        {/* Activity Timeline */}
+        <ActivityTimeline activities={recentActivity} maxItems={8} />
       </div>
 
       {/* Upload Modal */}
@@ -570,7 +554,7 @@ export default function Dashboard() {
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
         departments={departments}
-        onSuccess={fetchDashboardData}
+        onSuccess={() => fetchDashboardData()}
       />
     </div>
   );

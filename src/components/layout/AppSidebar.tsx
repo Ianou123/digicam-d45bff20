@@ -47,13 +47,7 @@ export function AppSidebar() {
       href: '/dashboard', 
       icon: LayoutDashboard, 
       label: t('nav.dashboard'),
-      show: isSuperAdmin || isClientAdmin 
-    },
-    { 
-      href: '/my-dashboard', 
-      icon: LayoutDashboard, 
-      label: t('nav.myDashboard'),
-      show: !isSuperAdmin && !isClientAdmin 
+      show: true // Unified dashboard for all users
     },
     { 
       href: '/documents', 

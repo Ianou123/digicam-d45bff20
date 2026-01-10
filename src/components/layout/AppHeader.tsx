@@ -13,9 +13,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface AppHeaderProps {
   title?: string;
   onMenuClick?: () => void;
+  rightContent?: React.ReactNode;
 }
 
-export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
+export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
   const { profile, isSuperAdmin, isClientAdmin, clientName } = useAuth();
 
@@ -63,6 +64,9 @@ export function AppHeader({ title, onMenuClick }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Right Content (e.g., Import button) */}
+        {rightContent}
+
         {/* Organization Name - visible for non-super-admins */}
         {!isSuperAdmin && clientName && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border">

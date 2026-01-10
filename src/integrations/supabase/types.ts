@@ -174,6 +174,36 @@ export type Database = {
           },
         ]
       }
+      document_tags: {
+        Row: {
+          document_id: string
+          tag_id: string
+        }
+        Insert: {
+          document_id: string
+          tag_id: string
+        }
+        Update: {
+          document_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tags_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_versions: {
         Row: {
           change_notes: string | null
@@ -226,11 +256,14 @@ export type Database = {
           current_version: number
           deleted_at: string | null
           department_id: string | null
+          document_date: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size: number | null
           file_url: string
+          folder_id: string | null
           id: string
           ocr_text: string | null
+          status: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -243,11 +276,14 @@ export type Database = {
           current_version?: number
           deleted_at?: string | null
           department_id?: string | null
+          document_date?: string | null
           document_type: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
           file_url: string
+          folder_id?: string | null
           id?: string
           ocr_text?: string | null
+          status?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -260,11 +296,14 @@ export type Database = {
           current_version?: number
           deleted_at?: string | null
           department_id?: string | null
+          document_date?: string | null
           document_type?: Database["public"]["Enums"]["document_type"]
           file_size?: number | null
           file_url?: string
+          folder_id?: string | null
           id?: string
           ocr_text?: string | null
+          status?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -283,6 +322,55 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
         ]
@@ -331,6 +419,44 @@ export type Database = {
           },
         ]
       }
+      saved_searches: {
+        Row: {
+          client_id: string
+          created_at: string
+          filters: Json
+          id: string
+          is_pinned: boolean | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_pinned?: boolean | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_pinned?: boolean | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_searches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       search_logs: {
         Row: {
           clicked_document_id: string | null
@@ -361,6 +487,53 @@ export type Database = {
         }
         Relationships: []
       }
+      shares: {
+        Row: {
+          can_download: boolean | null
+          created_at: string
+          created_by: string
+          document_id: string
+          expires_at: string | null
+          id: string
+          link_token: string | null
+          password_hash: string | null
+          recipient_user_id: string | null
+          share_type: string
+        }
+        Insert: {
+          can_download?: boolean | null
+          created_at?: string
+          created_by: string
+          document_id: string
+          expires_at?: string | null
+          id?: string
+          link_token?: string | null
+          password_hash?: string | null
+          recipient_user_id?: string | null
+          share_type: string
+        }
+        Update: {
+          can_download?: boolean | null
+          created_at?: string
+          created_by?: string
+          document_id?: string
+          expires_at?: string | null
+          id?: string
+          link_token?: string | null
+          password_hash?: string | null
+          recipient_user_id?: string | null
+          share_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shares_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       super_admin_audit_logs: {
         Row: {
           action_type: string
@@ -390,6 +563,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tags: {
+        Row: {
+          client_id: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          client_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          client_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
