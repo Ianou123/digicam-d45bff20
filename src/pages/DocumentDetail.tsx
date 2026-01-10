@@ -78,6 +78,12 @@ interface AuditEvent {
   action_type: string;
   created_at: string;
   user_name?: string;
+  metadata?: {
+    action?: string;
+    rejection_reason?: string;
+    previous_status?: string;
+    new_status?: string;
+  } | null;
 }
 
 const confidentialityColors: Record<string, string> = {
@@ -226,7 +232,7 @@ export default function DocumentDetailPage() {
   const fetchAuditEvents = async () => {
     const { data } = await supabase
       .from('activity_logs')
-      .select('id, action_type, created_at, user_id')
+      .select('id, action_type, created_at, user_id, metadata')
       .eq('document_id', id)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -245,6 +251,7 @@ export default function DocumentDetailPage() {
         action_type: e.action_type,
         created_at: e.created_at,
         user_name: profileMap.get(e.user_id) || undefined,
+        metadata: e.metadata as AuditEvent['metadata'],
       }));
       
       setAuditEvents(eventsWithNames);
@@ -564,7 +571,7 @@ export default function DocumentDetailPage() {
               {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>
                   <Eye className="h-4 w-4 mr-1" />
-                  {language === 'fr' ? 'À valider' : 'Mark for Review'}
+                  {language === 'fr' ? 'Envoyer pour validation' : 'Send for Validation'}
                 </Button>
               )}
               {canManageDocuments && !isClientSuspended && document.status !== 'archived' && (
@@ -780,21 +787,53 @@ export default function DocumentDetailPage() {
                 <TabsContent value="audit" className="mt-0 space-y-4">
                   {auditEvents.length > 0 ? (
                     <div className="space-y-3">
-                      {auditEvents.map((event) => (
-                        <div key={event.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                            <Eye className="h-4 w-4 text-muted-foreground" />
+                      {auditEvents.map((event) => {
+                        const isRejection = event.metadata?.action === 'reject';
+                        const isValidation = event.metadata?.action === 'validate';
+                        const isResubmit = event.metadata?.action === 'resubmit';
+                        
+                        const getEventIcon = () => {
+                          if (isRejection) return <XCircle className="h-4 w-4 text-destructive" />;
+                          if (isValidation) return <CheckCircle className="h-4 w-4 text-success" />;
+                          if (isResubmit) return <Upload className="h-4 w-4 text-info" />;
+                          return <Eye className="h-4 w-4 text-muted-foreground" />;
+                        };
+                        
+                        const getEventLabel = () => {
+                          if (isRejection) return language === 'fr' ? 'Document rejeté' : 'Document rejected';
+                          if (isValidation) return language === 'fr' ? 'Document validé' : 'Document validated';
+                          if (isResubmit) return language === 'fr' ? 'Document re-soumis' : 'Document resubmitted';
+                          return t(`activity.${event.action_type}`);
+                        };
+                        
+                        return (
+                          <div key={event.id} className={cn(
+                            "flex items-start gap-3 p-3 rounded-lg",
+                            isRejection ? "bg-destructive/5 border border-destructive/20" : "hover:bg-muted/50"
+                          )}>
+                            <div className={cn(
+                              "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
+                              isRejection ? "bg-destructive/10" : isValidation ? "bg-success/10" : "bg-muted"
+                            )}>
+                              {getEventIcon()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">
+                                {getEventLabel()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {event.user_name || 'Unknown'} • {format(new Date(event.created_at), 'dd MMM yyyy HH:mm', { locale: dateLocale })}
+                              </p>
+                              {isRejection && event.metadata?.rejection_reason && (
+                                <div className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive">
+                                  <span className="font-medium">{language === 'fr' ? 'Motif : ' : 'Reason: '}</span>
+                                  {event.metadata.rejection_reason}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">
-                              {t(`activity.${event.action_type}`)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {event.user_name || 'Unknown'} • {format(new Date(event.created_at), 'dd MMM yyyy HH:mm', { locale: dateLocale })}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
