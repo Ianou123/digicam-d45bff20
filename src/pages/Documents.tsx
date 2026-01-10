@@ -7,6 +7,8 @@ import { DocumentFilters } from '@/components/documents/DocumentFilters';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { EmptyState } from '@/components/documents/EmptyState';
 import { SearchResultCard } from '@/components/documents/SearchResultCard';
+import { WatchSearchButton } from '@/components/documents/WatchSearchButton';
+import { WatchedSearchesList } from '@/components/documents/WatchedSearchesList';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -596,13 +598,22 @@ export default function Documents() {
       )}
 
       {/* Filters */}
-      <DocumentFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        departments={departments}
-        searchHistory={searchHistory}
-        onSearchHistoryClick={handleSearchHistoryClick}
-      />
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
+        <div className="flex-1">
+          <DocumentFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            departments={departments}
+            searchHistory={searchHistory}
+            onSearchHistoryClick={handleSearchHistoryClick}
+          />
+        </div>
+        {/* Watch Search Button - appears when filters are active */}
+        <WatchSearchButton currentFilters={filters} />
+      </div>
+
+      {/* Watched Searches */}
+      <WatchedSearchesList />
 
       {/* Select All Header */}
       {documents.length > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Globe, Bell, Lock, Building2, Copy, Check, Loader2, Trash2 } from 'lucide-react';
+import { User, Globe, Bell, Lock, Building2, Copy, Check, Loader2, Trash2, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +50,12 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     fullName: profile?.full_name || '',
     email: profile?.email || '',
+    departmentId: '',
   });
+  
+  // Departments for self-declaration
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   // Password change state
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -72,15 +77,41 @@ export default function Settings() {
   });
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
 
-  // Load notification preferences from profile metadata
+  // Load notification preferences from profile metadata and fetch departments
   useEffect(() => {
     if (profile) {
       setFormData({
         fullName: profile.full_name || '',
         email: profile.email || '',
+        departmentId: (profile as any).department_id || '',
       });
+      
+      // Fetch departments for the user's client
+      if (profile.client_id) {
+        fetchDepartments();
+      }
     }
   }, [profile]);
+
+  const fetchDepartments = async () => {
+    if (!profile?.client_id) return;
+    
+    setDepartmentsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('client_id', profile.client_id)
+        .is('archived_at', null)
+        .order('name');
+      
+      setDepartments(data || []);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
 
   // Simulated notification preferences (would need a preferences table in real impl)
   useEffect(() => {
@@ -113,15 +144,37 @@ export default function Settings() {
 
     setLoading(true);
     try {
+      // Build update object - include department if changed
+      const updateData: Record<string, any> = {
+        full_name: formData.fullName,
+        preferred_language: language,
+      };
+      
+      // Only update department if user is staff (non-admin self-declaration)
+      if (!isClientAdmin && formData.departmentId !== (profile as any).department_id) {
+        updateData.department_id = formData.departmentId || null;
+        updateData.department_self_declared = !!formData.departmentId;
+      }
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: formData.fullName,
-          preferred_language: language,
-        })
+        .update(updateData)
         .eq('id', profile.id);
 
       if (error) throw error;
+
+      // Log department change if applicable
+      if (updateData.department_id !== undefined && user && profile.client_id) {
+        await supabase.from('activity_logs').insert({
+          user_id: user.id,
+          client_id: profile.client_id,
+          action_type: 'update' as const,
+          metadata: { 
+            action: 'department_self_declare',
+            department_id: updateData.department_id 
+          }
+        });
+      }
 
       await refreshProfile();
       toast.success(language === 'fr' ? 'Paramètres enregistrés' : 'Settings saved');
@@ -274,6 +327,48 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Department Self-Declaration - Only for non-admin users */}
+      {!isClientAdmin && departments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              {language === 'fr' ? 'Département' : 'Department'}
+            </CardTitle>
+            <CardDescription>
+              {language === 'fr' 
+                ? 'Indiquez votre département pour personnaliser votre expérience'
+                : 'Indicate your department to personalize your experience'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select 
+              value={formData.departmentId} 
+              onValueChange={(v) => setFormData(prev => ({ ...prev, departmentId: v }))}
+              disabled={departmentsLoading}
+            >
+              <SelectTrigger className="w-full md:w-[300px]">
+                <SelectValue placeholder={language === 'fr' ? 'Non défini' : 'Not defined'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  {language === 'fr' ? 'Non défini' : 'Not defined'}
+                </SelectItem>
+                {departments.map(dept => (
+                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(profile as any)?.department_self_declared && (
+              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/50" />
+                {language === 'fr' ? 'Auto-déclaré' : 'Self-declared'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Organization - Only visible to Client Admins */}
       {isClientAdmin && clientInviteCode && (
