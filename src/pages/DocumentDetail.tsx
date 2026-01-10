@@ -44,6 +44,7 @@ import { PdfViewer } from '@/components/documents/PdfViewer';
 import { ConfidentialityBanner } from '@/components/documents/ConfidentialityBanner';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
 import { RelatedDocuments } from '@/components/documents/RelatedDocuments';
+import { FrequentlyViewedTogether } from '@/components/documents/FrequentlyViewedTogether';
 import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
 import { toast } from 'sonner';
 
@@ -908,7 +909,10 @@ export default function DocumentDetailPage() {
       </div>
 
       {/* Related Documents Section */}
-      <RelatedDocuments documentId={document.id} documentTags={document.tags || []} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <RelatedDocuments documentId={document.id} documentTags={document.tags || []} />
+        <FrequentlyViewedTogether documentId={document.id} />
+      </div>
 
       {/* Confidential Download Modal */}
       <ConfidentialDownloadModal

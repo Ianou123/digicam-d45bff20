@@ -110,6 +110,12 @@ export const translations = {
       thisMonth: 'Ce mois',
       popularDocuments: 'Documents populaires',
       recentActivity: 'Activité récente',
+      organizationTrends: 'Tendances de l\'organisation',
+      topDocumentWeek: 'Top document de la semaine',
+      trendingToday: 'Tendances du jour',
+      noActivityToday: 'Aucune activité aujourd\'hui',
+      views: 'vues',
+      uniqueViewers: 'visiteurs uniques',
     },
     // Activity
     activity: {
@@ -120,6 +126,62 @@ export const translations = {
       update: 'Mise à jour',
       delete: 'Suppression',
       noActivity: 'Aucune activité récente',
+    },
+    // Notifications
+    notifications: {
+      title: 'Notifications',
+      markAllRead: 'Tout marquer comme lu',
+      noNotifications: 'Aucune notification',
+      watchedSearchMatch: 'Correspondance de recherche surveillée',
+      newDocumentMatches: 'Un nouveau document correspond à votre recherche',
+      viewDocument: 'Voir le document',
+    },
+    // Admin Pulse
+    adminPulse: {
+      title: 'Pulse Administrateur',
+      description: 'Analyses de recherche, documents inutilisés et comparaison d\'activité',
+      totalSearches: 'Recherches totales',
+      failedSearchRate: 'Taux d\'échec',
+      totalDocuments: 'Documents totaux',
+      unusedDocuments: 'Documents inutilisés',
+      failedSearches: 'Recherches échouées',
+      frequentFailedQueries: 'Requêtes fréquemment échouées',
+      noFailedSearches: 'Aucune recherche échouée',
+      unusedDocumentsTab: 'Documents inutilisés',
+      notViewedIn: 'Non vu depuis',
+      days: 'jours',
+      departmentActivity: 'Activité par département',
+      noDepartmentActivity: 'Aucune activité de département',
+      activeUsers: 'utilisateurs actifs',
+      downloads: 'téléchargements',
+    },
+    // Watched Searches
+    watchedSearches: {
+      title: 'Recherches surveillées',
+      watch: 'Surveiller',
+      unwatch: 'Ne plus surveiller',
+      watching: 'Surveillance active',
+      noWatchedSearches: 'Aucune recherche surveillée',
+      watchSearchDescription: 'Recevez des notifications lorsque de nouveaux documents correspondent à cette recherche',
+    },
+    // Related Documents
+    relatedDocuments: {
+      title: 'Documents liés',
+      sharedTags: 'Tags partagés',
+      coViewed: 'Co-visionné',
+      viewedByOthers: 'Vu par les mêmes utilisateurs',
+      frequentlyViewedTogether: 'Fréquemment vus ensemble',
+    },
+    // Request Update
+    requestUpdate: {
+      title: 'Demander une mise à jour',
+      description: 'Signaler que ce document nécessite une mise à jour',
+      reason: 'Raison de la demande',
+      reasonPlaceholder: 'Ex: Informations obsolètes, données manquantes...',
+      send: 'Envoyer la demande',
+      success: 'Demande de mise à jour envoyée',
+      oldDocument: 'Document ancien',
+      considerUpdate: 'Ce document a plus de 6 mois. Pensez à demander une mise à jour.',
     },
     // Common
     common: {
@@ -317,6 +379,12 @@ export const translations = {
       thisMonth: 'This month',
       popularDocuments: 'Popular Documents',
       recentActivity: 'Recent Activity',
+      organizationTrends: 'Organization Trends',
+      topDocumentWeek: 'Top document this week',
+      trendingToday: 'Trending today',
+      noActivityToday: 'No activity today',
+      views: 'views',
+      uniqueViewers: 'unique viewers',
     },
     // Activity
     activity: {
@@ -327,6 +395,62 @@ export const translations = {
       update: 'Update',
       delete: 'Delete',
       noActivity: 'No recent activity',
+    },
+    // Notifications
+    notifications: {
+      title: 'Notifications',
+      markAllRead: 'Mark all as read',
+      noNotifications: 'No notifications',
+      watchedSearchMatch: 'Watched search match',
+      newDocumentMatches: 'A new document matches your search',
+      viewDocument: 'View document',
+    },
+    // Admin Pulse
+    adminPulse: {
+      title: 'Admin Pulse',
+      description: 'Search analytics, unused documents, and activity comparison',
+      totalSearches: 'Total Searches',
+      failedSearchRate: 'Failed Rate',
+      totalDocuments: 'Total Documents',
+      unusedDocuments: 'Unused Documents',
+      failedSearches: 'Failed Searches',
+      frequentFailedQueries: 'Frequent failed queries',
+      noFailedSearches: 'No failed searches',
+      unusedDocumentsTab: 'Unused Documents',
+      notViewedIn: 'Not viewed in',
+      days: 'days',
+      departmentActivity: 'Department Activity',
+      noDepartmentActivity: 'No department activity',
+      activeUsers: 'active users',
+      downloads: 'downloads',
+    },
+    // Watched Searches
+    watchedSearches: {
+      title: 'Watched Searches',
+      watch: 'Watch',
+      unwatch: 'Unwatch',
+      watching: 'Watching',
+      noWatchedSearches: 'No watched searches',
+      watchSearchDescription: 'Get notified when new documents match this search',
+    },
+    // Related Documents
+    relatedDocuments: {
+      title: 'Related Documents',
+      sharedTags: 'Shared tags',
+      coViewed: 'Co-viewed',
+      viewedByOthers: 'Viewed by same users',
+      frequentlyViewedTogether: 'Frequently Viewed Together',
+    },
+    // Request Update
+    requestUpdate: {
+      title: 'Request Update',
+      description: 'Flag this document as needing an update',
+      reason: 'Reason for request',
+      reasonPlaceholder: 'E.g.: Outdated information, missing data...',
+      send: 'Send Request',
+      success: 'Update request sent',
+      oldDocument: 'Old Document',
+      considerUpdate: 'This document is over 6 months old. Consider requesting an update.',
     },
     // Common
     common: {
