@@ -82,6 +82,7 @@ interface AuditEvent {
   metadata?: {
     action?: string;
     rejection_reason?: string;
+    comment?: string;
     previous_status?: string;
     new_status?: string;
   } | null;
@@ -135,7 +136,9 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showConfidentialModal, setShowConfidentialModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showProposeModal, setShowProposeModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [proposeComment, setProposeComment] = useState('');
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
 
@@ -426,7 +429,7 @@ export default function DocumentDetailPage() {
 
       if (error) throw error;
 
-      // Log the propose modification action
+      // Log the propose modification action with comment
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
@@ -435,11 +438,14 @@ export default function DocumentDetailPage() {
         metadata: { 
           action: 'propose_modification', 
           previous_status: document.status, 
-          new_status: 'pending_validation'
+          new_status: 'pending_validation',
+          comment: proposeComment.trim() || null
         }
       });
 
       setDocument({ ...document, status: 'pending_validation' });
+      setShowProposeModal(false);
+      setProposeComment('');
       // Refresh audit events to show the new log
       fetchAuditEvents();
       toast.success(language === 'fr' ? 'Document soumis pour validation' : 'Document submitted for validation');
@@ -604,7 +610,7 @@ export default function DocumentDetailPage() {
                 </Button>
               )}
               {canManageDocuments && !isClientSuspended && !isClientAdmin && !isSuperAdmin && document.status === 'ready' && (
-                <Button size="sm" variant="default" onClick={handleProposeModification}>
+                <Button size="sm" variant="default" onClick={() => setShowProposeModal(true)}>
                   <Send className="h-4 w-4 mr-1" />
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
@@ -868,6 +874,12 @@ export default function DocumentDetailPage() {
                                   {event.metadata.rejection_reason}
                                 </div>
                               )}
+                              {isProposeModification && event.metadata?.comment && (
+                                <div className="mt-2 p-2 bg-primary/10 rounded text-sm text-primary">
+                                  <span className="font-medium">{language === 'fr' ? 'Commentaire : ' : 'Comment: '}</span>
+                                  {event.metadata.comment}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -930,6 +942,47 @@ export default function DocumentDetailPage() {
             <Button variant="destructive" onClick={handleRejectDocument}>
               <XCircle className="h-4 w-4 mr-1" />
               {language === 'fr' ? 'Confirmer le rejet' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Propose Modification Modal */}
+      <Dialog open={showProposeModal} onOpenChange={setShowProposeModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Le document sera soumis pour validation par un administrateur. Décrivez les modifications effectuées.'
+                : 'The document will be submitted for admin validation. Describe the changes you made.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="propose-comment">
+                {language === 'fr' ? 'Description des modifications' : 'Description of changes'}
+              </Label>
+              <Textarea
+                id="propose-comment"
+                placeholder={language === 'fr' 
+                  ? 'Ex: Correction des informations de contact, mise à jour des dates...'
+                  : 'E.g.: Fixed contact information, updated dates...'}
+                value={proposeComment}
+                onChange={(e) => setProposeComment(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProposeModal(false)}>
+              {language === 'fr' ? 'Annuler' : 'Cancel'}
+            </Button>
+            <Button onClick={handleProposeModification}>
+              <Send className="h-4 w-4 mr-1" />
+              {language === 'fr' ? 'Soumettre pour validation' : 'Submit for Validation'}
             </Button>
           </DialogFooter>
         </DialogContent>
