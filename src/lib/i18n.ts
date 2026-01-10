@@ -108,6 +108,8 @@ export const translations = {
       todayActivity: "Activité d'aujourd'hui",
       thisWeek: 'Cette semaine',
       thisMonth: 'Ce mois',
+      popularDocuments: 'Documents populaires',
+      recentActivity: 'Activité récente',
     },
     // Activity
     activity: {
@@ -313,6 +315,8 @@ export const translations = {
       todayActivity: "Today's activity",
       thisWeek: 'This week',
       thisMonth: 'This month',
+      popularDocuments: 'Popular Documents',
+      recentActivity: 'Recent Activity',
     },
     // Activity
     activity: {
