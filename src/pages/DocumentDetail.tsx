@@ -125,7 +125,7 @@ const statusConfig: Record<string, { label: { fr: string; en: string }; classNam
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -609,7 +609,7 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Re-soumettre' : 'Resubmit'}
                 </Button>
               )}
-              {canManageDocuments && !isClientSuspended && !isClientAdmin && !isSuperAdmin && document.status === 'ready' && (
+              {isStaff && !isClientSuspended && document.status === 'ready' && (
                 <Button size="sm" variant="default" onClick={() => setShowProposeModal(true)}>
                   <Send className="h-4 w-4 mr-1" />
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
