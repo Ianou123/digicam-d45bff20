@@ -215,7 +215,7 @@ export default function Dashboard() {
       
       // Fetch recent documents for all users
       // Prioritize user's department documents first
-      const userDeptId = (profile as any)?.department_id;
+      const userDeptId = profile?.department_id;
       
       let recentDocsQuery = supabase
         .from('documents')

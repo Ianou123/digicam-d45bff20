@@ -12,6 +12,9 @@ interface UserProfile {
   client_id: string | null;
   preferred_language: 'fr' | 'en';
   status: 'active' | 'deactivated';
+  department_id: string | null;
+  department_notifications: boolean;
+  department_self_declared: boolean;
 }
 
 type ClientStatus = 'active' | 'inactive' | 'suspended';
@@ -77,6 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           client_id: profileData.client_id,
           preferred_language: (profileData.preferred_language as 'fr' | 'en') || 'fr',
           status: (profileData.status as 'active' | 'deactivated') || 'active',
+          department_id: profileData.department_id || null,
+          department_notifications: profileData.department_notifications ?? true,
+          department_self_declared: profileData.department_self_declared ?? false,
         });
 
         // Fetch client status, name, and invite code if user has a client

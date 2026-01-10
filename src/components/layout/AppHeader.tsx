@@ -27,7 +27,7 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
   // Fetch department name if user has one assigned
   useEffect(() => {
     const fetchDepartment = async () => {
-      const deptId = (profile as any)?.department_id;
+      const deptId = profile?.department_id;
       if (deptId) {
         const { data } = await supabase
           .from('departments')
@@ -42,7 +42,7 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
       }
     };
     fetchDepartment();
-  }, [profile]);
+  }, [profile?.department_id]);
 
   const getRoleBadge = () => {
     if (isSuperAdmin) {
