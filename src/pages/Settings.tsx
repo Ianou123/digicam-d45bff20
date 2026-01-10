@@ -85,8 +85,14 @@ export default function Settings() {
       setFormData({
         fullName: profile.full_name || '',
         email: profile.email || '',
-        departmentId: (profile as any).department_id || '',
+        departmentId: profile.department_id || '',
       });
+      
+      // Load department notifications from profile
+      setNotifications(prev => ({
+        ...prev,
+        departmentNotifications: profile.department_notifications ?? true,
+      }));
       
       // Fetch departments for the user's client
       if (profile.client_id) {
