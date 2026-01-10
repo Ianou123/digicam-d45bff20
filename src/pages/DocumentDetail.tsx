@@ -20,7 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Upload
+  Upload,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -119,6 +122,8 @@ export default function DocumentDetailPage() {
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfidentialModal, setShowConfidentialModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
 
@@ -330,6 +335,41 @@ export default function DocumentDetailPage() {
     }
   };
 
+  const handleRejectDocument = async () => {
+    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ status: 'processing', updated_at: new Date().toISOString() })
+        .eq('id', document.id);
+
+      if (error) throw error;
+
+      // Log the rejection action with reason
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'update' as const,
+        document_id: document.id,
+        details: { 
+          action: 'reject', 
+          previous_status: 'pending_validation', 
+          new_status: 'processing',
+          rejection_reason: rejectReason.trim() || null
+        }
+      });
+
+      setDocument({ ...document, status: 'processing' });
+      setShowRejectModal(false);
+      setRejectReason('');
+      toast.success(language === 'fr' ? 'Document rejeté - renvoyé en traitement' : 'Document rejected - sent back for processing');
+    } catch (error) {
+      console.error('Error rejecting document:', error);
+      toast.error(language === 'fr' ? 'Erreur lors du rejet' : 'Rejection error');
+    }
+  };
+
   const copyOcrText = () => {
     if (document?.ocr_text) {
       navigator.clipboard.writeText(document.ocr_text);
@@ -467,10 +507,16 @@ export default function DocumentDetailPage() {
             {/* Quick Actions */}
             <div className="p-4 border-b flex flex-wrap gap-2">
               {canManageDocuments && !isClientSuspended && document.status === 'pending_validation' && (
-                <Button size="sm" variant="default" onClick={handleValidateDocument}>
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  {language === 'fr' ? 'Valider' : 'Validate'}
-                </Button>
+                <>
+                  <Button size="sm" variant="default" onClick={handleValidateDocument}>
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    {language === 'fr' ? 'Valider' : 'Validate'}
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => setShowRejectModal(true)}>
+                    <XCircle className="h-4 w-4 mr-1" />
+                    {language === 'fr' ? 'Rejeter' : 'Reject'}
+                  </Button>
+                </>
               )}
               {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>
@@ -727,6 +773,47 @@ export default function DocumentDetailPage() {
         onConfirm={executeDownload}
         documentTitle={document.title}
       />
+
+      {/* Reject Document Modal */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Rejeter le document' : 'Reject Document'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'fr' 
+                ? 'Le document sera renvoyé en traitement pour correction. Vous pouvez indiquer un motif de rejet.'
+                : 'The document will be sent back for processing. You can provide a rejection reason.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reject-reason">
+                {language === 'fr' ? 'Motif du rejet (optionnel)' : 'Rejection reason (optional)'}
+              </Label>
+              <Textarea
+                id="reject-reason"
+                placeholder={language === 'fr' 
+                  ? 'Ex: Informations manquantes, qualité insuffisante...'
+                  : 'E.g.: Missing information, insufficient quality...'}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+              {language === 'fr' ? 'Annuler' : 'Cancel'}
+            </Button>
+            <Button variant="destructive" onClick={handleRejectDocument}>
+              <XCircle className="h-4 w-4 mr-1" />
+              {language === 'fr' ? 'Confirmer le rejet' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
