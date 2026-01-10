@@ -21,7 +21,8 @@ import {
   ZoomOut,
   RotateCw,
   Upload,
-  XCircle
+  XCircle,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -414,6 +415,40 @@ export default function DocumentDetailPage() {
     }
   };
 
+  const handleProposeModification = async () => {
+    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ status: 'pending_validation', updated_at: new Date().toISOString() })
+        .eq('id', document.id);
+
+      if (error) throw error;
+
+      // Log the propose modification action
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'update' as const,
+        document_id: document.id,
+        metadata: { 
+          action: 'propose_modification', 
+          previous_status: document.status, 
+          new_status: 'pending_validation'
+        }
+      });
+
+      setDocument({ ...document, status: 'pending_validation' });
+      // Refresh audit events to show the new log
+      fetchAuditEvents();
+      toast.success(language === 'fr' ? 'Document soumis pour validation' : 'Document submitted for validation');
+    } catch (error) {
+      console.error('Error proposing modification:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la soumission' : 'Submission error');
+    }
+  };
+
   const copyOcrText = () => {
     if (document?.ocr_text) {
       navigator.clipboard.writeText(document.ocr_text);
@@ -568,10 +603,10 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Re-soumettre' : 'Resubmit'}
                 </Button>
               )}
-              {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
-                <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>
-                  <Eye className="h-4 w-4 mr-1" />
-                  {language === 'fr' ? 'Envoyer pour validation' : 'Send for Validation'}
+              {canManageDocuments && !isClientSuspended && !isClientAdmin && !isSuperAdmin && document.status === 'ready' && (
+                <Button size="sm" variant="default" onClick={handleProposeModification}>
+                  <Send className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
               )}
               {canManageDocuments && !isClientSuspended && document.status !== 'archived' && (
@@ -791,11 +826,13 @@ export default function DocumentDetailPage() {
                         const isRejection = event.metadata?.action === 'reject';
                         const isValidation = event.metadata?.action === 'validate';
                         const isResubmit = event.metadata?.action === 'resubmit';
+                        const isProposeModification = event.metadata?.action === 'propose_modification';
                         
                         const getEventIcon = () => {
                           if (isRejection) return <XCircle className="h-4 w-4 text-destructive" />;
                           if (isValidation) return <CheckCircle className="h-4 w-4 text-success" />;
                           if (isResubmit) return <Upload className="h-4 w-4 text-info" />;
+                          if (isProposeModification) return <Send className="h-4 w-4 text-primary" />;
                           return <Eye className="h-4 w-4 text-muted-foreground" />;
                         };
                         
@@ -803,6 +840,7 @@ export default function DocumentDetailPage() {
                           if (isRejection) return language === 'fr' ? 'Document rejeté' : 'Document rejected';
                           if (isValidation) return language === 'fr' ? 'Document validé' : 'Document validated';
                           if (isResubmit) return language === 'fr' ? 'Document re-soumis' : 'Document resubmitted';
+                          if (isProposeModification) return language === 'fr' ? 'Modifications proposées' : 'Changes proposed';
                           return t(`activity.${event.action_type}`);
                         };
                         
@@ -813,7 +851,7 @@ export default function DocumentDetailPage() {
                           )}>
                             <div className={cn(
                               "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
-                              isRejection ? "bg-destructive/10" : isValidation ? "bg-success/10" : "bg-muted"
+                              isRejection ? "bg-destructive/10" : isValidation ? "bg-success/10" : isProposeModification ? "bg-primary/10" : "bg-muted"
                             )}>
                               {getEventIcon()}
                             </div>
