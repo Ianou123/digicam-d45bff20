@@ -1,4 +1,4 @@
-import { Bell, Building2, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
+import { Building2, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 interface AppHeaderProps {
   title?: string;
@@ -105,10 +106,7 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
         </DropdownMenu>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <NotificationCenter />
       </div>
     </header>
   );
