@@ -20,6 +20,7 @@ import OrganizationDetail from "./pages/OrganizationDetail";
 import Activity from "./pages/Activity";
 import Analytics from "./pages/Analytics";
 import AuditLogs from "./pages/AuditLogs";
+import AdminPulse from "./pages/AdminPulse";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/activity" element={<Activity />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/pulse" element={<AdminPulse />} />
               </Route>
               
               {/* Catch-all */}

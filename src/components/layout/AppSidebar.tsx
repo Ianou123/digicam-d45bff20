@@ -11,7 +11,8 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Shield
+  Shield,
+  Gauge
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const handleSignOut = async () => {
     await signOut();
@@ -92,6 +93,12 @@ export function AppSidebar() {
       href: '/analytics', 
       icon: BarChart3, 
       label: t('nav.analytics'),
+      show: isSuperAdmin || isClientAdmin 
+    },
+    { 
+      href: '/pulse', 
+      icon: Gauge, 
+      label: language === 'fr' ? 'Pulse Admin' : 'Admin Pulse',
       show: isSuperAdmin || isClientAdmin 
     },
     { 
