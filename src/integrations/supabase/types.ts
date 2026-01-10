@@ -174,6 +174,51 @@ export type Database = {
           },
         ]
       }
+      document_relations: {
+        Row: {
+          created_at: string
+          id: string
+          related_document_id: string
+          relation_type: string
+          source_document_id: string
+          strength: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          related_document_id: string
+          relation_type?: string
+          source_document_id: string
+          strength?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          related_document_id?: string
+          relation_type?: string
+          source_document_id?: string
+          strength?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_relations_related_document_id_fkey"
+            columns: ["related_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_relations_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_tags: {
         Row: {
           document_id: string
@@ -375,11 +420,56 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           client_id: string | null
           created_at: string
+          department_id: string | null
           email: string
           full_name: string | null
           id: string
@@ -391,6 +481,7 @@ export type Database = {
           avatar_url?: string | null
           client_id?: string | null
           created_at?: string
+          department_id?: string | null
           email: string
           full_name?: string | null
           id: string
@@ -402,6 +493,7 @@ export type Database = {
           avatar_url?: string | null
           client_id?: string | null
           created_at?: string
+          department_id?: string | null
           email?: string
           full_name?: string | null
           id?: string
@@ -415,6 +507,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
