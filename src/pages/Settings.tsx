@@ -344,15 +344,15 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <Select 
-              value={formData.departmentId} 
-              onValueChange={(v) => setFormData(prev => ({ ...prev, departmentId: v }))}
+              value={formData.departmentId || "none"} 
+              onValueChange={(v) => setFormData(prev => ({ ...prev, departmentId: v === "none" ? "" : v }))}
               disabled={departmentsLoading}
             >
               <SelectTrigger className="w-full md:w-[300px]">
                 <SelectValue placeholder={language === 'fr' ? 'Non défini' : 'Not defined'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="none">
                   {language === 'fr' ? 'Non défini' : 'Not defined'}
                 </SelectItem>
                 {departments.map(dept => (
