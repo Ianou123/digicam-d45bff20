@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, FolderOpen, Archive, RotateCcw, Pencil, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface Department {
 export default function Departments() {
   const { user, profile, isClientAdmin, isSuperAdmin, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
@@ -316,7 +318,11 @@ export default function Departments() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {displayedDepts.map((dept) => (
-            <Card key={dept.id} className={dept.archived_at ? 'opacity-75' : ''}>
+            <Card 
+              key={dept.id} 
+              className={`${dept.archived_at ? 'opacity-75' : ''} ${!dept.archived_at ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+              onClick={() => !dept.archived_at && navigate(`/documents?department=${dept.id}`)}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg font-medium">{dept.name}</CardTitle>
@@ -333,7 +339,7 @@ export default function Departments() {
                 </p>
                 
                 {canManage && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     {dept.archived_at ? (
                       <Button
                         variant="outline"
