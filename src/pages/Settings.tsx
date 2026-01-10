@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 interface NotificationPreferences {
   emailNotifications: boolean;
   newDocuments: boolean;
+  departmentNotifications: boolean;
 }
 
 export default function Settings() {
@@ -74,6 +75,7 @@ export default function Settings() {
   const [notifications, setNotifications] = useState<NotificationPreferences>({
     emailNotifications: true,
     newDocuments: true,
+    departmentNotifications: true,
   });
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
 
@@ -186,11 +188,24 @@ export default function Settings() {
     }
   };
 
-  const handleNotificationChange = (key: keyof NotificationPreferences, value: boolean) => {
+  const handleNotificationChange = async (key: keyof NotificationPreferences, value: boolean) => {
     const newPrefs = { ...notifications, [key]: value };
     setNotifications(newPrefs);
     // Save to localStorage
     localStorage.setItem(`notifications_${user?.id}`, JSON.stringify(newPrefs));
+    
+    // If department notifications toggle, also update in database
+    if (key === 'departmentNotifications' && profile) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ department_notifications: value })
+          .eq('id', profile.id);
+      } catch (error) {
+        console.error('Error updating department notifications:', error);
+      }
+    }
+    
     toast.success(language === 'fr' ? 'Préférences mises à jour' : 'Preferences updated');
   };
 
@@ -493,6 +508,29 @@ export default function Settings() {
               disabled={!notificationsLoaded}
             />
           </div>
+          {/* Department notifications - only show if user has a department */}
+          {formData.departmentId && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {language === 'fr' ? 'Documents de mon département' : 'My department documents'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'fr' 
+                      ? 'Être notifié lorsqu\'un document est ajouté à votre département'
+                      : 'Be notified when a document is added to your department'}
+                  </p>
+                </div>
+                <Switch 
+                  checked={notifications.departmentNotifications}
+                  onCheckedChange={(checked) => handleNotificationChange('departmentNotifications', checked)}
+                  disabled={!notificationsLoaded}
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

@@ -214,6 +214,9 @@ export default function Dashboard() {
       }
       
       // Fetch recent documents for all users
+      // Prioritize user's department documents first
+      const userDeptId = (profile as any)?.department_id;
+      
       let recentDocsQuery = supabase
         .from('documents')
         .select(`
@@ -226,18 +229,31 @@ export default function Dashboard() {
           updated_at,
           tags,
           current_version,
+          department_id,
           departments(name)
         `)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10); // Fetch more to allow sorting
 
       if (!isSuperAdmin && profile?.client_id) {
         recentDocsQuery = recentDocsQuery.eq('client_id', profile.client_id);
       }
 
       const { data: recentDocs } = await recentDocsQuery;
-      setRecentDocuments((recentDocs || []) as unknown as Document[]);
+      
+      // Sort to prioritize user's department documents first
+      let sortedDocs = recentDocs || [];
+      if (userDeptId && sortedDocs.length > 0) {
+        sortedDocs = [
+          ...sortedDocs.filter((d: any) => d.department_id === userDeptId),
+          ...sortedDocs.filter((d: any) => d.department_id !== userDeptId),
+        ].slice(0, 5);
+      } else {
+        sortedDocs = sortedDocs.slice(0, 5);
+      }
+      
+      setRecentDocuments(sortedDocs as unknown as Document[]);
 
       // Fetch recent activity
       let activityQuery = supabase
