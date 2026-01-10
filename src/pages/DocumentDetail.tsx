@@ -9,12 +9,27 @@ import {
   Shield,
   FileText,
   Clock,
-  Tag
+  Tag,
+  Share2,
+  Archive,
+  CheckCircle,
+  Copy,
+  Search,
+  History,
+  Eye,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,14 +39,14 @@ import { cn } from '@/lib/utils';
 import { PdfViewer } from '@/components/documents/PdfViewer';
 import { ConfidentialityBanner } from '@/components/documents/ConfidentialityBanner';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
-import { LatestBadge } from '@/components/documents/LatestBadge';
-import { VersionHistory } from '@/components/documents/VersionHistory';
+import { toast } from 'sonner';
 
 interface DocumentDetail {
   id: string;
   title: string;
   document_type: string;
   confidentiality_level: string;
+  status: string;
   created_at: string;
   updated_at: string;
   tags: string[];
@@ -39,8 +54,10 @@ interface DocumentDetail {
   file_url: string;
   file_size: number | null;
   ocr_text: string | null;
+  document_date: string | null;
   departments: { name: string } | null;
   uploaded_by: string;
+  folder_id: string | null;
 }
 
 interface DocumentVersion {
@@ -50,12 +67,43 @@ interface DocumentVersion {
   created_at: string;
   change_notes: string | null;
   uploaded_by: string;
+  uploaded_by_name?: string;
+}
+
+interface AuditEvent {
+  id: string;
+  action_type: string;
+  created_at: string;
+  user_name?: string;
 }
 
 const confidentialityColors: Record<string, string> = {
   public: 'badge-public',
   internal: 'badge-internal',
   confidential: 'badge-confidential',
+};
+
+const statusConfig: Record<string, { label: { fr: string; en: string }; className: string; icon: typeof CheckCircle }> = {
+  processing: { 
+    label: { fr: 'En traitement', en: 'Processing' }, 
+    className: 'bg-warning/10 text-warning-foreground border-warning/20',
+    icon: Clock
+  },
+  ready: { 
+    label: { fr: 'Prêt', en: 'Ready' }, 
+    className: 'bg-success/10 text-success border-success/20',
+    icon: CheckCircle
+  },
+  pending_validation: { 
+    label: { fr: 'À valider', en: 'Pending Validation' }, 
+    className: 'bg-info/10 text-info border-info/20',
+    icon: Eye
+  },
+  archived: { 
+    label: { fr: 'Archivé', en: 'Archived' }, 
+    className: 'bg-muted text-muted-foreground',
+    icon: Archive
+  },
 };
 
 export default function DocumentDetailPage() {
@@ -67,18 +115,20 @@ export default function DocumentDetailPage() {
   
   const [document, setDocument] = useState<DocumentDetail | null>(null);
   const [uploaderName, setUploaderName] = useState<string | null>(null);
-  const [versions, setVersions] = useState<(DocumentVersion & { uploaded_by_name?: string })[]>([]);
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfidentialModal, setShowConfidentialModal] = useState(false);
+  const [ocrSearchQuery, setOcrSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('summary');
 
   useEffect(() => {
     if (id) {
       fetchDocument();
-      if (canManageDocuments) {
-        fetchVersions();
-      }
+      fetchVersions();
+      fetchAuditEvents();
     }
-  }, [id, canManageDocuments]);
+  }, [id]);
 
   const fetchDocument = async () => {
     try {
@@ -89,6 +139,7 @@ export default function DocumentDetailPage() {
           title,
           document_type,
           confidentiality_level,
+          status,
           created_at,
           updated_at,
           tags,
@@ -96,7 +147,9 @@ export default function DocumentDetailPage() {
           file_url,
           file_size,
           ocr_text,
+          document_date,
           uploaded_by,
+          folder_id,
           departments(name)
         `)
         .eq('id', id)
@@ -107,7 +160,7 @@ export default function DocumentDetailPage() {
       if (data) {
         setDocument(data as unknown as DocumentDetail);
         
-        // Fetch uploader name separately
+        // Fetch uploader name
         if (data.uploaded_by) {
           const { data: uploaderData } = await supabase
             .from('profiles')
@@ -138,19 +191,11 @@ export default function DocumentDetailPage() {
   const fetchVersions = async () => {
     const { data } = await supabase
       .from('document_versions')
-      .select(`
-        id,
-        version_number,
-        file_url,
-        created_at,
-        change_notes,
-        uploaded_by
-      `)
+      .select('id, version_number, file_url, created_at, change_notes, uploaded_by')
       .eq('document_id', id)
       .order('version_number', { ascending: false });
 
     if (data && data.length > 0) {
-      // Fetch uploader names for all versions
       const uploaderIds = [...new Set(data.map(v => v.uploaded_by))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -165,15 +210,40 @@ export default function DocumentDetailPage() {
       }));
       
       setVersions(versionsWithNames);
-    } else {
-      setVersions([]);
+    }
+  };
+
+  const fetchAuditEvents = async () => {
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('id, action_type, created_at, user_id')
+      .eq('document_id', id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (data) {
+      const userIds = [...new Set(data.map(e => e.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      
+      const eventsWithNames = data.map(e => ({
+        id: e.id,
+        action_type: e.action_type,
+        created_at: e.created_at,
+        user_name: profileMap.get(e.user_id) || undefined,
+      }));
+      
+      setAuditEvents(eventsWithNames);
     }
   };
 
   const handleDownloadClick = () => {
     if (!document) return;
     
-    // Show warning modal for confidential documents
     if (document.confidentiality_level === 'confidential') {
       setShowConfidentialModal(true);
     } else {
@@ -194,7 +264,6 @@ export default function DocumentDetailPage() {
     }
 
     try {
-      // Fetch the file and create a blob to force download
       const response = await fetch(document.file_url);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -205,16 +274,39 @@ export default function DocumentDetailPage() {
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
-      
-      // Clean up the blob URL
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error('Download error:', error);
-      // Fallback: open in same tab
       window.location.href = document.file_url;
     }
     
     setShowConfidentialModal(false);
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!document || !canManageDocuments) return;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ status: newStatus })
+        .eq('id', document.id);
+
+      if (error) throw error;
+
+      setDocument({ ...document, status: newStatus });
+      toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la mise à jour' : 'Error updating');
+    }
+  };
+
+  const copyOcrText = () => {
+    if (document?.ocr_text) {
+      navigator.clipboard.writeText(document.ocr_text);
+      toast.success(language === 'fr' ? 'Texte copié' : 'Text copied');
+    }
   };
 
   const formatFileSize = (bytes: number | null) => {
@@ -233,13 +325,15 @@ export default function DocumentDetailPage() {
     }
   };
 
-  // Format "Updated on DD MMM YYYY"
-  const formatUpdatedOn = (dateString: string) => {
-    const date = new Date(dateString);
-    const formattedDate = format(date, 'd MMM yyyy', { locale: dateLocale });
-    return language === 'fr' 
-      ? `Mis à jour le ${formattedDate}`
-      : `Updated on ${formattedDate}`;
+  const highlightOcrText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    const regex = new RegExp(`(${query})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, i) => 
+      regex.test(part) ? <mark key={i} className="bg-warning/30 px-0.5 rounded">{part}</mark> : part
+    );
   };
 
   if (loading) {
@@ -253,100 +347,83 @@ export default function DocumentDetailPage() {
   if (!document) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Document non trouvé</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/documents')}>
+        <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+        <p className="text-muted-foreground mb-4">
+          {language === 'fr' ? 'Document non trouvé' : 'Document not found'}
+        </p>
+        <Button variant="outline" onClick={() => navigate('/documents')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour aux documents
+          {language === 'fr' ? 'Retour aux documents' : 'Back to documents'}
         </Button>
       </div>
     );
   }
 
+  const status = statusConfig[document.status] || statusConfig.ready;
+  const StatusIcon = status.icon;
   const showConfidentialityBanner = document.confidentiality_level === 'internal' || document.confidentiality_level === 'confidential';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Confidentiality Banner */}
       {showConfidentialityBanner && (
         <ConfidentialityBanner level={document.confidentiality_level as 'internal' | 'confidential'} />
       )}
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/documents')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-serif font-semibold">{document.title}</h1>
-              <LatestBadge />
-            </div>
-            <div className="flex items-center gap-3 mt-2">
-              <Badge variant="outline" className="uppercase text-xs">
-                {document.document_type}
-              </Badge>
-              <Badge 
-                variant="outline" 
-                className={cn('text-xs', confidentialityColors[document.confidentiality_level])}
-              >
-                <Shield className="h-3 w-3 mr-1" />
-                {formatConfidentiality(document.confidentiality_level)}
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                Version {document.current_version}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                •
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {formatUpdatedOn(document.updated_at)}
-              </span>
-            </div>
+      {/* Header with back button */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/documents')}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-serif font-semibold truncate">{document.title}</h1>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <Badge variant="outline" className="uppercase text-xs">
+              {document.document_type}
+            </Badge>
+            <Badge variant="outline" className={cn('text-xs', status.className)}>
+              <StatusIcon className="h-3 w-3 mr-1" />
+              {status.label[language]}
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className={cn('text-xs', confidentialityColors[document.confidentiality_level])}
+            >
+              <Shield className="h-3 w-3 mr-1" />
+              {formatConfidentiality(document.confidentiality_level)}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Version {document.current_version}
+            </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleDownloadClick}>
-            <Download className="h-4 w-4 mr-2" />
-            {t('documents.download')}
-          </Button>
-          {canManageDocuments && !isClientSuspended && (
-            <Button variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              {t('documents.edit')}
-            </Button>
-          )}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Document Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-serif">
-                {language === 'fr' ? 'Aperçu du document' : 'Document Preview'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+      {/* Split View Layout */}
+      <div className="grid gap-4 lg:grid-cols-5 min-h-[calc(100vh-220px)]">
+        {/* Left: Document Preview (3 cols) */}
+        <div className="lg:col-span-3">
+          <Card className="h-full">
+            <CardContent className="p-4 h-full">
               {document.document_type === 'pdf' ? (
-                <PdfViewer url={document.file_url} autoFit />
+                <PdfViewer url={document.file_url} autoFit className="h-full" />
               ) : ['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(document.document_type.toLowerCase()) ? (
-                <img
-                  src={document.file_url}
-                  alt={document.title}
-                  className="max-w-full h-auto rounded-lg"
-                />
+                <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg p-4">
+                  <img
+                    src={document.file_url}
+                    alt={document.title}
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  />
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <FileText className="h-16 w-16 mb-4 opacity-30" />
-                  <p className="text-center">
+                <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                  <FileText className="h-24 w-24 mb-4 opacity-20" />
+                  <p className="text-center mb-4">
                     {language === 'fr' 
-                      ? 'Aperçu non disponible. Téléchargez pour visualiser.'
-                      : 'Preview not available. Download to view.'}
+                      ? 'Aperçu non disponible pour ce type de fichier'
+                      : 'Preview not available for this file type'}
                   </p>
-                  <Button variant="outline" className="mt-4" onClick={handleDownloadClick}>
+                  <Button onClick={handleDownloadClick}>
                     <Download className="h-4 w-4 mr-2" />
                     {language === 'fr' ? 'Télécharger pour visualiser' : 'Download to view'}
                   </Button>
@@ -354,113 +431,258 @@ export default function DocumentDetailPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* OCR Text */}
-          {document.ocr_text && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-serif">{t('documents.ocrText')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
-                  <p className="text-sm whitespace-pre-wrap">{document.ocr_text}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-serif">
-                {language === 'fr' ? 'Informations' : 'Information'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t('documents.uploadDate')}</p>
-                  <p className="text-sm font-medium">
-                    {format(new Date(document.created_at), 'PPP', { locale: dateLocale })}
-                  </p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t('documents.lastModified')}</p>
-                  <p className="text-sm font-medium">
-                    {format(new Date(document.updated_at), 'PPP', { locale: dateLocale })}
-                  </p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t('documents.uploadedBy')}</p>
-                  <p className="text-sm font-medium">{uploaderName || 'N/A'}</p>
-                </div>
-              </div>
-
-              {document.departments && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">{t('documents.department')}</p>
-                    <Badge variant="secondary">{document.departments.name}</Badge>
-                  </div>
-                </>
+        {/* Right: Tabs Panel (2 cols) */}
+        <div className="lg:col-span-2">
+          <Card className="h-full">
+            {/* Quick Actions */}
+            <div className="p-4 border-b flex flex-wrap gap-2">
+              {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
+                <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'À valider' : 'Mark for Review'}
+                </Button>
               )}
+              {canManageDocuments && !isClientSuspended && document.status !== 'archived' && (
+                <Button size="sm" variant="outline" onClick={() => handleStatusChange('archived')}>
+                  <Archive className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'Archiver' : 'Archive'}
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={handleDownloadClick}>
+                <Download className="h-4 w-4 mr-1" />
+                {t('documents.download')}
+              </Button>
+              {canManageDocuments && !isClientSuspended && (
+                <Button size="sm" variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-1" />
+                  {t('documents.edit')}
+                </Button>
+              )}
+            </div>
 
-              <Separator />
-              
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  {language === 'fr' ? 'Taille du fichier' : 'File size'}
-                </p>
-                <p className="text-sm font-medium">{formatFileSize(document.file_size)}</p>
-              </div>
-            </CardContent>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100%-60px)]">
+              <TabsList className="grid grid-cols-3 lg:grid-cols-6 m-4 mb-0">
+                <TabsTrigger value="summary" className="text-xs">
+                  {language === 'fr' ? 'Résumé' : 'Summary'}
+                </TabsTrigger>
+                <TabsTrigger value="metadata" className="text-xs">
+                  {language === 'fr' ? 'Méta' : 'Meta'}
+                </TabsTrigger>
+                <TabsTrigger value="ocr" className="text-xs">OCR</TabsTrigger>
+                <TabsTrigger value="versions" className="text-xs">
+                  {language === 'fr' ? 'Versions' : 'Versions'}
+                </TabsTrigger>
+                <TabsTrigger value="share" className="text-xs">
+                  {language === 'fr' ? 'Partage' : 'Share'}
+                </TabsTrigger>
+                <TabsTrigger value="audit" className="text-xs">Audit</TabsTrigger>
+              </TabsList>
+
+              <ScrollArea className="flex-1 p-4">
+                {/* Summary Tab */}
+                <TabsContent value="summary" className="mt-0 space-y-4">
+                  <div>
+                    <h3 className="font-medium mb-2">{document.title}</h3>
+                    <div className="space-y-2 text-sm">
+                      {document.departments && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{t('documents.department')}:</span>
+                          <Badge variant="secondary">{document.departments.name}</Badge>
+                        </div>
+                      )}
+                      {document.tags && document.tags.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground">{t('documents.tags')}:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {document.tags.map(tag => (
+                              <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t('documents.uploadDate')}</p>
+                      <p className="font-medium">{format(new Date(document.created_at), 'PPP', { locale: dateLocale })}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t('documents.lastModified')}</p>
+                      <p className="font-medium">{format(new Date(document.updated_at), 'PPP', { locale: dateLocale })}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{t('documents.uploadedBy')}</p>
+                      <p className="font-medium">{uploaderName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">{language === 'fr' ? 'Taille' : 'Size'}</p>
+                      <p className="font-medium">{formatFileSize(document.file_size)}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Metadata Tab */}
+                <TabsContent value="metadata" className="mt-0 space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">{t('documents.title')}</label>
+                      <Input value={document.title} disabled className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">{t('documents.type')}</label>
+                      <Input value={document.document_type.toUpperCase()} disabled className="mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">{t('documents.confidentiality')}</label>
+                      <Input value={formatConfidentiality(document.confidentiality_level)} disabled className="mt-1" />
+                    </div>
+                    {document.document_date && (
+                      <div>
+                        <label className="text-xs text-muted-foreground">
+                          {language === 'fr' ? 'Date du document' : 'Document Date'}
+                        </label>
+                        <Input value={format(new Date(document.document_date), 'PPP', { locale: dateLocale })} disabled className="mt-1" />
+                      </div>
+                    )}
+                  </div>
+                  {canManageDocuments && !isClientSuspended && (
+                    <Button variant="outline" className="w-full" onClick={() => navigate(`/documents/${id}/edit`)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      {language === 'fr' ? 'Modifier les métadonnées' : 'Edit Metadata'}
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* OCR Tab */}
+                <TabsContent value="ocr" className="mt-0 space-y-4">
+                  {document.ocr_text ? (
+                    <>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder={language === 'fr' ? 'Rechercher dans le texte...' : 'Search in text...'}
+                            value={ocrSearchQuery}
+                            onChange={(e) => setOcrSearchQuery(e.target.value)}
+                            className="pl-9"
+                          />
+                        </div>
+                        <Button variant="outline" size="icon" onClick={copyOcrText}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {highlightOcrText(document.ocr_text, ocrSearchQuery)}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>{language === 'fr' ? 'Aucun texte OCR disponible' : 'No OCR text available'}</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Versions Tab */}
+                <TabsContent value="versions" className="mt-0 space-y-4">
+                  {canManageDocuments && !isClientSuspended && (
+                    <Button variant="outline" className="w-full" onClick={() => navigate(`/documents/${id}/edit`)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {language === 'fr' ? 'Téléverser nouvelle version' : 'Upload New Version'}
+                    </Button>
+                  )}
+                  {versions.length > 0 ? (
+                    <div className="space-y-3">
+                      {versions.map((version, index) => (
+                        <div key={version.id} className={cn(
+                          'p-3 rounded-lg border',
+                          index === 0 ? 'border-primary bg-primary/5' : 'border-border'
+                        )}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={index === 0 ? 'default' : 'outline'}>
+                                v{version.version_number}
+                              </Badge>
+                              {index === 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {language === 'fr' ? 'Actuelle' : 'Current'}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(version.created_at), 'dd MMM yyyy HH:mm', { locale: dateLocale })}
+                            </span>
+                          </div>
+                          {version.change_notes && (
+                            <p className="text-sm text-muted-foreground mt-2">{version.change_notes}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {language === 'fr' ? 'Par' : 'By'} {version.uploaded_by_name || 'Unknown'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>{language === 'fr' ? 'Aucun historique de version' : 'No version history'}</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Share Tab */}
+                <TabsContent value="share" className="mt-0 space-y-4">
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Share2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="mb-4">
+                      {language === 'fr' 
+                        ? 'Fonctionnalité de partage à venir'
+                        : 'Sharing feature coming soon'}
+                    </p>
+                    <Button variant="outline" disabled>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      {language === 'fr' ? 'Créer un lien de partage' : 'Create Share Link'}
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Audit Tab */}
+                <TabsContent value="audit" className="mt-0 space-y-4">
+                  {auditEvents.length > 0 ? (
+                    <div className="space-y-3">
+                      {auditEvents.map((event) => (
+                        <div key={event.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50">
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">
+                              {t(`activity.${event.action_type}`)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {event.user_name || 'Unknown'} • {format(new Date(event.created_at), 'dd MMM yyyy HH:mm', { locale: dateLocale })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>{language === 'fr' ? 'Aucun événement enregistré' : 'No events recorded'}</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
           </Card>
-
-          {/* Tags */}
-          {document.tags && document.tags.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-serif flex items-center gap-2">
-                  <Tag className="h-4 w-4" />
-                  {t('documents.tags')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {document.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Version History (Admin only) */}
-          {(isSuperAdmin || isClientAdmin) && (
-            <VersionHistory 
-              versions={versions} 
-              currentVersion={document.current_version} 
-            />
-          )}
         </div>
       </div>
 
