@@ -1,17 +1,14 @@
 import { 
   FileCheck, 
-  FileClock, 
   Archive, 
   Lock, 
-  Share2,
-  FileText 
+  Share2 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 interface StatusStats {
-  processing: number;
   pendingValidation: number;
   archived: number;
   confidential: number;
@@ -27,15 +24,6 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
   const { language } = useLanguage();
 
   const cards = [
-    {
-      key: 'processing',
-      label: language === 'fr' ? 'À traiter' : 'Processing',
-      value: stats.processing,
-      icon: FileClock,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
-      borderColor: 'border-l-warning',
-    },
     {
       key: 'pendingValidation',
       label: language === 'fr' ? 'À valider' : 'Pending Validation',
@@ -75,7 +63,7 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
         <Card 
           key={card.key}

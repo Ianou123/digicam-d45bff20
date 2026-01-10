@@ -58,7 +58,6 @@ interface DeactivatedUser {
 }
 
 interface StatusStats {
-  processing: number;
   pendingValidation: number;
   archived: number;
   confidential: number;
@@ -76,7 +75,6 @@ export default function Dashboard() {
     totalClients: 0,
   });
   const [statusStats, setStatusStats] = useState<StatusStats>({
-    processing: 0,
     pendingValidation: 0,
     archived: 0,
     confidential: 0,
@@ -118,7 +116,6 @@ export default function Dashboard() {
       // Calculate status stats from documents data
       if (documentsData) {
         const statusCounts: StatusStats = {
-          processing: 0,
           pendingValidation: 0,
           archived: 0,
           confidential: 0,
@@ -126,7 +123,6 @@ export default function Dashboard() {
         };
         
         documentsData.forEach((doc: any) => {
-          if (doc.status === 'processing') statusCounts.processing++;
           if (doc.status === 'pending_validation') statusCounts.pendingValidation++;
           if (doc.status === 'archived') statusCounts.archived++;
           if (doc.confidentiality_level === 'confidential') statusCounts.confidential++;
@@ -300,11 +296,10 @@ export default function Dashboard() {
   const handleStatusCardClick = (status: string) => {
     // Navigate to documents with filter
     const filterMap: Record<string, string> = {
-      processing: 'status=processing',
       pendingValidation: 'status=pending_validation',
       archived: 'status=archived',
       confidential: 'confidentiality=confidential',
-      shared: '', // TODO: Add shared filter
+      shared: 'shared=recent',
     };
     navigate(`/documents?${filterMap[status] || ''}`);
   };

@@ -102,6 +102,11 @@ const statusConfig: Record<string, { label: { fr: string; en: string }; classNam
     className: 'bg-info/10 text-info border-info/20',
     icon: Eye
   },
+  rejected: { 
+    label: { fr: 'Rejeté', en: 'Rejected' }, 
+    className: 'bg-destructive/10 text-destructive border-destructive/20',
+    icon: XCircle
+  },
   archived: { 
     label: { fr: 'Archivé', en: 'Archived' }, 
     className: 'bg-muted text-muted-foreground',
@@ -341,7 +346,7 @@ export default function DocumentDetailPage() {
     try {
       const { error } = await supabase
         .from('documents')
-        .update({ status: 'processing', updated_at: new Date().toISOString() })
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
         .eq('id', document.id);
 
       if (error) throw error;
@@ -352,21 +357,53 @@ export default function DocumentDetailPage() {
         client_id: profile.client_id,
         action_type: 'update' as const,
         document_id: document.id,
-        details: { 
+        metadata: { 
           action: 'reject', 
           previous_status: 'pending_validation', 
-          new_status: 'processing',
+          new_status: 'rejected',
           rejection_reason: rejectReason.trim() || null
         }
       });
 
-      setDocument({ ...document, status: 'processing' });
+      setDocument({ ...document, status: 'rejected' });
       setShowRejectModal(false);
       setRejectReason('');
-      toast.success(language === 'fr' ? 'Document rejeté - renvoyé en traitement' : 'Document rejected - sent back for processing');
+      toast.success(language === 'fr' ? 'Document rejeté' : 'Document rejected');
     } catch (error) {
       console.error('Error rejecting document:', error);
       toast.error(language === 'fr' ? 'Erreur lors du rejet' : 'Rejection error');
+    }
+  };
+
+  const handleResubmitDocument = async () => {
+    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ status: 'pending_validation', updated_at: new Date().toISOString() })
+        .eq('id', document.id);
+
+      if (error) throw error;
+
+      // Log the resubmission action
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'update' as const,
+        document_id: document.id,
+        metadata: { 
+          action: 'resubmit', 
+          previous_status: 'rejected', 
+          new_status: 'pending_validation'
+        }
+      });
+
+      setDocument({ ...document, status: 'pending_validation' });
+      toast.success(language === 'fr' ? 'Document re-soumis pour validation' : 'Document resubmitted for validation');
+    } catch (error) {
+      console.error('Error resubmitting document:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la re-soumission' : 'Resubmission error');
     }
   };
 
@@ -517,6 +554,12 @@ export default function DocumentDetailPage() {
                     {language === 'fr' ? 'Rejeter' : 'Reject'}
                   </Button>
                 </>
+              )}
+              {canManageDocuments && !isClientSuspended && document.status === 'rejected' && (
+                <Button size="sm" variant="default" onClick={handleResubmitDocument}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'Re-soumettre' : 'Resubmit'}
+                </Button>
               )}
               {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>

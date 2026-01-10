@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -53,6 +53,7 @@ interface FilterState {
   type: string;
   year: string;
   confidentiality: string;
+  status: string;
 }
 
 interface Client {
@@ -62,6 +63,7 @@ interface Client {
 
 export default function Documents() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName } = useAuth();
   const { t, language } = useLanguage();
   
@@ -82,13 +84,15 @@ export default function Documents() {
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'trash' | 'restore' | 'delete'>('trash');
   
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    department: '',
-    type: '',
-    year: '',
-    confidentiality: '',
-  });
+  // Initialize filters from URL params
+  const [filters, setFilters] = useState<FilterState>(() => ({
+    search: searchParams.get('search') || '',
+    department: searchParams.get('department') || '',
+    type: searchParams.get('type') || '',
+    year: searchParams.get('year') || '',
+    confidentiality: searchParams.get('confidentiality') || '',
+    status: searchParams.get('status') || '',
+  }));
 
   useEffect(() => {
     fetchDocuments();
@@ -257,6 +261,9 @@ export default function Documents() {
       if (filters.search) {
         // Search in title, tags (as text array), and ocr_text
         query = query.or(`title.ilike.%${filters.search}%,tags.cs.{${filters.search}},ocr_text.ilike.%${filters.search}%`);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
       }
 
       const { data, error } = await query;
