@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import type { Json } from '@/integrations/supabase/types';
 
 interface FilterState {
   search: string;
@@ -88,7 +88,7 @@ export function SavedSearches({ currentFilters, onApplySearch }: SavedSearchesPr
           user_id: user.id,
           client_id: profile.client_id,
           name: newSearchName.trim(),
-          filters: currentFilters as unknown as Record<string, unknown>,
+          filters: currentFilters as unknown as Json,
           is_pinned: false,
         }]);
 
