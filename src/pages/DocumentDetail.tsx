@@ -43,6 +43,8 @@ import { cn } from '@/lib/utils';
 import { PdfViewer } from '@/components/documents/PdfViewer';
 import { ConfidentialityBanner } from '@/components/documents/ConfidentialityBanner';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
+import { RelatedDocuments } from '@/components/documents/RelatedDocuments';
+import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
@@ -631,6 +633,13 @@ export default function DocumentDetailPage() {
                   {t('documents.edit')}
                 </Button>
               )}
+              {/* Request Update Button for Staff */}
+              <RequestUpdateButton 
+                documentId={document.id} 
+                documentTitle={document.title}
+                documentOwnerId={document.uploaded_by}
+                documentCreatedAt={document.created_at}
+              />
             </div>
 
             {/* Tabs */}
@@ -897,6 +906,9 @@ export default function DocumentDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Related Documents Section */}
+      <RelatedDocuments documentId={document.id} documentTags={document.tags || []} />
 
       {/* Confidential Download Modal */}
       <ConfidentialDownloadModal
