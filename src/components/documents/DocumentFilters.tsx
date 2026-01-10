@@ -17,6 +17,7 @@ interface FilterState {
   type: string;
   year: string;
   confidentiality: string;
+  status: string;
 }
 
 interface DocumentFiltersProps {
@@ -32,7 +33,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => (currentYear - i).toString());
 
 export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick }: DocumentFiltersProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const updateFilter = (key: keyof FilterState, value: string) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -45,6 +46,7 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
       type: '',
       year: '',
       confidentiality: '',
+      status: '',
     });
   };
 
@@ -154,6 +156,22 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
             <SelectItem value="public">{t('documents.public')}</SelectItem>
             <SelectItem value="internal">{t('documents.internal')}</SelectItem>
             <SelectItem value="confidential">{t('documents.confidential')}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filters.status || 'all'}
+          onValueChange={(v) => updateFilter('status', v === 'all' ? '' : v)}
+        >
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder={language === 'fr' ? 'Statut' : 'Status'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === 'fr' ? 'Tous les statuts' : 'All statuses'}</SelectItem>
+            <SelectItem value="ready">{language === 'fr' ? 'Prêt' : 'Ready'}</SelectItem>
+            <SelectItem value="pending_validation">{language === 'fr' ? 'À valider' : 'Pending Validation'}</SelectItem>
+            <SelectItem value="rejected">{language === 'fr' ? 'Rejeté' : 'Rejected'}</SelectItem>
+            <SelectItem value="archived">{language === 'fr' ? 'Archivé' : 'Archived'}</SelectItem>
           </SelectContent>
         </Select>
 
