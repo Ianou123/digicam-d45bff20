@@ -105,6 +105,7 @@ export default function Users() {
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -563,8 +564,11 @@ export default function Users() {
     const matchesClient = clientFilter === 'all' || user.client_id === clientFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter || (roleFilter === 'none' && !user.role);
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesDepartment = departmentFilter === 'all' || 
+      user.department_id === departmentFilter || 
+      (departmentFilter === 'none' && !user.department_id);
     
-    return matchesSearch && matchesClient && matchesRole && matchesStatus;
+    return matchesSearch && matchesClient && matchesRole && matchesStatus && matchesDepartment;
   });
 
   if (!isSuperAdmin && !isClientAdmin) {
@@ -628,6 +632,19 @@ export default function Users() {
                 <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                 <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 <SelectItem value="none">{language === 'fr' ? 'Aucun rôle' : 'No role'}</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Department filter */}
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('documents.department')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('documents.allDepartments')}</SelectItem>
+                <SelectItem value="none">{language === 'fr' ? 'Sans département' : 'No department'}</SelectItem>
+                {departments.map(dept => (
+                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {/* Status filter for Super Admin */}
