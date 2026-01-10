@@ -8,6 +8,7 @@ import { StatusCards } from '@/components/dashboard/StatusCards';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
 import { RecentDocuments } from '@/components/dashboard/RecentDocuments';
+import { StaffInsightsPanel } from '@/components/dashboard/StaffInsightsPanel';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -64,6 +65,14 @@ interface StatusStats {
   shared: number;
 }
 
+interface MostViewedDoc {
+  id: string;
+  title: string;
+  document_type: string;
+  confidentiality_level: string;
+  view_count: number;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
@@ -87,6 +96,7 @@ export default function Dashboard() {
   const [clientsNeedingAttention, setClientsNeedingAttention] = useState<ClientAttention[]>([]);
   const [deactivatedUsers, setDeactivatedUsers] = useState<DeactivatedUser[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
+  const [mostViewedDocs, setMostViewedDocs] = useState<MostViewedDoc[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -254,6 +264,45 @@ export default function Dashboard() {
           .select('id, name, archived_at')
           .eq('client_id', profile.client_id);
         setDepartments(depts || []);
+
+        // Fetch most viewed documents for staff (non-admin users)
+        if (!isClientAdmin) {
+          const thirtyDaysAgo = startOfDay(subDays(new Date(), 30));
+          const { data: viewLogs } = await supabase
+            .from('activity_logs')
+            .select('document_id, documents(id, title, document_type, confidentiality_level)')
+            .eq('action_type', 'view')
+            .eq('client_id', profile.client_id)
+            .gte('created_at', thirtyDaysAgo.toISOString())
+            .not('document_id', 'is', null);
+
+          if (viewLogs && viewLogs.length > 0) {
+            // Count views per document
+            const viewCounts: Record<string, { doc: any; count: number }> = {};
+            viewLogs.forEach((log: any) => {
+              if (log.document_id && log.documents) {
+                if (!viewCounts[log.document_id]) {
+                  viewCounts[log.document_id] = { doc: log.documents, count: 0 };
+                }
+                viewCounts[log.document_id].count++;
+              }
+            });
+
+            // Sort by count and take top 5
+            const sortedDocs = Object.entries(viewCounts)
+              .map(([id, data]) => ({
+                id,
+                title: data.doc.title,
+                document_type: data.doc.document_type,
+                confidentiality_level: data.doc.confidentiality_level,
+                view_count: data.count,
+              }))
+              .sort((a, b) => b.view_count - a.view_count)
+              .slice(0, 5);
+
+            setMostViewedDocs(sortedDocs);
+          }
+        }
       }
 
       // Stats for admins
@@ -540,8 +589,16 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Activity Timeline */}
-        <ActivityTimeline activities={recentActivity} maxItems={8} />
+        {/* Activity Timeline or Staff Insights Panel */}
+        {isClientAdmin ? (
+          <ActivityTimeline activities={recentActivity} maxItems={8} />
+        ) : (
+          <StaffInsightsPanel 
+            activities={recentActivity} 
+            mostViewedDocs={mostViewedDocs} 
+            maxItems={8} 
+          />
+        )}
       </div>
 
       {/* Upload Modal */}
