@@ -470,6 +470,8 @@ export type Database = {
           client_id: string | null
           created_at: string
           department_id: string | null
+          department_notifications: boolean | null
+          department_self_declared: boolean | null
           email: string
           full_name: string | null
           id: string
@@ -482,6 +484,8 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           department_id?: string | null
+          department_notifications?: boolean | null
+          department_self_declared?: boolean | null
           email: string
           full_name?: string | null
           id: string
@@ -494,6 +498,8 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           department_id?: string | null
+          department_notifications?: boolean | null
+          department_self_declared?: boolean | null
           email?: string
           full_name?: string | null
           id?: string

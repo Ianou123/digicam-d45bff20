@@ -1,4 +1,4 @@
-import { Building2, Globe, Menu, Shield, ShieldCheck, User } from 'lucide-react';
+import { Building2, Globe, Menu, Shield, ShieldCheck, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AppHeaderProps {
   title?: string;
@@ -20,6 +22,27 @@ interface AppHeaderProps {
 export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
   const { profile, isSuperAdmin, isClientAdmin, clientName } = useAuth();
+  const [departmentName, setDepartmentName] = useState<string | null>(null);
+
+  // Fetch department name if user has one assigned
+  useEffect(() => {
+    const fetchDepartment = async () => {
+      const deptId = (profile as any)?.department_id;
+      if (deptId) {
+        const { data } = await supabase
+          .from('departments')
+          .select('name')
+          .eq('id', deptId)
+          .single();
+        if (data) {
+          setDepartmentName(data.name);
+        }
+      } else {
+        setDepartmentName(null);
+      }
+    };
+    fetchDepartment();
+  }, [profile]);
 
   const getRoleBadge = () => {
     if (isSuperAdmin) {
@@ -74,6 +97,14 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">{clientName}</span>
           </div>
+        )}
+
+        {/* Department Badge - visible for users with assigned department */}
+        {departmentName && !isSuperAdmin && (
+          <Badge variant="outline" className="gap-1 bg-accent/50">
+            <Users className="h-3 w-3" />
+            {departmentName}
+          </Badge>
         )}
 
         {/* User Role Badge */}

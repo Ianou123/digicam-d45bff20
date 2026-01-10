@@ -135,6 +135,8 @@ export const translations = {
       watchedSearchMatch: 'Correspondance de recherche surveillée',
       newDocumentMatches: 'Un nouveau document correspond à votre recherche',
       viewDocument: 'Voir le document',
+      departmentDocument: 'Nouveau document dans votre département',
+      newDocumentInDepartment: 'Un nouveau document a été ajouté à votre département',
     },
     // Admin Pulse
     adminPulse: {
@@ -404,6 +406,8 @@ export const translations = {
       watchedSearchMatch: 'Watched search match',
       newDocumentMatches: 'A new document matches your search',
       viewDocument: 'View document',
+      departmentDocument: 'New document in your department',
+      newDocumentInDepartment: 'A new document has been added to your department',
     },
     // Admin Pulse
     adminPulse: {
