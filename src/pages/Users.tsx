@@ -55,6 +55,12 @@ interface UserWithRole {
   created_at: string;
   role: 'super_admin' | 'client_admin' | 'staff' | null;
   status: 'active' | 'deactivated';
+  department_id: string | null;
+}
+
+interface Department {
+  id: string;
+  name: string;
 }
 
 interface Client {
@@ -93,6 +99,7 @@ export default function Users() {
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState<string>('all');
@@ -108,15 +115,17 @@ export default function Users() {
   const [formEmail, setFormEmail] = useState('');
   const [formFullName, setFormFullName] = useState('');
   const [formRole, setFormRole] = useState<'super_admin' | 'client_admin' | 'staff'>('staff');
+  const [formDepartmentId, setFormDepartmentId] = useState<string>('');
 
   useEffect(() => {
     if (isSuperAdmin || isClientAdmin) {
       fetchUsers();
+      fetchDepartments();
       if (isSuperAdmin) {
         fetchClients();
       }
     }
-  }, [isSuperAdmin, isClientAdmin]);
+  }, [isSuperAdmin, isClientAdmin, profile?.client_id]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -124,6 +133,17 @@ export default function Users() {
       .select('id, name')
       .order('name');
     setClients(data || []);
+  };
+
+  const fetchDepartments = async () => {
+    if (!profile?.client_id) return;
+    const { data } = await supabase
+      .from('departments')
+      .select('id, name')
+      .eq('client_id', profile.client_id)
+      .is('archived_at', null)
+      .order('name');
+    setDepartments(data || []);
   };
 
   const fetchUsers = async () => {
@@ -151,6 +171,7 @@ export default function Users() {
           ...profile,
           role: userRole?.role || null,
           status: (profile.status as 'active' | 'deactivated') || 'active',
+          department_id: profile.department_id || null,
         };
       });
 
@@ -263,10 +284,13 @@ export default function Users() {
         }
       }
 
-      // Update profile
+      // Update profile (including department)
       await supabase
         .from('profiles')
-        .update({ full_name: formFullName })
+        .update({ 
+          full_name: formFullName,
+          department_id: formDepartmentId || null
+        })
         .eq('id', selectedUser.id);
 
       // Update role
@@ -484,6 +508,7 @@ export default function Users() {
     setFormEmail('');
     setFormFullName('');
     setFormRole('staff');
+    setFormDepartmentId('');
     setSelectedUser(null);
   };
 
@@ -491,6 +516,7 @@ export default function Users() {
     setSelectedUser(user);
     setFormFullName(user.full_name || '');
     setFormRole((user.role as 'client_admin' | 'staff') || 'staff');
+    setFormDepartmentId(user.department_id || '');
     setIsEditModalOpen(true);
   };
 
@@ -794,6 +820,30 @@ export default function Users() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Department Assignment - Admin only */}
+            {(isClientAdmin || isSuperAdmin) && departments.length > 0 && (
+              <div className="space-y-2">
+                <Label>{t('documents.department')}</Label>
+                <Select 
+                  value={formDepartmentId || 'none'} 
+                  onValueChange={(v) => setFormDepartmentId(v === 'none' ? '' : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'fr' ? 'Non assigné' : 'Unassigned'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      {language === 'fr' ? 'Non assigné' : 'Unassigned'}
+                    </SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>

@@ -21,14 +21,19 @@ interface Notification {
   id: string;
   type: string;
   title: string;
-  message: string;
-  metadata: any;
-  document_id: string | null;
-  is_read: boolean;
+  message: string | null;
+  metadata: {
+    document_id?: string;
+    document_title?: string;
+    saved_search_id?: string;
+    saved_search_name?: string;
+  } | null;
+  read: boolean;
   created_at: string;
 }
 
 const notificationIcons: Record<string, typeof Bell> = {
+  watched_search_match: FileText,
   watch_match: FileText,
   update_request: RefreshCw,
   trend: TrendingUp,
@@ -90,7 +95,7 @@ export function NotificationCenter() {
       if (error) throw error;
 
       setNotifications((data as unknown as Notification[]) || []);
-      setUnreadCount((data as unknown as Notification[])?.filter(n => !n.is_read).length || 0);
+      setUnreadCount((data as unknown as Notification[])?.filter(n => !n.read).length || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -102,11 +107,11 @@ export function NotificationCenter() {
     try {
       await supabase
         .from('notifications' as any)
-        .update({ is_read: true })
+        .update({ read: true })
         .eq('id', id);
 
       setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
@@ -120,11 +125,11 @@ export function NotificationCenter() {
     try {
       await supabase
         .from('notifications' as any)
-        .update({ is_read: true })
+        .update({ read: true })
         .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq('read', false);
 
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -132,13 +137,14 @@ export function NotificationCenter() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
+    if (!notification.read) {
       markAsRead(notification.id);
     }
 
     // Navigate based on notification type
-    if (notification.document_id) {
-      navigate(`/documents/${notification.document_id}`);
+    const documentId = notification.metadata?.document_id;
+    if (documentId) {
+      navigate(`/documents/${documentId}`);
       setIsOpen(false);
     } else if (notification.type === 'trend') {
       navigate('/documents');
@@ -199,13 +205,13 @@ export function NotificationCenter() {
                     key={notification.id}
                     className={cn(
                       'flex gap-3 p-4 hover:bg-muted/50 cursor-pointer transition-colors',
-                      !notification.is_read && 'bg-primary/5'
+                      !notification.read && 'bg-primary/5'
                     )}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className={cn(
                       'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
-                      notification.type === 'watch_match' && 'bg-blue-100 text-blue-600',
+                      (notification.type === 'watched_search_match' || notification.type === 'watch_match') && 'bg-blue-100 text-blue-600',
                       notification.type === 'update_request' && 'bg-amber-100 text-amber-600',
                       notification.type === 'trend' && 'bg-green-100 text-green-600',
                       notification.type === 'system' && 'bg-gray-100 text-gray-600',
@@ -216,11 +222,11 @@ export function NotificationCenter() {
                       <div className="flex items-start justify-between gap-2">
                         <p className={cn(
                           'text-sm line-clamp-1',
-                          !notification.is_read && 'font-medium'
+                          !notification.read && 'font-medium'
                         )}>
                           {notification.title}
                         </p>
-                        {!notification.is_read && (
+                        {!notification.read && (
                           <span className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-1.5" />
                         )}
                       </div>

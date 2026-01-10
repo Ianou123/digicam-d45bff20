@@ -9,6 +9,7 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
 import { RecentDocuments } from '@/components/dashboard/RecentDocuments';
 import { StaffInsightsPanel } from '@/components/dashboard/StaffInsightsPanel';
+import { OrganizationTrends } from '@/components/dashboard/OrganizationTrends';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -590,15 +591,19 @@ export default function Dashboard() {
         </div>
 
         {/* Activity Timeline or Staff Insights Panel */}
-        {isClientAdmin ? (
-          <ActivityTimeline activities={recentActivity} maxItems={8} />
-        ) : (
-          <StaffInsightsPanel 
-            activities={recentActivity} 
-            mostViewedDocs={mostViewedDocs} 
-            maxItems={8} 
-          />
-        )}
+        <div className="space-y-6">
+          {isClientAdmin ? (
+            <ActivityTimeline activities={recentActivity} maxItems={8} />
+          ) : (
+            <StaffInsightsPanel 
+              activities={recentActivity} 
+              mostViewedDocs={mostViewedDocs} 
+              maxItems={8} 
+            />
+          )}
+          {/* Organization Trends for Client Admins */}
+          {isClientAdmin && <OrganizationTrends maxItems={5} />}
+        </div>
       </div>
 
       {/* Upload Modal */}
