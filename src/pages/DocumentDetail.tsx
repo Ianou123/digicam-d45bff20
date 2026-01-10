@@ -302,6 +302,34 @@ export default function DocumentDetailPage() {
     }
   };
 
+  const handleValidateDocument = async () => {
+    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ status: 'ready', updated_at: new Date().toISOString() })
+        .eq('id', document.id);
+
+      if (error) throw error;
+
+      // Log the validation action
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'update' as const,
+        document_id: document.id,
+        details: { action: 'validate', previous_status: 'pending_validation', new_status: 'ready' }
+      });
+
+      setDocument({ ...document, status: 'ready' });
+      toast.success(language === 'fr' ? 'Document validé avec succès' : 'Document validated successfully');
+    } catch (error) {
+      console.error('Error validating document:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de la validation' : 'Validation error');
+    }
+  };
+
   const copyOcrText = () => {
     if (document?.ocr_text) {
       navigator.clipboard.writeText(document.ocr_text);
@@ -438,6 +466,12 @@ export default function DocumentDetailPage() {
           <Card className="h-full">
             {/* Quick Actions */}
             <div className="p-4 border-b flex flex-wrap gap-2">
+              {canManageDocuments && !isClientSuspended && document.status === 'pending_validation' && (
+                <Button size="sm" variant="default" onClick={handleValidateDocument}>
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'Valider' : 'Validate'}
+                </Button>
+              )}
               {canManageDocuments && !isClientSuspended && document.status === 'ready' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('pending_validation')}>
                   <Eye className="h-4 w-4 mr-1" />
