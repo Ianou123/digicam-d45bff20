@@ -46,6 +46,7 @@ import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDo
 import { RelatedDocuments } from '@/components/documents/RelatedDocuments';
 import { FrequentlyViewedTogether } from '@/components/documents/FrequentlyViewedTogether';
 import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
+import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
@@ -820,18 +821,7 @@ export default function DocumentDetailPage() {
 
                 {/* Share Tab */}
                 <TabsContent value="share" className="mt-0 space-y-4">
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Share2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="mb-4">
-                      {language === 'fr' 
-                        ? 'Fonctionnalité de partage à venir'
-                        : 'Sharing feature coming soon'}
-                    </p>
-                    <Button variant="outline" disabled>
-                      <Share2 className="h-4 w-4 mr-2" />
-                      {language === 'fr' ? 'Créer un lien de partage' : 'Create Share Link'}
-                    </Button>
-                  </div>
+                  <DocumentShareTab documentId={document.id} />
                 </TabsContent>
 
                 {/* Audit Tab */}
