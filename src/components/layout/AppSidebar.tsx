@@ -12,7 +12,8 @@ import {
   User,
   ChevronDown,
   Shield,
-  Gauge
+  Gauge,
+  Share2
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,12 @@ export function AppSidebar() {
       icon: FileText, 
       label: t('nav.documents'),
       show: true 
+    },
+    { 
+      href: '/shared-with-me', 
+      icon: Share2, 
+      label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me',
+      show: !isSuperAdmin 
     },
     { 
       href: '/departments', 
