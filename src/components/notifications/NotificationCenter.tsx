@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, CheckCheck, FileText, RefreshCw, TrendingUp, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, FileText, RefreshCw, Share2, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,6 +37,7 @@ const notificationIcons: Record<string, typeof Bell> = {
   watch_match: FileText,
   update_request: RefreshCw,
   trend: TrendingUp,
+  document_shared: Share2,
   system: Bell,
 };
 
@@ -212,6 +213,7 @@ export function NotificationCenter() {
                       (notification.type === 'watched_search_match' || notification.type === 'watch_match') && 'bg-blue-100 text-blue-600',
                       notification.type === 'update_request' && 'bg-amber-100 text-amber-600',
                       notification.type === 'trend' && 'bg-green-100 text-green-600',
+                      notification.type === 'document_shared' && 'bg-purple-100 text-purple-600',
                       notification.type === 'system' && 'bg-gray-100 text-gray-600',
                     )}>
                       <Icon className="h-5 w-5" />
