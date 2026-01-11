@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Share2, UserPlus, Trash2, Download, Eye, Clock, Users } from 'lucide-react';
@@ -456,14 +457,41 @@ export function DocumentShareTab({ documentId }: DocumentShareTabProps) {
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleRemoveShare(share.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              title={language === 'fr' ? 'Révoquer l\'accès' : 'Revoke access'}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {language === 'fr' ? 'Révoquer l\'accès' : 'Revoke Access'}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {language === 'fr' 
+                                  ? `Êtes-vous sûr de vouloir révoquer l'accès de ${share.recipient_profile?.full_name || share.recipient_profile?.email || 'cet utilisateur'} à ce document ?`
+                                  : `Are you sure you want to revoke ${share.recipient_profile?.full_name || share.recipient_profile?.email || 'this user'}'s access to this document?`}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {language === 'fr' ? 'Annuler' : 'Cancel'}
+                              </AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleRemoveShare(share.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {language === 'fr' ? 'Révoquer' : 'Revoke'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                   </div>
