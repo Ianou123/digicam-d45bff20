@@ -21,6 +21,7 @@ import Activity from "./pages/Activity";
 import Analytics from "./pages/Analytics";
 import AuditLogs from "./pages/AuditLogs";
 import AdminPulse from "./pages/AdminPulse";
+import SharedWithMe from "./pages/SharedWithMe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/documents/:id" element={<DocumentDetailPage />} />
                 <Route path="/documents/:id/edit" element={<DocumentEdit />} />
                 <Route path="/departments" element={<Departments />} />
+                <Route path="/shared-with-me" element={<SharedWithMe />} />
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/users" element={<Users />} />

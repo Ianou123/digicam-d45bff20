@@ -172,6 +172,34 @@ export function DocumentShareTab({ documentId }: DocumentShareTabProps) {
 
       if (error) throw error;
 
+      // Create in-app notification for recipient
+      const recipientUser = orgUsers.find(u => u.id === selectedUserId);
+      if (recipientUser && profile?.client_id) {
+        // Fetch the document title
+        const { data: docData } = await supabase
+          .from('documents')
+          .select('title')
+          .eq('id', documentId)
+          .single();
+
+        await supabase.from('notifications').insert({
+          user_id: selectedUserId,
+          client_id: profile.client_id,
+          type: 'document_shared',
+          title: language === 'fr' ? 'Document partagé avec vous' : 'Document shared with you',
+          message: language === 'fr' 
+            ? `${profile.full_name || profile.email} a partagé "${docData?.title || 'un document'}" avec vous`
+            : `${profile.full_name || profile.email} shared "${docData?.title || 'a document'}" with you`,
+          metadata: {
+            document_id: documentId,
+            document_title: docData?.title,
+            shared_by: user.id,
+            shared_by_name: profile.full_name || profile.email,
+            can_download: canDownload
+          }
+        });
+      }
+
       toast.success(language === 'fr' ? 'Document partagé avec succès' : 'Document shared successfully');
       setIsAddModalOpen(false);
       setSelectedUserId('');
