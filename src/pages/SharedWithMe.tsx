@@ -226,13 +226,26 @@ export default function SharedWithMe() {
           {displayedShares.length === 0 ? (
             <Card>
               <CardContent className="py-12">
-                <div className="text-center text-muted-foreground">
-                  <Inbox className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>
+                <div className="text-center">
+                  <Inbox className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+                  <h3 className="font-medium mb-2">
                     {activeTab === 'active'
                       ? (language === 'fr' ? 'Aucun document partagé avec vous' : 'No documents shared with you')
                       : (language === 'fr' ? 'Aucun partage expiré' : 'No expired shares')}
-                  </p>
+                  </h3>
+                  {activeTab === 'active' && (
+                    <>
+                      <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+                        {language === 'fr' 
+                          ? 'Lorsqu\'un collègue partagera un document avec vous, il apparaîtra ici. Vous pouvez aussi parcourir la bibliothèque de documents.'
+                          : 'When a colleague shares a document with you, it will appear here. You can also browse the document library.'}
+                      </p>
+                      <Button variant="outline" onClick={() => navigate('/documents')}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {language === 'fr' ? 'Parcourir les documents' : 'Browse Documents'}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

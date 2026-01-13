@@ -141,8 +141,8 @@ export function DocumentCard({
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Actions - always visible on desktop for better discoverability */}
+              <div className="flex items-center gap-1 md:opacity-100 opacity-0 group-hover:opacity-100 transition-opacity">
                 {isInTrash ? (
                   // Trash view actions
                   <>

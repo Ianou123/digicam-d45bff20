@@ -1,5 +1,6 @@
-import { Building2, Globe, Menu, Shield, ShieldCheck, User, Users } from 'lucide-react';
+import { Building2, Globe, Menu, Search, Shield, ShieldCheck, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AppHeaderProps {
@@ -23,6 +25,12 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
   const { language, setLanguage, t } = useLanguage();
   const { profile, isSuperAdmin, isClientAdmin, clientName } = useAuth();
   const [departmentName, setDepartmentName] = useState<string | null>(null);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Don't show global search on the documents page (it has its own search)
+  const showGlobalSearch = !location.pathname.startsWith('/documents');
 
   // Fetch department name if user has one assigned
   useEffect(() => {
@@ -88,6 +96,34 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Global Search Bar - hidden on documents page */}
+        {showGlobalSearch && (
+          <form 
+            className="hidden md:flex items-center"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (globalSearch.trim()) {
+                navigate(`/documents?search=${encodeURIComponent(globalSearch.trim())}`);
+                setGlobalSearch('');
+              }
+            }}
+          >
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder={language === 'fr' ? 'Rechercher des documents...' : 'Search documents...'}
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="w-[200px] lg:w-[280px] pl-9 h-9 text-sm"
+              />
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
+          </form>
+        )}
+
         {/* Right Content (e.g., Import button) */}
         {rightContent}
 
