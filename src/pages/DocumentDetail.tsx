@@ -47,6 +47,7 @@ import { RelatedDocuments } from '@/components/documents/RelatedDocuments';
 import { FrequentlyViewedTogether } from '@/components/documents/FrequentlyViewedTogether';
 import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
 import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
+import { setPageTitle } from '@/hooks/usePageTitle';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
@@ -183,6 +184,9 @@ export default function DocumentDetailPage() {
       
       if (data) {
         setDocument(data as unknown as DocumentDetail);
+        
+        // Set dynamic page title
+        setPageTitle(data.title);
         
         // Fetch uploader name
         if (data.uploaded_by) {
