@@ -1,4 +1,4 @@
-import { FileText, Eye, Download, ChevronRight } from 'lucide-react';
+import { FileText, Eye, ChevronRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,14 @@ interface Document {
   status?: string;
   created_at: string;
   updated_at: string;
+  department_id?: string | null;
+  departments?: { name: string } | null;
 }
 
 interface RecentDocumentsProps {
   documents: Document[];
   onViewAll?: () => void;
+  userDepartmentId?: string | null;
 }
 
 const statusConfig: Record<string, { label: { fr: string; en: string }; className: string }> = {
@@ -48,13 +51,82 @@ const confidentialityColors: Record<string, string> = {
   confidential: 'badge-confidential',
 };
 
-export function RecentDocuments({ documents, onViewAll }: RecentDocumentsProps) {
+export function RecentDocuments({ documents, onViewAll, userDepartmentId }: RecentDocumentsProps) {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const dateLocale = language === 'fr' ? fr : enUS;
 
   const handleOpenDocument = (id: string) => {
     navigate(`/documents/${id}`);
+  };
+
+  // Split documents into "Relevant to You" and "Global"
+  const relevantDocs = userDepartmentId 
+    ? documents.filter(doc => doc.department_id === userDepartmentId)
+    : [];
+  const globalDocs = userDepartmentId 
+    ? documents.filter(doc => doc.department_id !== userDepartmentId)
+    : documents;
+
+  const renderDocument = (doc: Document, isRelevant: boolean = false) => {
+    const status = statusConfig[doc.status || 'ready'];
+    
+    return (
+      <div
+        key={doc.id}
+        className={cn(
+          "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors",
+          isRelevant 
+            ? "bg-primary/5 hover:bg-primary/10 border border-primary/10" 
+            : "bg-muted/30 hover:bg-muted/50"
+        )}
+        onClick={() => handleOpenDocument(doc.id)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn(
+            "h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0",
+            isRelevant ? "bg-primary/20" : "bg-primary/10"
+          )}>
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium truncate">{doc.title}</p>
+              {isRelevant && (
+                <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {doc.departments?.name && (
+                <span className="mr-2">{doc.departments.name} •</span>
+              )}
+              {format(new Date(doc.updated_at), 'dd MMM yyyy', { locale: dateLocale })}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {status && (
+            <Badge variant="outline" className={cn('text-xs', status.className)}>
+              {status.label[language]}
+            </Badge>
+          )}
+          <Badge 
+            variant="outline" 
+            className={cn('text-xs', confidentialityColors[doc.confidentiality_level])}
+          >
+            {doc.confidentiality_level === 'public' 
+              ? (language === 'fr' ? 'Public' : 'Public')
+              : doc.confidentiality_level === 'internal'
+              ? (language === 'fr' ? 'Interne' : 'Internal')
+              : (language === 'fr' ? 'Confidentiel' : 'Confidential')
+            }
+          </Badge>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -77,51 +149,33 @@ export function RecentDocuments({ documents, onViewAll }: RecentDocumentsProps) 
             <p>{language === 'fr' ? 'Aucun document récent' : 'No recent documents'}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {documents.map((doc) => {
-              const status = statusConfig[doc.status || 'ready'];
-              
-              return (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => handleOpenDocument(doc.id)}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{doc.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(doc.updated_at), 'dd MMM yyyy', { locale: dateLocale })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {status && (
-                      <Badge variant="outline" className={cn('text-xs', status.className)}>
-                        {status.label[language]}
-                      </Badge>
-                    )}
-                    <Badge 
-                      variant="outline" 
-                      className={cn('text-xs', confidentialityColors[doc.confidentiality_level])}
-                    >
-                      {doc.confidentiality_level === 'public' 
-                        ? (language === 'fr' ? 'Public' : 'Public')
-                        : doc.confidentiality_level === 'internal'
-                        ? (language === 'fr' ? 'Interne' : 'Internal')
-                        : (language === 'fr' ? 'Confidentiel' : 'Confidential')
-                      }
-                    </Badge>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
+          <div className="space-y-4">
+            {/* Relevant to You Section */}
+            {relevantDocs.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  <span>{language === 'fr' ? 'Pour vous' : 'Relevant to You'}</span>
                 </div>
-              );
-            })}
+                <div className="space-y-2">
+                  {relevantDocs.map(doc => renderDocument(doc, true))}
+                </div>
+              </div>
+            )}
+            
+            {/* Global Section */}
+            {globalDocs.length > 0 && (
+              <div className="space-y-2">
+                {relevantDocs.length > 0 && (
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {language === 'fr' ? 'Autres documents' : 'Other Documents'}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {globalDocs.map(doc => renderDocument(doc, false))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
