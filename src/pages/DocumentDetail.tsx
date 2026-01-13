@@ -655,12 +655,14 @@ export default function DocumentDetailPage() {
                 </TabsTrigger>
                 <TabsTrigger value="ocr" className="text-xs">OCR</TabsTrigger>
                 <TabsTrigger value="versions" className="text-xs">
-                  {language === 'fr' ? 'Versions' : 'Versions'}
+                  {language === 'fr' ? 'Versions' : 'Versions'} ({versions.length})
                 </TabsTrigger>
                 <TabsTrigger value="share" className="text-xs">
                   {language === 'fr' ? 'Partage' : 'Share'}
                 </TabsTrigger>
-                <TabsTrigger value="audit" className="text-xs">Audit</TabsTrigger>
+                <TabsTrigger value="audit" className="text-xs">
+                  Audit ({auditEvents.length})
+                </TabsTrigger>
               </TabsList>
 
               <ScrollArea className="flex-1 p-4">
@@ -814,7 +816,14 @@ export default function DocumentDetailPage() {
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p>{language === 'fr' ? 'Aucun historique de version' : 'No version history'}</p>
+                      <p className="font-medium mb-1">
+                        {language === 'fr' ? 'Première version' : 'First Version'}
+                      </p>
+                      <p className="text-sm">
+                        {language === 'fr' 
+                          ? 'C\'est la première version de ce document. L\'historique apparaîtra lorsque de nouvelles versions seront téléversées.'
+                          : 'This is the first version of this document. History will appear when new versions are uploaded.'}
+                      </p>
                     </div>
                   )}
                 </TabsContent>
@@ -888,7 +897,14 @@ export default function DocumentDetailPage() {
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p>{language === 'fr' ? 'Aucun événement enregistré' : 'No events recorded'}</p>
+                      <p className="font-medium mb-1">
+                        {language === 'fr' ? 'Aucun événement' : 'No activity yet'}
+                      </p>
+                      <p className="text-sm">
+                        {language === 'fr' 
+                          ? 'L\'historique des actions (consultation, téléchargement, etc.) apparaîtra ici.'
+                          : 'Activity history (views, downloads, etc.) will appear here as users interact with this document.'}
+                      </p>
                     </div>
                   )}
                 </TabsContent>

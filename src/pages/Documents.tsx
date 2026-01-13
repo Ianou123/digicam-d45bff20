@@ -47,6 +47,7 @@ interface Document {
   deleted_at: string | null;
   ocr_text: string | null;
   departments: { name: string } | null;
+  status: string | null;
 }
 
 interface FilterState {
@@ -225,6 +226,7 @@ export default function Documents() {
           file_url,
           deleted_at,
           ocr_text,
+          status,
           departments(name)
         `)
         .order('created_at', { ascending: false });
@@ -261,8 +263,10 @@ export default function Documents() {
         query = query.gte('created_at', startDate).lte('created_at', endDate);
       }
       if (filters.search) {
-        // Search in title, tags (as text array), and ocr_text
-        query = query.or(`title.ilike.%${filters.search}%,tags.cs.{${filters.search}},ocr_text.ilike.%${filters.search}%`);
+        // Search in title and ocr_text using partial matching (ilike)
+        // Note: For tags, we search title/OCR. Tag search is best done with frontend filtering
+        // since PostgREST cs (contains) requires exact match
+        query = query.or(`title.ilike.%${filters.search}%,ocr_text.ilike.%${filters.search}%`);
       }
       if (filters.status) {
         query = query.eq('status', filters.status);
@@ -271,7 +275,26 @@ export default function Documents() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setDocuments((data || []) as unknown as Document[]);
+      
+      // Apply client-side tag filtering for partial matches
+      // (PostgREST's cs operator requires exact array match)
+      let filteredData = (data || []) as unknown as Document[];
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        filteredData = filteredData.filter(doc => {
+          // Check if any tag partially matches the search term
+          const tagMatch = doc.tags?.some(tag => 
+            tag.toLowerCase().includes(searchLower)
+          );
+          // Title and OCR are already filtered by the query, but we need to include 
+          // documents that match via tags
+          const titleMatch = doc.title.toLowerCase().includes(searchLower);
+          const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
+          return titleMatch || ocrMatch || tagMatch;
+        });
+      }
+      
+      setDocuments(filteredData);
     } catch (error) {
       console.error('Error fetching documents:', error);
       toast.error(language === 'fr' ? 'Erreur lors du chargement des documents' : 'Error loading documents');
