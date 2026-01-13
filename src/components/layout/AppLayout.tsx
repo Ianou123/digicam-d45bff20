@@ -7,6 +7,7 @@ import { SuspendedBanner } from './SuspendedBanner';
 import { DeactivatedUserPage } from '@/components/DeactivatedUserPage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
@@ -27,6 +28,9 @@ export function AppLayout() {
   const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
+  
+  // Dynamic page title based on route
+  usePageTitle();
 
   if (loading) {
     return (
