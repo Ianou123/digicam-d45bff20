@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/documents/EmptyState';
 import { SearchResultCard } from '@/components/documents/SearchResultCard';
 import { WatchSearchButton } from '@/components/documents/WatchSearchButton';
 import { WatchedSearchesList } from '@/components/documents/WatchedSearchesList';
+import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,6 +87,10 @@ export default function Documents() {
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'trash' | 'restore' | 'delete'>('trash');
+  
+  // Confidential download modal state
+  const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
+  const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
   
   // Initialize filters from URL params
   const [filters, setFilters] = useState<FilterState>(() => ({
@@ -319,16 +324,38 @@ export default function Documents() {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
 
+    // Check if document is confidential - trigger warning modal
+    if (doc.confidentiality_level === 'confidential') {
+      setPendingDownloadDoc(doc);
+      setConfidentialModalOpen(true);
+      return;
+    }
+
+    // Execute download directly for non-confidential docs
+    await executeDownload(doc);
+  };
+
+  const executeDownload = async (doc: Document) => {
     if (user && profile?.client_id) {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         client_id: profile.client_id,
         action_type: 'download' as const,
-        document_id: id,
+        document_id: doc.id,
       });
     }
 
     window.open(doc.file_url, '_blank');
+    
+    // Reset modal state
+    setPendingDownloadDoc(null);
+    setConfidentialModalOpen(false);
+  };
+
+  const handleConfidentialDownloadConfirm = () => {
+    if (pendingDownloadDoc) {
+      executeDownload(pendingDownloadDoc);
+    }
   };
 
   const handleEdit = (id: string) => {
@@ -755,6 +782,14 @@ export default function Documents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confidential Download Warning Modal */}
+      <ConfidentialDownloadModal
+        open={confidentialModalOpen}
+        onOpenChange={setConfidentialModalOpen}
+        onConfirm={handleConfidentialDownloadConfirm}
+        documentTitle={pendingDownloadDoc?.title || ''}
+      />
     </div>
   );
 }

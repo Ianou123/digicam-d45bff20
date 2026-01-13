@@ -603,6 +603,7 @@ export default function Dashboard() {
           <RecentDocuments 
             documents={recentDocuments}
             onViewAll={() => navigate('/documents')}
+            userDepartmentId={profile?.department_id}
           />
         </div>
 
