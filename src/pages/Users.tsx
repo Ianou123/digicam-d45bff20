@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Search, MoreHorizontal, Pencil, Building2, UserX, Mail, UserCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, MoreHorizontal, Pencil, Building2, UserX, Mail, UserCheck, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +57,7 @@ interface UserWithRole {
   role: 'super_admin' | 'client_admin' | 'staff' | null;
   status: 'active' | 'deactivated';
   department_id: string | null;
+  document_count: number;
 }
 
 interface Department {
@@ -165,7 +167,26 @@ export default function Users() {
 
       if (rolesError) throw rolesError;
 
-      // Merge profiles with roles
+      // Fetch document counts per user
+      const userIds = (profiles || []).map(p => p.id);
+      const documentCounts = new Map<string, number>();
+      
+      if (userIds.length > 0) {
+        const { data: docsData } = await supabase
+          .from('documents')
+          .select('uploaded_by')
+          .in('uploaded_by', userIds)
+          .is('deleted_at', null);
+
+        if (docsData) {
+          docsData.forEach(doc => {
+            const current = documentCounts.get(doc.uploaded_by) || 0;
+            documentCounts.set(doc.uploaded_by, current + 1);
+          });
+        }
+      }
+
+      // Merge profiles with roles and document counts
       const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => {
         const userRole = roles?.find(r => r.user_id === profile.id);
         return {
@@ -173,6 +194,7 @@ export default function Users() {
           role: userRole?.role || null,
           status: (profile.status as 'active' | 'deactivated') || 'active',
           department_id: profile.department_id || null,
+          document_count: documentCounts.get(profile.id) || 0,
         };
       });
 
@@ -668,6 +690,7 @@ export default function Users() {
               <TableRow>
                 <TableHead>{language === 'fr' ? 'Utilisateur' : 'User'}</TableHead>
                 <TableHead>{t('users.role')}</TableHead>
+                <TableHead>{language === 'fr' ? 'Documents' : 'Documents'}</TableHead>
                 <TableHead>{language === 'fr' ? 'Inscrit le' : 'Joined'}</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -675,13 +698,13 @@ export default function Users() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     {language === 'fr' ? 'Aucun utilisateur trouvé' : 'No users found'}
                   </TableCell>
                 </TableRow>
@@ -697,12 +720,33 @@ export default function Users() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{user.full_name || 'Unnamed'}</p>
+                          <Link 
+                            to={`/documents?owner=${user.id}`}
+                            className="font-medium hover:underline hover:text-primary transition-colors"
+                          >
+                            {user.full_name || 'Unnamed'}
+                          </Link>
                           <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{getRoleBadge(user)}</TableCell>
+                    <TableCell>
+                      <Link 
+                        to={`/documents?owner=${user.id}`}
+                        title={language === 'fr' 
+                          ? `Voir les ${user.document_count} documents de ${user.full_name || user.email}` 
+                          : `View ${user.document_count} documents by ${user.full_name || user.email}`}
+                      >
+                        <Badge 
+                          variant="secondary" 
+                          className="cursor-pointer hover:bg-secondary/80 transition-colors gap-1"
+                        >
+                          <FileText className="h-3 w-3" />
+                          {user.document_count}
+                        </Badge>
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {format(new Date(user.created_at), 'PPP', {
                         locale: language === 'fr' ? fr : enUS,
