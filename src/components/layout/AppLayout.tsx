@@ -57,27 +57,28 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay - visible below xl breakpoint */}
       <div
         className={cn(
-          'fixed inset-0 z-30 bg-foreground/20 backdrop-blur-sm lg:hidden transition-opacity',
+          'fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm xl:hidden transition-opacity duration-300',
           sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         onClick={() => setSidebarOpen(false)}
       />
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed on xl+, slide-in drawer on smaller screens */}
       <div
         className={cn(
-          'lg:block',
-          sidebarOpen ? 'block' : 'hidden'
+          'fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out',
+          'xl:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
         )}
       >
-        <AppSidebar />
+        <AppSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
+      {/* Main content - offset by sidebar width on xl+ */}
+      <div className="xl:pl-64">
         {/* Show suspended banner if client is suspended and user is not super admin */}
         {isClientSuspended && !isSuperAdmin && <SuspendedBanner />}
         

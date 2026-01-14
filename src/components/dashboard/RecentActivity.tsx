@@ -19,6 +19,7 @@ interface ActivityItem {
   created_at: string;
   search_query?: string | null;
   documents?: { title: string } | null;
+  user_name?: string | null;
 }
 
 interface RecentActivityProps {
@@ -99,6 +100,11 @@ export function RecentActivity({ activities, showUser = false }: RecentActivityP
                     <span className="font-medium text-sm">
                       {getActionLabel(activity.action_type)}
                     </span>
+                    {showUser && activity.user_name && (
+                      <span className="text-xs text-muted-foreground">
+                        • {activity.user_name}
+                      </span>
+                    )}
                   </div>
                   {getActivityDescription(activity) && (
                     <p className="text-sm text-muted-foreground truncate">

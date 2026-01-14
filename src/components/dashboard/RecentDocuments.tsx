@@ -1,4 +1,4 @@
-import { FileText, Eye, ChevronRight, Sparkles } from 'lucide-react';
+import { FileText, Eye, ChevronRight, Sparkles, Download, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface Document {
   id: string;
@@ -16,6 +19,7 @@ interface Document {
   status?: string;
   created_at: string;
   updated_at: string;
+  file_url?: string;
   department_id?: string | null;
   departments?: { name: string } | null;
 }
@@ -53,11 +57,38 @@ const confidentialityColors: Record<string, string> = {
 
 export function RecentDocuments({ documents, onViewAll, userDepartmentId }: RecentDocumentsProps) {
   const { language } = useLanguage();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const dateLocale = language === 'fr' ? fr : enUS;
 
   const handleOpenDocument = (id: string) => {
     navigate(`/documents/${id}`);
+  };
+
+  const handleDownload = async (e: React.MouseEvent, doc: Document) => {
+    e.stopPropagation();
+    if (!doc.file_url) {
+      toast.error(language === 'fr' ? 'URL du fichier non disponible' : 'File URL not available');
+      return;
+    }
+    
+    // Log download activity
+    if (user && profile?.client_id) {
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'download' as const,
+        document_id: doc.id,
+      });
+    }
+    
+    window.open(doc.file_url, '_blank');
+    toast.success(language === 'fr' ? 'Téléchargement démarré' : 'Download started');
+  };
+
+  const handleShare = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    navigate(`/documents/${id}?tab=share`);
   };
 
   // Split documents into "Relevant to You" and "Global"
@@ -121,6 +152,24 @@ export function RecentDocuments({ documents, onViewAll, userDepartmentId }: Rece
               : (language === 'fr' ? 'Confidentiel' : 'Confidential')
             }
           </Badge>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => handleDownload(e, doc)}
+            title={language === 'fr' ? 'Télécharger' : 'Download'}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => handleShare(e, doc.id)}
+            title={language === 'fr' ? 'Partager' : 'Share'}
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <Eye className="h-4 w-4" />
           </Button>

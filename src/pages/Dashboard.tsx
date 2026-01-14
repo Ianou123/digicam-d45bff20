@@ -36,6 +36,8 @@ interface ActivityItem {
   created_at: string;
   search_query?: string | null;
   documents: { title: string } | null;
+  user_name?: string | null;
+  profiles?: { full_name: string | null; email: string } | null;
 }
 
 interface ClientStatus {
@@ -255,7 +257,7 @@ export default function Dashboard() {
       
       setRecentDocuments(sortedDocs as unknown as Document[]);
 
-      // Fetch recent activity
+      // Fetch recent activity with user information
       let activityQuery = supabase
         .from('activity_logs')
         .select(`
@@ -263,7 +265,9 @@ export default function Dashboard() {
           action_type,
           created_at,
           search_query,
-          documents(title)
+          user_id,
+          documents(title),
+          profiles:user_id(full_name, email)
         `)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -351,7 +355,12 @@ export default function Dashboard() {
         totalUsers: usersCount,
         totalClients: clientsCount,
       });
-      setRecentActivity((activityData || []) as unknown as ActivityItem[]);
+      // Map activity data to include user_name
+      const mappedActivity = (activityData || []).map((activity: any) => ({
+        ...activity,
+        user_name: activity.profiles?.full_name || activity.profiles?.email?.split('@')[0] || null,
+      }));
+      setRecentActivity(mappedActivity as ActivityItem[]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

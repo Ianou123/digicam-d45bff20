@@ -85,13 +85,35 @@ export default function AdminPulse() {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([
+    
+    // Use Promise.allSettled to handle individual failures gracefully
+    const results = await Promise.allSettled([
       fetchFailedSearches(),
       fetchUnusedDocuments(),
       fetchDepartmentActivity(),
     ]);
+    
+    // Log any failures for debugging
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const funcNames = ['fetchFailedSearches', 'fetchUnusedDocuments', 'fetchDepartmentActivity'];
+        console.error(`${funcNames[index]} failed:`, result.reason);
+      }
+    });
+    
     setLoading(false);
   };
+
+  // Add timeout to prevent infinite loading state
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('AdminPulse: Data loading timed out after 15 seconds');
+        setLoading(false);
+      }
+    }, 15000);
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   const fetchFailedSearches = async () => {
     try {
