@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2 } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
@@ -15,6 +15,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -49,6 +50,7 @@ interface Document {
   ocr_text: string | null;
   departments: { name: string } | null;
   status: string | null;
+  uploaded_by: string;
 }
 
 interface FilterState {
@@ -63,6 +65,12 @@ interface FilterState {
 interface Client {
   id: string;
   name: string;
+}
+
+interface OwnerProfile {
+  id: string;
+  full_name: string | null;
+  email: string;
 }
 
 export default function Documents() {
@@ -92,6 +100,10 @@ export default function Documents() {
   const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
   const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
   
+  // Owner filter from URL
+  const ownerIdParam = searchParams.get('owner');
+  const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
+  
   // Initialize filters from URL params
   const [filters, setFilters] = useState<FilterState>(() => ({
     search: searchParams.get('search') || '',
@@ -101,6 +113,28 @@ export default function Documents() {
     confidentiality: searchParams.get('confidentiality') || '',
     status: searchParams.get('status') || '',
   }));
+
+  // Fetch owner profile if filtering by owner
+  useEffect(() => {
+    const fetchOwnerProfile = async () => {
+      if (!ownerIdParam) {
+        setOwnerProfile(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('id', ownerIdParam)
+        .maybeSingle();
+
+      if (!error && data) {
+        setOwnerProfile(data);
+      }
+    };
+
+    fetchOwnerProfile();
+  }, [ownerIdParam]);
 
   useEffect(() => {
     fetchDocuments();
@@ -114,7 +148,7 @@ export default function Documents() {
   useEffect(() => {
     fetchDocuments();
     setSelectedDocuments(new Set()); // Clear selection when view changes
-  }, [filters, selectedClientId, showTrash]);
+  }, [filters, selectedClientId, showTrash, ownerIdParam]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -232,6 +266,7 @@ export default function Documents() {
           deleted_at,
           ocr_text,
           status,
+          uploaded_by,
           departments(name)
         `)
         .order('created_at', { ascending: false });
@@ -248,6 +283,11 @@ export default function Documents() {
         query = query.eq('client_id', selectedClientId);
       } else if (!isSuperAdmin && profile?.client_id) {
         query = query.eq('client_id', profile.client_id);
+      }
+
+      // Apply owner filter if specified in URL
+      if (ownerIdParam) {
+        query = query.eq('uploaded_by', ownerIdParam);
       }
 
       // Apply filters
@@ -523,8 +563,36 @@ export default function Documents() {
 
   const dialogContent = getBulkActionDialogContent();
 
+  const handleClearOwnerFilter = () => {
+    searchParams.delete('owner');
+    setSearchParams(searchParams);
+  };
+
+  const ownerDisplayName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '';
+
   return (
     <div className="space-y-6">
+      {/* Owner Filter Chip */}
+      {ownerIdParam && ownerProfile && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">
+            {language === 'fr' ? 'Filtre actif:' : 'Active filter:'}
+          </span>
+          <Badge variant="secondary" className="gap-1.5 pr-1">
+            <User className="h-3 w-3" />
+            {language === 'fr' ? 'Propriétaire' : 'Owner'}: {ownerDisplayName}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 ml-1 hover:bg-secondary-foreground/10 rounded-full p-0"
+              onClick={handleClearOwnerFilter}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        </div>
+      )}
+
       {/* Super Admin Warning */}
       {isSuperAdmin && (
         <Alert variant="destructive" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
@@ -737,6 +805,13 @@ export default function Documents() {
       ) : documents.length === 0 ? (
         showTrash ? (
           <EmptyState type="emptyTrash" />
+        ) : ownerIdParam && ownerProfile ? (
+          <EmptyState 
+            type="noResults" 
+            searchQuery={language === 'fr' 
+              ? `documents de ${ownerDisplayName}` 
+              : `documents by ${ownerDisplayName}`} 
+          />
         ) : filters.search ? (
           <EmptyState 
             type="noResults" 
