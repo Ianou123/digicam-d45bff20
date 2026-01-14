@@ -28,7 +28,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onClose?: () => void;
+}
+
+export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
@@ -37,6 +41,13 @@ export function AppSidebar() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  const handleNavClick = () => {
+    // Close sidebar on mobile after navigation
+    if (onClose) {
+      onClose();
+    }
   };
 
   const getInitials = (name: string | null) => {
@@ -122,6 +133,7 @@ export function AppSidebar() {
     return (
       <Link
         to={href}
+        onClick={handleNavClick}
         className={cn(
           'sidebar-item',
           isActive && 'sidebar-item-active'

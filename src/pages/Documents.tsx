@@ -281,20 +281,19 @@ export default function Documents() {
 
       if (error) throw error;
       
-      // Apply client-side tag filtering for partial matches
-      // (PostgREST's cs operator requires exact array match)
+      // Apply STRICT client-side validation for search results
+      // This ensures no false positives - search term MUST actually exist in the document
       let filteredData = (data || []) as unknown as Document[];
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
+      if (filters.search && filters.search.trim().length >= 2) {
+        const searchLower = filters.search.toLowerCase().trim();
         filteredData = filteredData.filter(doc => {
-          // Check if any tag partially matches the search term
+          // Strictly validate that the search term exists in title, OCR, or tags
+          const titleMatch = doc.title?.toLowerCase().includes(searchLower);
+          const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
           const tagMatch = doc.tags?.some(tag => 
             tag.toLowerCase().includes(searchLower)
           );
-          // Title and OCR are already filtered by the query, but we need to include 
-          // documents that match via tags
-          const titleMatch = doc.title.toLowerCase().includes(searchLower);
-          const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
+          // Document MUST have an actual match - no fuzzy false positives
           return titleMatch || ocrMatch || tagMatch;
         });
       }
