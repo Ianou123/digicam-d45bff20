@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { getSignedDocumentUrl } from '@/lib/storage';
 import { Navigate } from 'react-router-dom';
 
 interface Document {
@@ -226,10 +227,8 @@ export default function DocumentEdit() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+      // Store the file path (not public URL) since bucket is private
+      const filePathForDb = filePath;
 
       const newVersion = document.current_version + 1;
 
@@ -239,7 +238,7 @@ export default function DocumentEdit() {
         .insert({
           document_id: document.id,
           version_number: newVersion,
-          file_url: urlData.publicUrl,
+          file_url: filePathForDb,
           file_size: newVersionFile.size,
           uploaded_by: user.id,
           change_notes: versionChangeNotes || null,
@@ -252,7 +251,7 @@ export default function DocumentEdit() {
         .from('documents')
         .update({
           current_version: newVersion,
-          file_url: urlData.publicUrl,
+          file_url: filePathForDb,
           file_size: newVersionFile.size,
         })
         .eq('id', document.id);
@@ -514,7 +513,10 @@ export default function DocumentEdit() {
                 variant="outline"
                 size="sm"
                 className="mt-2 w-full"
-                onClick={() => window.open(document.file_url, '_blank')}
+                onClick={async () => {
+                  const signedUrl = await getSignedDocumentUrl(document.file_url);
+                  if (signedUrl) window.open(signedUrl, '_blank');
+                }}
               >
                 {language === 'fr' ? 'Voir le fichier' : 'View File'}
               </Button>

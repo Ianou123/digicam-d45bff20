@@ -40,7 +40,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getSignedDocumentUrl, downloadDocument } from '@/lib/storage';
 import { PdfViewer } from '@/components/documents/PdfViewer';
+import { SignedImage } from '@/components/documents/SignedImage';
 import { ConfidentialityBanner } from '@/components/documents/ConfidentialityBanner';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
 import { RelatedDocuments } from '@/components/documents/RelatedDocuments';
@@ -292,21 +294,11 @@ export default function DocumentDetailPage() {
       });
     }
 
-    try {
-      const response = await fetch(document.file_url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      const link = window.document.createElement('a');
-      link.href = blobUrl;
-      link.download = `${document.title}.${document.document_type}`;
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download error:', error);
-      window.location.href = document.file_url;
+    const filename = `${document.title}.${document.document_type}`;
+    const success = await downloadDocument(document.file_url, filename);
+    
+    if (!success) {
+      toast.error(language === 'fr' ? 'Erreur de téléchargement' : 'Download error');
     }
     
     setShowConfidentialModal(false);
@@ -570,8 +562,8 @@ export default function DocumentDetailPage() {
                 <PdfViewer url={document.file_url} autoFit className="h-full" />
               ) : ['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(document.document_type.toLowerCase()) ? (
                 <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg p-4">
-                  <img
-                    src={document.file_url}
+                  <SignedImage
+                    fileUrl={document.file_url}
                     alt={document.title}
                     className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
                   />
