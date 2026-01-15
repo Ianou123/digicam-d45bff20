@@ -222,8 +222,15 @@ export default function Users() {
     }
 
     try {
-      // Generate a random password for the invite
-      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+      // Generate a cryptographically secure password for the invite
+      const generateSecurePassword = () => {
+        const array = new Uint8Array(24);
+        crypto.getRandomValues(array);
+        return btoa(String.fromCharCode(...array))
+          .replace(/[+/=]/g, '')
+          .substring(0, 16) + '!A1';
+      };
+      const tempPassword = generateSecurePassword();
       
       // Create user via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({

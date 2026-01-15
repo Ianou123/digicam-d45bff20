@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { getSignedDocumentUrl } from '@/lib/storage';
 
 // Set worker source for v3.x
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -32,8 +33,15 @@ export function PdfViewer({ url, className = '', autoFit = true }: PdfViewerProp
 
     const loadPdf = async () => {
       try {
+        // Get signed URL for private bucket access
+        const signedUrl = await getSignedDocumentUrl(url);
+        
+        if (!signedUrl) {
+          throw new Error('Failed to generate signed URL for document');
+        }
+
         const loadingTask = pdfjsLib.getDocument({
-          url: url,
+          url: signedUrl,
           withCredentials: false,
         });
         console.log('PdfViewer: getDocument task created');

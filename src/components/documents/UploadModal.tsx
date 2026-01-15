@@ -172,10 +172,9 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
       
       setProgress(50);
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+      // Store the file path (not public URL) since bucket is private
+      // Signed URLs will be generated when accessing the file
+      const filePathForDb = filePath;
 
       // Create document record with 'processing' status
       const docType = fileTypeMap[file.type] as DocumentType;
@@ -191,7 +190,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
           confidentiality_level: formData.confidentiality,
           tags,
           ocr_text: formData.ocrText || null,
-          file_url: urlData.publicUrl,
+          file_url: filePathForDb,
           file_size: file.size,
           uploaded_by: user.id,
           status: 'processing',

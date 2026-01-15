@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { downloadDocument } from '@/lib/storage';
 
 interface Document {
   id: string;
@@ -82,8 +83,14 @@ export function RecentDocuments({ documents, onViewAll, userDepartmentId }: Rece
       });
     }
     
-    window.open(doc.file_url, '_blank');
-    toast.success(language === 'fr' ? 'Téléchargement démarré' : 'Download started');
+    const filename = `${doc.title}.${doc.document_type}`;
+    const success = await downloadDocument(doc.file_url, filename);
+    
+    if (success) {
+      toast.success(language === 'fr' ? 'Téléchargement démarré' : 'Download started');
+    } else {
+      toast.error(language === 'fr' ? 'Erreur de téléchargement' : 'Download error');
+    }
   };
 
   const handleShare = (e: React.MouseEvent, id: string) => {
