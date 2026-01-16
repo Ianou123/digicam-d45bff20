@@ -37,6 +37,16 @@ interface SavedSearchesProps {
   onApplySearch: (filters: FilterState) => void;
 }
 
+// Sanitize search query to prevent SQL pattern injection
+const sanitizeSearchQuery = (query: string): string => {
+  if (!query) return '';
+  // Remove SQL ILIKE wildcards and limit length
+  return query
+    .replace(/[%_\\]/g, '') // Remove wildcards
+    .trim()
+    .substring(0, 100); // Limit length
+};
+
 export function SavedSearches({ currentFilters, onApplySearch }: SavedSearchesProps) {
   const { user, profile } = useAuth();
   const { language } = useLanguage();
@@ -82,13 +92,19 @@ export function SavedSearches({ currentFilters, onApplySearch }: SavedSearchesPr
     if (!user || !profile?.client_id || !newSearchName.trim()) return;
 
     try {
+      // Sanitize search query before saving
+      const sanitizedFilters = {
+        ...currentFilters,
+        search: sanitizeSearchQuery(currentFilters.search),
+      };
+
       const { error } = await supabase
         .from('saved_searches')
         .insert([{
           user_id: user.id,
           client_id: profile.client_id,
           name: newSearchName.trim(),
-          filters: currentFilters as unknown as Json,
+          filters: sanitizedFilters as unknown as Json,
           is_pinned: false,
         }]);
 
