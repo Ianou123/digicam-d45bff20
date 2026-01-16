@@ -727,6 +727,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      escape_ilike_pattern: { Args: { pattern: string }; Returns: string }
       get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
       has_role: {

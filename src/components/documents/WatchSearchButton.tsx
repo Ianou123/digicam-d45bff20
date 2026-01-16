@@ -27,6 +27,16 @@ interface WatchSearchButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
+// Sanitize search query to prevent SQL pattern injection
+const sanitizeSearchQuery = (query: string): string => {
+  if (!query) return '';
+  // Remove SQL ILIKE wildcards and limit length
+  return query
+    .replace(/[%_\\]/g, '') // Remove wildcards
+    .trim()
+    .substring(0, 100); // Limit length
+};
+
 export function WatchSearchButton({ 
   currentFilters, 
   variant = 'outline',
@@ -58,13 +68,19 @@ export function WatchSearchButton({
       
       const searchName = parts.join(' + ') || (language === 'fr' ? 'Recherche surveillée' : 'Watched Search');
 
+      // Sanitize search query before saving
+      const sanitizedFilters = {
+        ...currentFilters,
+        search: sanitizeSearchQuery(currentFilters.search),
+      };
+
       const { error } = await supabase
         .from('saved_searches')
         .insert([{
           user_id: user.id,
           client_id: profile.client_id,
           name: searchName,
-          filters: currentFilters as unknown as Json,
+          filters: sanitizedFilters as unknown as Json,
           is_pinned: false,
           is_watched: true,
         }]);
