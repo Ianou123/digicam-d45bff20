@@ -727,6 +727,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      document_belongs_to_user_client: {
+        Args: { _document_id: string; _user_id: string }
+        Returns: boolean
+      }
       escape_ilike_pattern: { Args: { pattern: string }; Returns: string }
       get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
@@ -741,6 +745,10 @@ export type Database = {
       is_client_suspended: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_deactivated: { Args: { _user_id: string }; Returns: boolean }
+      user_has_document_share: {
+        Args: { _document_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       action_type:
