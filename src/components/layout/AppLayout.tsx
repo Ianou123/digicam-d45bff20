@@ -5,6 +5,7 @@ import { AppHeader } from './AppHeader';
 import { GlobalImportButton } from './GlobalImportButton';
 import { SuspendedBanner } from './SuspendedBanner';
 import { DeactivatedUserPage } from '@/components/DeactivatedUserPage';
+import { RoleAcknowledgmentModal } from '@/components/auth/RoleAcknowledgmentModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -25,7 +26,7 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
   
@@ -91,6 +92,12 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Role Acknowledgment Modal */}
+      <RoleAcknowledgmentModal 
+        open={requiresRoleAcknowledgment} 
+        onAcknowledge={acknowledgeRole} 
+      />
     </div>
   );
 }

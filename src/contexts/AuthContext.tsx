@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { ClientModule } from '@/types/modules';
 
 type AppRole = 'super_admin' | 'client_admin' | 'staff';
 
@@ -44,6 +45,10 @@ interface AuthContextType {
   clientInviteCode: string | null;
   isClientSuspended: boolean;
   isUserDeactivated: boolean;
+  // Module-based architecture
+  clientModule: ClientModule | null;
+  requiresRoleAcknowledgment: boolean;
+  acknowledgeRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [clientStatus, setClientStatus] = useState<ClientStatus | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
   const [clientInviteCode, setClientInviteCode] = useState<string | null>(null);
+  const [clientModule, setClientModule] = useState<ClientModule | null>(null);
+  const [requiresRoleAcknowledgment, setRequiresRoleAcknowledgment] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -85,11 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           department_self_declared: profileData.department_self_declared ?? false,
         });
 
-        // Fetch client status, name, and invite code if user has a client
+        // Fetch client status, name, invite code, and module if user has a client
         if (profileData.client_id) {
           const { data: clientData } = await supabase
             .from('clients')
-            .select('status, name, invite_code')
+            .select('status, name, invite_code, module')
             .eq('id', profileData.client_id)
             .maybeSingle();
 
@@ -97,11 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setClientStatus(clientData.status as ClientStatus);
             setClientName(clientData.name);
             setClientInviteCode(clientData.invite_code);
+            setClientModule(clientData.module as ClientModule);
           }
         } else {
           setClientStatus(null);
           setClientName(null);
           setClientInviteCode(null);
+          setClientModule(null);
         }
       }
 
@@ -116,7 +125,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (rolesData) {
-        setRoles(rolesData.map(r => r.role as AppRole));
+        const userRoles = rolesData.map(r => r.role as AppRole);
+        setRoles(userRoles);
+        
+        // Check if role acknowledgment is required for restricted modules
+        if (profileData?.client_id) {
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('module')
+            .eq('id', profileData.client_id)
+            .maybeSingle();
+          
+          const module = clientData?.module as ClientModule;
+          if (module && (module === 'admin_publique' || module === 'fiscal')) {
+            const currentRole = userRoles.includes('super_admin') 
+              ? 'super_admin' 
+              : userRoles.includes('client_admin') 
+                ? 'client_admin' 
+                : 'staff';
+            
+            // Check if user has acknowledged this role+module combination
+            const { data: ackData } = await supabase
+              .from('role_acknowledgments')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('role', currentRole)
+              .eq('module', module)
+              .maybeSingle();
+            
+            setRequiresRoleAcknowledgment(!ackData);
+          } else {
+            setRequiresRoleAcknowledgment(false);
+          }
+        }
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -207,6 +248,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setClientStatus(null);
       setClientName(null);
       setClientInviteCode(null);
+      setClientModule(null);
+      setRequiresRoleAcknowledgment(false);
+    }
+  };
+
+  const acknowledgeRole = async () => {
+    if (!user || !clientModule) return;
+    
+    const currentRole = isSuperAdmin 
+      ? 'super_admin' 
+      : isClientAdmin 
+        ? 'client_admin' 
+        : 'staff';
+    
+    try {
+      await supabase
+        .from('role_acknowledgments')
+        .upsert({
+          user_id: user.id,
+          role: currentRole,
+          module: clientModule,
+        }, { onConflict: 'user_id,role,module' });
+      
+      setRequiresRoleAcknowledgment(false);
+    } catch (error) {
+      console.error('Error acknowledging role:', error);
     }
   };
 
@@ -238,6 +305,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clientInviteCode,
         isClientSuspended,
         isUserDeactivated,
+        clientModule,
+        requiresRoleAcknowledgment,
+        acknowledgeRole,
       }}
     >
       {children}
