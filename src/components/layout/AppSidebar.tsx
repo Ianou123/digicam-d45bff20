@@ -9,16 +9,18 @@ import {
   Activity,
   BarChart3,
   LogOut,
-  User,
   ChevronDown,
   Shield,
   Gauge,
-  Share2
+  Share2,
+  KeyRound,
+  Lock
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 interface AppSidebarProps {
   onClose?: () => void;
@@ -37,6 +40,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const navigate = useNavigate();
   const { profile, signOut, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
   const { t, language } = useLanguage();
+  const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
 
   const handleSignOut = async () => {
     await signOut();
@@ -53,6 +57,22 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const getInitials = (name: string | null) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getModuleBadgeColor = () => {
+    switch (module) {
+      case 'fiscal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'admin_publique': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  const getModuleIcon = () => {
+    switch (module) {
+      case 'fiscal': return Lock;
+      case 'admin_publique': return Shield;
+      default: return Building2;
+    }
   };
 
   const mainNavItems = [
@@ -75,6 +95,12 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       show: !isSuperAdmin 
     },
     { 
+      href: '/my-authorization', 
+      icon: KeyRound, 
+      label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization',
+      show: true 
+    },
+    { 
       href: '/departments', 
       icon: FolderOpen, 
       label: t('nav.departments'),
@@ -84,7 +110,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/upload', 
       icon: Upload, 
       label: t('nav.upload'),
-      show: canManageDocuments && !isSuperAdmin 
+      // Hide upload for read-only staff in restricted modules
+      show: permissions.canUploadDocuments && !isSuperAdmin 
     },
   ];
 
@@ -145,6 +172,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     );
   };
 
+  const ModuleIcon = getModuleIcon();
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
@@ -158,6 +187,16 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           </span>
         </Link>
       </div>
+
+      {/* Module Badge */}
+      {isRestrictedModule && (
+        <div className="px-4 py-2 border-b border-sidebar-border">
+          <Badge className={cn('w-full justify-center gap-1.5', getModuleBadgeColor())}>
+            <ModuleIcon className="h-3 w-3" />
+            {language === 'fr' ? moduleInfo.labelFr : moduleInfo.labelEn}
+          </Badge>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">

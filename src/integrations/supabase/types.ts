@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           action_type: Database["public"]["Enums"]["action_type"]
           client_id: string
+          context: Json | null
           created_at: string
           document_id: string | null
           id: string
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           action_type: Database["public"]["Enums"]["action_type"]
           client_id: string
+          context?: Json | null
           created_at?: string
           document_id?: string | null
           id?: string
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           action_type?: Database["public"]["Enums"]["action_type"]
           client_id?: string
+          context?: Json | null
           created_at?: string
           document_id?: string | null
           id?: string
@@ -113,6 +116,7 @@ export type Database = {
           invite_code: string | null
           last_activity_at: string | null
           logo_url: string | null
+          module: Database["public"]["Enums"]["client_module"]
           name: string
           slug: string
           status: string
@@ -124,6 +128,7 @@ export type Database = {
           invite_code?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
+          module?: Database["public"]["Enums"]["client_module"]
           name: string
           slug: string
           status?: string
@@ -135,6 +140,7 @@ export type Database = {
           invite_code?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
+          module?: Database["public"]["Enums"]["client_module"]
           name?: string
           slug?: string
           status?: string
@@ -173,6 +179,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_departments: {
+        Row: {
+          department_id: string
+          document_id: string
+        }
+        Insert: {
+          department_id: string
+          document_id: string
+        }
+        Update: {
+          department_id?: string
+          document_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_departments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_immutable_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          document_id: string
+          file_hash: string | null
+          id: string
+          justification: string | null
+          version_number: number
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          document_id: string
+          file_hash?: string | null
+          id?: string
+          justification?: string | null
+          version_number: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          document_id?: string
+          file_hash?: string | null
+          id?: string
+          justification?: string | null
+          version_number?: number
+        }
+        Relationships: []
       }
       document_relations: {
         Row: {
@@ -524,6 +593,30 @@ export type Database = {
           },
         ]
       }
+      role_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          id: string
+          module: Database["public"]["Enums"]["client_module"]
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          id?: string
+          module: Database["public"]["Enums"]["client_module"]
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["client_module"]
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_searches: {
         Row: {
           client_id: string
@@ -701,6 +794,35 @@ export type Database = {
           },
         ]
       }
+      user_departments: {
+        Row: {
+          created_at: string
+          department_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -727,6 +849,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_delete_in_module: { Args: { _user_id: string }; Returns: boolean }
+      can_user_upload: { Args: { _user_id: string }; Returns: boolean }
       document_belongs_to_user_client: {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
@@ -734,6 +858,10 @@ export type Database = {
       escape_ilike_pattern: { Args: { pattern: string }; Returns: string }
       get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      get_user_module: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["client_module"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -743,8 +871,13 @@ export type Database = {
       }
       is_client_admin: { Args: { _user_id: string }; Returns: boolean }
       is_client_suspended: { Args: { _user_id: string }; Returns: boolean }
+      is_restricted_module: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_deactivated: { Args: { _user_id: string }; Returns: boolean }
+      user_has_department_access: {
+        Args: { _department_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_has_document_share: {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
@@ -759,6 +892,7 @@ export type Database = {
         | "update"
         | "delete"
       app_role: "super_admin" | "client_admin" | "staff"
+      client_module: "core" | "admin_publique" | "fiscal"
       confidentiality_level: "public" | "internal" | "confidential"
       document_type:
         | "pdf"
@@ -899,6 +1033,7 @@ export const Constants = {
     Enums: {
       action_type: ["search", "view", "download", "upload", "update", "delete"],
       app_role: ["super_admin", "client_admin", "staff"],
+      client_module: ["core", "admin_publique", "fiscal"],
       confidentiality_level: ["public", "internal", "confidential"],
       document_type: [
         "pdf",
