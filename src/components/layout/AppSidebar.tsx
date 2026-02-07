@@ -38,7 +38,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
+  const { profile, signOut, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
   const { t, language } = useLanguage();
   const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
 
@@ -92,7 +92,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/shared-with-me', 
       icon: Share2, 
       label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me',
-      show: !isSuperAdmin 
+      show: !isUltraAdmin 
     },
     { 
       href: '/my-authorization', 
@@ -104,14 +104,15 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/departments', 
       icon: FolderOpen, 
       label: t('nav.departments'),
-      show: isClientAdmin && !isSuperAdmin 
+      // In restricted modules, only Super Admin can manage departments
+      show: (isClientAdmin && !isRestrictedModule) || isSuperAdmin
     },
     { 
       href: '/upload', 
       icon: Upload, 
       label: t('nav.upload'),
       // Hide upload for read-only staff in restricted modules
-      show: permissions.canUploadDocuments && !isSuperAdmin 
+      show: permissions.canUploadDocuments && !isUltraAdmin 
     },
   ];
 
@@ -120,37 +121,43 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/users', 
       icon: Users, 
       label: t('nav.users'),
-      show: isSuperAdmin || isClientAdmin 
+      // Ultra Admin and Super Admin always have access
+      // Client Admin only in Core module (not in restricted modules)
+      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
     },
     { 
       href: '/clients', 
       icon: Building2, 
       label: t('nav.clients'),
-      show: isSuperAdmin 
+      show: isUltraAdmin // Only Ultra Admin (DigiCam staff) can manage clients
     },
     { 
       href: '/activity', 
       icon: Activity, 
       label: t('nav.activity'),
-      show: isSuperAdmin || isClientAdmin 
+      // Ultra Admin and Super Admin always have access
+      // Client Admin only in Core module
+      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
     },
     { 
       href: '/analytics', 
       icon: BarChart3, 
       label: t('nav.analytics'),
-      show: isSuperAdmin || isClientAdmin 
+      // Ultra Admin and Super Admin always have access
+      // Client Admin only in Core module
+      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
     },
     { 
       href: '/pulse', 
       icon: Gauge, 
       label: language === 'fr' ? 'Pulse Admin' : 'Admin Pulse',
-      show: isSuperAdmin || isClientAdmin 
+      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
     },
     { 
       href: '/audit-logs', 
       icon: Shield, 
       label: t('nav.auditLogs'),
-      show: isSuperAdmin 
+      show: isUltraAdmin // Only Ultra Admin can see all audit logs
     },
   ];
 
@@ -234,7 +241,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                   {profile?.full_name || profile?.email}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {isSuperAdmin ? t('users.superAdmin') : isClientAdmin ? t('users.clientAdmin') : t('users.staff')}
+                  {isUltraAdmin ? 'Ultra Admin' : isSuperAdmin ? t('users.superAdmin') : isClientAdmin ? t('users.clientAdmin') : t('users.staff')}
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-60" />

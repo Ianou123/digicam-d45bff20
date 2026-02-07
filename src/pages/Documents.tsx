@@ -268,7 +268,7 @@ export default function Documents() {
           ocr_text,
           status,
           uploaded_by,
-          departments(name)
+          departments!documents_department_id_fkey(name)
         `)
         .order('created_at', { ascending: false });
 

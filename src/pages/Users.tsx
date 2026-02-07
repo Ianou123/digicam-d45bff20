@@ -54,7 +54,7 @@ interface UserWithRole {
   avatar_url: string | null;
   client_id: string | null;
   created_at: string;
-  role: 'super_admin' | 'client_admin' | 'staff' | null;
+  role: 'ultra_admin' | 'super_admin' | 'client_admin' | 'staff' | null;
   status: 'active' | 'deactivated';
   department_id: string | null;
   document_count: number;
@@ -71,7 +71,7 @@ interface Client {
 }
 
 export default function Users() {
-  const { profile, isSuperAdmin, isClientAdmin, user } = useAuth();
+  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, user, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
 
@@ -120,15 +120,19 @@ export default function Users() {
   const [formRole, setFormRole] = useState<'super_admin' | 'client_admin' | 'staff'>('staff');
   const [formDepartmentId, setFormDepartmentId] = useState<string>('');
 
+  // Determine access - Admin IT cannot access in restricted modules
+  const isRestrictedModule = clientModule === 'admin_publique' || clientModule === 'fiscal';
+  const hasAccess = isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule);
+
   useEffect(() => {
-    if (isSuperAdmin || isClientAdmin) {
+    if (hasAccess) {
       fetchUsers();
       fetchDepartments();
-      if (isSuperAdmin) {
+      if (isUltraAdmin) {
         fetchClients();
       }
     }
-  }, [isSuperAdmin, isClientAdmin, profile?.client_id]);
+  }, [hasAccess, isUltraAdmin, profile?.client_id]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -600,7 +604,7 @@ export default function Users() {
     return matchesSearch && matchesClient && matchesRole && matchesStatus && matchesDepartment;
   });
 
-  if (!isSuperAdmin && !isClientAdmin) {
+  if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
 

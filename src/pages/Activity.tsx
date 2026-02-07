@@ -48,7 +48,7 @@ interface Client {
 }
 
 export default function Activity() {
-  const { isSuperAdmin, isClientAdmin, profile } = useAuth();
+  const { isUltraAdmin, isSuperAdmin, isClientAdmin, profile, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
   
@@ -59,14 +59,18 @@ export default function Activity() {
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
 
+  // Determine if user has access - Admin IT cannot access in restricted modules
+  const isRestrictedModule = clientModule === 'admin_publique' || clientModule === 'fiscal';
+  const hasAccess = isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule);
+
   useEffect(() => {
-    if (isSuperAdmin || isClientAdmin) {
+    if (hasAccess) {
       fetchActivityLogs();
-      if (isSuperAdmin) {
+      if (isUltraAdmin) {
         fetchClients();
       }
     }
-  }, [isSuperAdmin, isClientAdmin]);
+  }, [hasAccess, isUltraAdmin]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -213,7 +217,7 @@ export default function Activity() {
     return matchesSearch && matchesAction && matchesClient;
   });
 
-  if (!isSuperAdmin && !isClientAdmin) {
+  if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -298,8 +302,8 @@ export default function Activity() {
                 className="pl-10"
               />
             </div>
-            {/* Organization filter for Super Admin */}
-            {isSuperAdmin && (
+            {/* Organization filter for Ultra Admin */}
+            {isUltraAdmin && (
               <Select value={clientFilter} onValueChange={setClientFilter}>
                 <SelectTrigger className="w-[200px]">
                   <Building2 className="h-4 w-4 mr-2" />

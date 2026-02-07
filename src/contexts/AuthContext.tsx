@@ -3,7 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { ClientModule } from '@/types/modules';
 
-type AppRole = 'super_admin' | 'client_admin' | 'staff';
+// App role now includes ultra_admin for DigiCam staff
+type AppRole = 'ultra_admin' | 'super_admin' | 'client_admin' | 'staff';
 
 interface UserProfile {
   id: string;
@@ -35,9 +36,11 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, inviteCode?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  isSuperAdmin: boolean;
-  isClientAdmin: boolean;
-  isStaff: boolean;
+  // Role checks
+  isUltraAdmin: boolean;  // DigiCam staff - platform level
+  isSuperAdmin: boolean;  // Organization head
+  isClientAdmin: boolean; // Admin IT
+  isStaff: boolean;       // Regular user
   canManageDocuments: boolean;
   refreshProfile: () => Promise<void>;
   clientStatus: ClientStatus | null;
@@ -129,7 +132,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRoles(userRoles);
         
         // Check if role acknowledgment is required for restricted modules
-        if (profileData?.client_id) {
+        // Ultra admins don't need acknowledgment - they're DigiCam staff
+        if (profileData?.client_id && !userRoles.includes('ultra_admin')) {
           const { data: clientData } = await supabase
             .from('clients')
             .select('module')
@@ -157,6 +161,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setRequiresRoleAcknowledgment(false);
           }
+        } else {
+          setRequiresRoleAcknowledgment(false);
         }
       }
     } catch (error) {
@@ -256,11 +262,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const acknowledgeRole = async () => {
     if (!user || !clientModule) return;
     
-    const currentRole = isSuperAdmin 
-      ? 'super_admin' 
-      : isClientAdmin 
-        ? 'client_admin' 
-        : 'staff';
+    const currentRole = isUltraAdmin
+      ? 'ultra_admin'
+      : isSuperAdmin 
+        ? 'super_admin' 
+        : isClientAdmin 
+          ? 'client_admin' 
+          : 'staff';
     
     try {
       await supabase
@@ -277,10 +285,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Role checks - ultra_admin is DigiCam staff (platform level, no client_id)
+  const isUltraAdmin = roles.includes('ultra_admin');
+  // super_admin is organization head (has client_id)
   const isSuperAdmin = roles.includes('super_admin');
+  // client_admin is Admin IT
   const isClientAdmin = roles.includes('client_admin');
-  const isStaff = roles.includes('staff') || (!isSuperAdmin && !isClientAdmin && roles.length === 0);
-  const canManageDocuments = isSuperAdmin || isClientAdmin;
+  // staff is regular user
+  const isStaff = roles.includes('staff') || (!isUltraAdmin && !isSuperAdmin && !isClientAdmin && roles.length === 0);
+  // Can manage documents: Ultra Admin, Super Admin, or Client Admin
+  const canManageDocuments = isUltraAdmin || isSuperAdmin || isClientAdmin;
   const isClientSuspended = clientStatus === 'suspended';
   const isUserDeactivated = profile?.status === 'deactivated';
 
@@ -295,6 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        isUltraAdmin,
         isSuperAdmin,
         isClientAdmin,
         isStaff,

@@ -879,6 +879,7 @@ export type Database = {
       is_client_suspended: { Args: { _user_id: string }; Returns: boolean }
       is_restricted_module: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_ultra_admin: { Args: { _user_id: string }; Returns: boolean }
       is_user_deactivated: { Args: { _user_id: string }; Returns: boolean }
       user_has_department_access: {
         Args: { _department_id: string; _user_id: string }
