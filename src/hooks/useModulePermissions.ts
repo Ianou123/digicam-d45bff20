@@ -25,6 +25,7 @@ interface UseModulePermissionsResult {
   isRestrictedModule: boolean;
   isFiscalModule: boolean;
   isReadOnly: boolean;
+  isUltraAdmin: boolean;
   
   // Helper functions
   can: (permission: keyof ModulePermissions) => boolean;
@@ -32,6 +33,7 @@ interface UseModulePermissionsResult {
 
 export function useModulePermissions(): UseModulePermissionsResult {
   const { 
+    isUltraAdmin,
     isSuperAdmin, 
     isClientAdmin, 
     clientModule 
@@ -40,10 +42,11 @@ export function useModulePermissions(): UseModulePermissionsResult {
   const module: ClientModule = clientModule || 'core';
   
   const role: AppRole = useMemo(() => {
+    if (isUltraAdmin) return 'ultra_admin';
     if (isSuperAdmin) return 'super_admin';
     if (isClientAdmin) return 'client_admin';
     return 'staff';
-  }, [isSuperAdmin, isClientAdmin]);
+  }, [isUltraAdmin, isSuperAdmin, isClientAdmin]);
   
   const permissions = useMemo(() => {
     return getPermissionsForRoleAndModule(role, module);
@@ -69,6 +72,7 @@ export function useModulePermissions(): UseModulePermissionsResult {
     isRestrictedModule,
     isFiscalModule,
     isReadOnly: permissions.isReadOnly,
+    isUltraAdmin,
     can,
   };
 }

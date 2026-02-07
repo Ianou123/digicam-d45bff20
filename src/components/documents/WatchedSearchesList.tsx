@@ -53,7 +53,7 @@ export function WatchedSearchesList({ onApplySearch }: WatchedSearchesListProps)
 
     try {
       const { data, error } = await supabase
-        .from('saved_searches' as any)
+        .from('saved_searches')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_watched', true)
@@ -61,14 +61,14 @@ export function WatchedSearchesList({ onApplySearch }: WatchedSearchesListProps)
 
       if (error) throw error;
 
-      setSearches((data as any[])?.map(s => ({
+      setSearches((data || []).map(s => ({
         id: s.id,
         name: s.name,
         filters: s.filters as unknown as FilterState,
         is_watched: s.is_watched ?? false,
         last_matched_at: s.last_matched_at,
         created_at: s.created_at,
-      })) || []);
+      })));
     } catch (error) {
       console.error('Error fetching watched searches:', error);
     } finally {
@@ -79,7 +79,7 @@ export function WatchedSearchesList({ onApplySearch }: WatchedSearchesListProps)
   const toggleWatch = async (search: WatchedSearch) => {
     try {
       const { error } = await supabase
-        .from('saved_searches' as any)
+        .from('saved_searches')
         .update({ is_watched: !search.is_watched })
         .eq('id', search.id);
 

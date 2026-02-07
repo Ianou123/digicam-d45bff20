@@ -1,7 +1,8 @@
 // Module types for DigiCam Archive
 export type ClientModule = 'core' | 'admin_publique' | 'fiscal';
 
-export type AppRole = 'super_admin' | 'client_admin' | 'staff';
+// App role types - includes ultra_admin for DigiCam staff
+export type AppRole = 'ultra_admin' | 'super_admin' | 'client_admin' | 'staff';
 
 // Permission definitions per role and module
 export interface ModulePermissions {
@@ -23,11 +24,14 @@ export interface ModulePermissions {
   // Administrative permissions
   canViewAuditLogs: boolean;
   canViewAnalytics: boolean;
+  canViewActivity: boolean;
   canManageOrganization: boolean;
+  canChangeModule: boolean;
   
   // Module-specific
   isReadOnly: boolean;
   requiresImmutability: boolean;
+  requiresAuditLog: boolean;
 }
 
 // Module display information
@@ -81,6 +85,13 @@ export interface RoleInfo {
 }
 
 export const ROLE_INFO: Record<AppRole, RoleInfo> = {
+  ultra_admin: {
+    key: 'ultra_admin',
+    labelFr: 'Ultra Admin',
+    labelEn: 'Ultra Admin',
+    descriptionFr: 'Personnel DigiCam - Gestion de la plateforme et des organisations',
+    descriptionEn: 'DigiCam Staff - Platform and organization management',
+  },
   super_admin: {
     key: 'super_admin',
     labelFr: 'Super Admin',
@@ -112,6 +123,29 @@ export function getPermissionsForRoleAndModule(
   const isRestrictedModule = module === 'admin_publique' || module === 'fiscal';
   const isFiscalModule = module === 'fiscal';
   
+  // Ultra Admin (DigiCam staff) - full platform access, not tied to modules
+  if (role === 'ultra_admin') {
+    return {
+      canViewDocuments: true,
+      canUploadDocuments: true,
+      canEditDocuments: true,
+      canDeleteDocuments: true,
+      canDownloadDocuments: true,
+      canManageUsers: true,
+      canManageRoles: true,
+      canManageDepartments: true,
+      canViewDirectory: true,
+      canViewAuditLogs: true,
+      canViewAnalytics: true,
+      canViewActivity: true,
+      canManageOrganization: true,
+      canChangeModule: true,
+      isReadOnly: false,
+      requiresImmutability: false,
+      requiresAuditLog: false,
+    };
+  }
+  
   // Super Admin has full access everywhere
   if (role === 'super_admin') {
     return {
@@ -126,9 +160,12 @@ export function getPermissionsForRoleAndModule(
       canViewDirectory: true,
       canViewAuditLogs: true,
       canViewAnalytics: true,
+      canViewActivity: true,
       canManageOrganization: true,
+      canChangeModule: false, // Must contact DigiCam
       isReadOnly: false,
       requiresImmutability: isFiscalModule,
+      requiresAuditLog: isFiscalModule,
     };
   }
   
@@ -144,11 +181,14 @@ export function getPermissionsForRoleAndModule(
       canManageRoles: !isRestrictedModule, // Only in Core module
       canManageDepartments: !isRestrictedModule, // Only in Core module
       canViewDirectory: true,
-      canViewAuditLogs: true,
-      canViewAnalytics: true,
+      canViewAuditLogs: !isRestrictedModule, // Only in Core module
+      canViewAnalytics: !isRestrictedModule, // Only in Core module
+      canViewActivity: !isRestrictedModule, // Only in Core module
       canManageOrganization: false,
+      canChangeModule: false,
       isReadOnly: false,
       requiresImmutability: isFiscalModule,
+      requiresAuditLog: isRestrictedModule,
     };
   }
   
@@ -165,9 +205,12 @@ export function getPermissionsForRoleAndModule(
     canViewDirectory: isRestrictedModule, // Directory visible in Admin/Fiscal
     canViewAuditLogs: false,
     canViewAnalytics: false,
+    canViewActivity: false,
     canManageOrganization: false,
+    canChangeModule: false,
     isReadOnly: isRestrictedModule,
     requiresImmutability: isFiscalModule,
+    requiresAuditLog: isRestrictedModule,
   };
 }
 

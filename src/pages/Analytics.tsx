@@ -29,7 +29,7 @@ interface TopClient {
 }
 
 export default function Analytics() {
-  const { isSuperAdmin, isClientAdmin, profile } = useAuth();
+  const { isUltraAdmin, isSuperAdmin, isClientAdmin, profile, clientModule } = useAuth();
   const { t, language } = useLanguage();
   
   const [loading, setLoading] = useState(true);
@@ -46,11 +46,15 @@ export default function Analytics() {
   const [topDocuments, setTopDocuments] = useState<{ title: string; views: number }[]>([]);
   const [topClients, setTopClients] = useState<TopClient[]>([]);
 
+  // Determine if user has access - Admin IT cannot access in restricted modules
+  const isRestrictedModule = clientModule === 'admin_publique' || clientModule === 'fiscal';
+  const hasAccess = isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule);
+
   useEffect(() => {
-    if (isSuperAdmin || isClientAdmin) {
+    if (hasAccess) {
       fetchAnalytics();
     }
-  }, [isSuperAdmin, isClientAdmin]);
+  }, [hasAccess]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -154,8 +158,8 @@ export default function Analytics() {
         setTopDocuments(topDocsWithViews);
       }
 
-      // Top 5 most active clients (Super Admin only)
-      if (isSuperAdmin) {
+      // Top 5 most active clients (Ultra Admin only)
+      if (isUltraAdmin) {
         const clientActivity: Record<string, { current: number; previous: number }> = {};
         
         activityData?.forEach(a => {
@@ -207,7 +211,7 @@ export default function Analytics() {
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
-  if (!isSuperAdmin && !isClientAdmin) {
+  if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -418,8 +422,8 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Top Clients (Super Admin only) */}
-        {isSuperAdmin && (
+        {/* Top Clients (Ultra Admin only) */}
+        {isUltraAdmin && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
