@@ -1,442 +1,293 @@
 
-# DigiCam Archive - Module-Based Architecture Implementation Plan
+# DigiCam Archive - Comprehensive Fix Plan
 
-## Executive Summary
+## Issues Identified
 
-This plan transforms DigiCam from a single-mode document management system into a **module-based platform** with three distinct operational modes: **Core**, **Administration Publique**, and **Fiscal**. Each module progressively restricts functionality to match institutional governance requirements.
-
----
-
-## Current State Analysis
-
-### Existing Architecture
-- **Roles**: `super_admin`, `client_admin`, `staff` (stored in `user_roles` table)
-- **Multi-tenancy**: Organizations (clients) with departments
-- **Permissions**: RLS policies based on role + client_id
-- **Documents**: Single department assignment, confidentiality levels (public/internal/confidential)
-
-### Gap Analysis
-| Feature | Current | Required |
-|---------|---------|----------|
-| Module Selection | Not exists | Core/Admin/Fiscal per organization |
-| Role System | 3 roles (super_admin, client_admin, staff) | Keep 3 roles, but behavior changes per module |
-| Department Assignment | 1 department per user | N departments (tags) for Admin/Fiscal modules |
-| Document Restrictions | Staff can upload if client_admin | Staff is read-only in Admin/Fiscal modules |
-| Immutability | Soft delete supported | WORM required for Fiscal module |
-| Rights Transparency | None | "My Authorization" page required |
-| Onboarding | Basic invite code | Module selection + role explanation flow |
+Based on analysis of the codebase and your feedback, here are all the issues that need to be addressed:
 
 ---
 
-## Implementation Phases
+## 1. Role System Overhaul
 
-### Phase 1: Database Schema Updates
+### Problem
+The current role system doesn't match the specification:
+- **Current**: `super_admin`, `client_admin`, `staff` 
+- **Required**:
+  - **Ultra Admin** (DigiCam staff) - creates organizations, not tied to any client, no module restrictions
+  - **Super Admin** (organization head) - should be the first user of each organization, manages users/departments
+  - **Admin IT** (only in Admin/Fiscal modules) - document operator, no user/analytics access  
+  - **Staff/Utilisateur** - standard user
 
-**1.1 Add Module to Clients Table**
-```sql
--- Add module type enum
-CREATE TYPE client_module AS ENUM ('core', 'admin_publique', 'fiscal');
+### Solution
+Update the role enum and permissions:
+```text
+Database changes:
+- Add 'ultra_admin' to app_role enum
+- Update existing DigiCam staff from super_admin → ultra_admin
+- First user of an organization gets super_admin role (not staff)
 
--- Add module column to clients
-ALTER TABLE clients ADD COLUMN module client_module NOT NULL DEFAULT 'core';
-```
-
-**1.2 User-Department Many-to-Many Relationship**
-For Admin/Fiscal modules, users need to be associated with multiple departments.
-
-```sql
--- Create junction table for user-department relationships
-CREATE TABLE user_departments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, department_id)
-);
-
--- Enable RLS
-ALTER TABLE user_departments ENABLE ROW LEVEL SECURITY;
-```
-
-**1.3 Document-Department Many-to-Many Relationship**
-Documents also need multiple department tags in Admin/Fiscal modules.
-
-```sql
--- Create junction table for document-department relationships
-CREATE TABLE document_departments (
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
-  PRIMARY KEY (document_id, department_id)
-);
-
--- Enable RLS
-ALTER TABLE document_departments ENABLE ROW LEVEL SECURITY;
-```
-
-**1.4 Audit Log Enhancements for Fiscal Module**
-```sql
--- Add read logging for fiscal module
-ALTER TABLE activity_logs ADD COLUMN context JSONB DEFAULT '{}';
-
--- Create immutable document log for fiscal module
-CREATE TABLE document_immutable_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL,
-  version_number INTEGER NOT NULL,
-  action TEXT NOT NULL, -- 'create', 'version', 'purge_request'
-  actor_id UUID NOT NULL,
-  justification TEXT, -- Required for purge requests
-  file_hash TEXT, -- SHA-256 hash for integrity verification
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Make this table append-only (no UPDATE/DELETE RLS)
-ALTER TABLE document_immutable_log ENABLE ROW LEVEL SECURITY;
-```
-
-**1.5 Role Acknowledgment Table**
-```sql
--- Track role change acknowledgments
-CREATE TABLE role_acknowledgments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role app_role NOT NULL,
-  module client_module NOT NULL,
-  acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, role, module)
-);
+Code changes:
+- Update AuthContext to recognize ultra_admin
+- Update AppSidebar to show/hide links based on new role structure
+- Admin IT (client_admin in Admin/Fiscal) should NOT see: Analytics, Activity, Users
 ```
 
 ---
 
-### Phase 2: Helper Functions and RLS Updates
+## 2. First User of Organization Should Be Super Admin
 
-**2.1 Module Detection Functions**
+### Problem
+When Lorelei Atchom created an account with the "DGI test" invite code, she was assigned `staff` role instead of `super_admin`.
+
+### Current Behavior (in `handle_new_user` trigger)
 ```sql
--- Get client module for a user
-CREATE OR REPLACE FUNCTION get_user_module(_user_id UUID)
-RETURNS client_module
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT c.module 
-  FROM clients c
-  JOIN profiles p ON p.client_id = c.id
-  WHERE p.id = _user_id
-$$;
-
--- Check if user's organization uses Admin/Fiscal module
-CREATE OR REPLACE FUNCTION is_restricted_module(_user_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT get_user_module(_user_id) IN ('admin_publique', 'fiscal')
-$$;
+IF _client_id IS NOT NULL THEN
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (NEW.id, 'staff');
+END IF;
 ```
 
-**2.2 Department Access Functions**
-```sql
--- Check if user has access to department (via user_departments for restricted modules)
-CREATE OR REPLACE FUNCTION user_has_department_access(_user_id UUID, _department_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT 
-    CASE 
-      WHEN is_restricted_module(_user_id) THEN
-        EXISTS (
-          SELECT 1 FROM user_departments 
-          WHERE user_id = _user_id AND department_id = _department_id
-        )
-      ELSE
-        -- Core module: department_id on profile (existing behavior)
-        EXISTS (
-          SELECT 1 FROM profiles 
-          WHERE id = _user_id AND department_id = _department_id
-        )
-    END
-$$;
-```
+### Solution
+Modify the trigger to:
+1. Check if this is the first user for the client
+2. If yes → assign `super_admin` role
+3. If no → assign `staff` role
 
-**2.3 Document Visibility Updates**
-```sql
--- Update documents RLS to respect module rules
-DROP POLICY IF EXISTS "Users can see documents based on confidentiality" ON documents;
+---
 
-CREATE POLICY "Users can see documents based on module and confidentiality"
-  ON documents FOR SELECT
-  USING (
-    client_id = get_user_client_id(auth.uid())
-    AND (
-      -- Super admin sees all
-      is_super_admin(auth.uid())
-      -- Client admin sees all in org
-      OR is_client_admin(auth.uid())
-      -- For restricted modules: staff sees public OR documents in their departments
-      OR (
-        is_restricted_module(auth.uid())
-        AND (
-          confidentiality_level = 'public'
-          OR EXISTS (
-            SELECT 1 FROM document_departments dd
-            JOIN user_departments ud ON ud.department_id = dd.department_id
-            WHERE dd.document_id = documents.id 
-            AND ud.user_id = auth.uid()
-          )
-        )
-      )
-      -- For core module: existing behavior
-      OR (
-        NOT is_restricted_module(auth.uid())
-        AND (
-          confidentiality_level IN ('public', 'internal')
-          OR (confidentiality_level = 'confidential' AND uploaded_by = auth.uid())
-          OR user_has_document_share(auth.uid(), id)
-        )
-      )
-    )
-  );
-```
+## 3. Module Selection During Organization Creation (Missing Feature)
 
-**2.4 Fiscal Module Write Prevention**
-```sql
--- Prevent document deletion in fiscal module
-CREATE POLICY "Fiscal module prevents deletion"
-  ON documents FOR DELETE
-  USING (
-    NOT (get_user_module(auth.uid()) = 'fiscal')
-    AND (
-      is_super_admin(auth.uid()) 
-      OR (is_client_admin(auth.uid()) AND client_id = get_user_client_id(auth.uid()))
-    )
-    AND NOT is_client_suspended(auth.uid())
-  );
+### Problem
+There's no page to select a module when the first user of an organization signs up. The module defaults to `core`.
+
+### Solution
+Create a **Module Selection Page** that appears:
+- After first signup with an invite code (detected by: new super_admin + client has `core` module + no previous logins)
+- Shows the three modules with descriptions
+- Allows selection and saves to `clients.module`
+- Explains that changing module later requires contacting DigiCam
+
+---
+
+## 4. Admin IT Restrictions in Admin/Fiscal Modules
+
+### Problem
+In the current implementation, `client_admin` (Admin IT) can still access:
+- Analytics page
+- Activity page  
+- Users page
+
+### Solution
+Update AppSidebar.tsx and the relevant pages to enforce:
+- Admin IT in Admin/Fiscal modules: **NO ACCESS** to Users, Analytics, Activity
+- Only Super Admin can access these in restricted modules
+
+```typescript
+// AppSidebar.tsx - Update adminNavItems visibility
+{ 
+  href: '/users', 
+  show: isSuperAdmin || (isClientAdmin && !isRestrictedModule) 
+},
+{ 
+  href: '/activity', 
+  show: isSuperAdmin || (isClientAdmin && !isRestrictedModule) 
+},
+{ 
+  href: '/analytics', 
+  show: isSuperAdmin || (isClientAdmin && !isRestrictedModule) 
+},
 ```
 
 ---
 
-### Phase 3: Frontend Implementation
+## 5. Upload Page Visibility for Staff
 
-**3.1 New Types and Context Updates**
+### Problem
+The Upload page (`/upload`) is visible in the sidebar for all users, but should NOT be visible for:
+- Staff in Admin/Fiscal modules (they're read-only)
 
-```text
-src/types/modules.ts (new file)
-- ClientModule type: 'core' | 'admin_publique' | 'fiscal'
-- ModulePermissions interface defining what each role can do per module
-- Permission matrix constants
+### Current Code (Upload.tsx line 59)
+```typescript
+if (!canManageDocuments) {
+  return <Navigate to="/dashboard" replace />;
+}
 ```
 
-**3.2 AuthContext Enhancements**
-```text
-src/contexts/AuthContext.tsx (updates)
-- Add clientModule to context state
-- Add computed permissions based on module + role:
-  - canUpload: false for staff in Admin/Fiscal modules
-  - canDelete: false for everyone in Fiscal module  
-  - canModify: false for staff in Admin/Fiscal modules
-  - isReadOnly: true for staff in Admin/Fiscal modules
-- Add requiresRoleAcknowledgment check
+### Issue in AppSidebar.tsx
+The `useModulePermissions` hook already computes `permissions.canUploadDocuments`, but the sidebar check isn't working correctly.
+
+### Solution
+The sidebar already has this logic, but we need to verify Ultra Admin handling:
+```typescript
+{ 
+  href: '/upload', 
+  show: permissions.canUploadDocuments && !isSuperAdmin // Already correct
+},
 ```
 
-**3.3 My Authorization Page (New)**
-```text
-src/pages/MyAuthorization.tsx (new file)
-- Display current role with icon
-- Show assigned departments (as tags)
-- Permission matrix:
-  ✅ What I can do (with explanations)
-  ❌ What I cannot do (with reasons)
-- "Report authorization inconsistency" button -> sends notification to Super Admin
-- Module-specific explanations
+The issue is that `isSuperAdmin` currently refers to Ultra Admin. We need to update role naming.
+
+---
+
+## 6. Documents Not Loading (PostgREST Ambiguity Error)
+
+### Problem
+Console error:
+```
+Could not embed because more than one relationship was found for 'documents' and 'departments'
 ```
 
-**3.4 Role Acknowledgment Modal (New)**
-```text
-src/components/auth/RoleAcknowledgmentModal.tsx (new file)
-- Triggered on login if role changed or first login with restricted module
-- Shows: role name, responsibilities, permissions matrix
-- "I understand and accept" button required before proceeding
-- Saves acknowledgment to database
-```
+This happens because we now have two relationships:
+1. `documents.department_id` → `departments` (many-to-one, Core module)
+2. `document_departments` junction table (many-to-many, Admin/Fiscal modules)
 
-**3.5 Organization Directory (New for Admin/Fiscal)**
-```text
-src/pages/Directory.tsx (new file)
-- Visible only in Admin/Fiscal modules
-- Shows organizational structure
-- Lists all users with their departments and roles
-- Search/filter by department
-- Read-only for all users
-```
+### Solution
+Specify the explicit relationship in the query:
 
-**3.6 Module Selection for Super Admin (Organization Creation)**
-```text
-src/pages/OrganizationDetail.tsx (update)
-- Add module selection when creating organization
-- Show current module with explanation
-- "Request module change" for existing orgs (sends notification)
-```
-
-**3.7 Sidebar Updates**
-```text
-src/components/layout/AppSidebar.tsx (update)
-- Add "My Authorization" link for all users
-- Add "Directory" link for Admin/Fiscal modules
-- Conditionally hide Upload link for read-only users
-- Show module badge near organization name
-```
-
-**3.8 Document Pages Updates**
-```text
-src/pages/Documents.tsx (update)
-- Hide upload button for read-only users
-- Hide edit/delete actions for read-only users
-- Add department tags display for Admin/Fiscal modules
-- Multiple department filter for Admin/Fiscal
-
-src/pages/DocumentDetail.tsx (update)
-- Show department tags instead of single department
-- Hide edit button for read-only users
-- For Fiscal: show immutability badge and version history prominently
-
-src/components/documents/UploadModal.tsx (update)
-- Support multiple department selection for Admin/Fiscal
-- Add fiscal-specific warnings about immutability
-```
-
-**3.9 Admin Restrictions**
-```text
-src/pages/Users.tsx (update)
-- For Admin IT role (client_admin in Admin/Fiscal):
-  - Hide user management controls
-  - Show read-only user list
-- Only Super Admin can manage users in restricted modules
-
-src/pages/Departments.tsx (update)  
-- Only Super Admin can create/archive departments in Admin/Fiscal
-- Client Admin (Admin IT) is read-only for department structure
+```typescript
+// Documents.tsx - Update the departments join
+.select(`
+  ...,
+  departments!documents_department_id_fkey(name)  // Explicit relationship
+`)
 ```
 
 ---
 
-### Phase 4: Fiscal Module Specifics
+## 7. is_watched Column Missing on saved_searches
 
-**4.1 WORM Storage Pattern**
-```text
-- Documents cannot be overwritten - each edit creates new version
-- Delete operation is completely blocked
-- Purge request flow (Super Admin only):
-  1. Request purge with mandatory justification
-  2. Log request to immutable_log
-  3. Actual purge requires DigiCam Ultra Admin approval (out of scope - external process)
+### Problem
+Console error:
+```
+column saved_searches.is_watched does not exist
 ```
 
-**4.2 Enhanced Audit Logging**
-```text
-- Log every document view with context
-- Log search queries
-- Log download attempts
-- All logs are append-only, cannot be modified
-```
+The code references `is_watched` but the actual column is `is_pinned`.
 
-**4.3 File Integrity**
-```text
-- Store SHA-256 hash of files
-- Display hash in document detail for verification
-- Version comparison shows integrity status
-```
+### Solution
+Update `WatchedSearchesList.tsx` and `WatchSearchButton.tsx`:
+- Replace all `is_watched` references with `is_pinned`
+- Update the interface and query filters
 
 ---
 
-### Phase 5: UI/UX Refinements
+## 8. Module Change Explanation (UX)
 
-**5.1 Module Indicator**
-- Badge in sidebar showing current module
-- Color coding: Core (neutral), Admin (blue), Fiscal (amber with lock icon)
+### Problem
+Users don't know how to change modules.
 
-**5.2 Read-Only Mode Visual Cues**
-- Consistent "View Only" badges on restricted elements
-- Grayed out action buttons with tooltips explaining why
-- Info banners explaining module restrictions
-
-**5.3 Onboarding Flow**
-- First Super Admin of new org selects module during setup
-- Clear explanation of module implications
-- Role acknowledgment before first use
+### Solution
+Add explanatory text in:
+1. **My Authorization page**: "Pour changer de module, contactez DigiCam"
+2. **Settings page** (for Super Admin): Show current module with note about contacting DigiCam
 
 ---
 
-## File Changes Summary
+## 9. Ultra Admin (DigiCam Staff) Separation
 
-### New Files
-| File | Purpose |
-|------|---------|
-| `src/types/modules.ts` | Module types and permission matrix |
-| `src/pages/MyAuthorization.tsx` | User's permissions page |
-| `src/pages/Directory.tsx` | Organization directory |
-| `src/components/auth/RoleAcknowledgmentModal.tsx` | Role change acknowledgment |
-| `src/hooks/useModulePermissions.ts` | Permission checking hook |
+### Problem
+Current `super_admin` is used for both DigiCam staff AND organization heads, causing confusion.
 
-### Modified Files
+### Solution
+```text
+Role mapping:
+- ultra_admin: DigiCam staff (no client_id, creates organizations)
+- super_admin: Organization head (has client_id, manages their org)
+- client_admin: Admin IT in Admin/Fiscal, or Admin in Core
+- staff: Regular users
+```
+
+Ultra Admin specifics:
+- Not tied to any module/organization
+- Can access all organizations
+- Can create/delete organizations
+- Can change organization modules
+- Shows in Clients page (already working)
+
+---
+
+## Implementation Summary
+
+### Database Migration
+1. Add `ultra_admin` to `app_role` enum
+2. Update `handle_new_user` trigger to make first user of org a `super_admin`
+3. Migrate existing DigiCam staff users to `ultra_admin` role
+
+### Frontend Changes
+
 | File | Changes |
 |------|---------|
-| `src/contexts/AuthContext.tsx` | Add module, permissions, acknowledgment check |
-| `src/components/layout/AppSidebar.tsx` | Add new nav items, module badge |
-| `src/components/layout/AppLayout.tsx` | Add acknowledgment modal trigger |
-| `src/pages/Documents.tsx` | Multi-department, read-only mode |
-| `src/pages/DocumentDetail.tsx` | Multi-department, fiscal specifics |
-| `src/pages/Users.tsx` | Role-based restrictions |
-| `src/pages/Departments.tsx` | Module-based management |
-| `src/pages/OrganizationDetail.tsx` | Module selection |
-| `src/pages/Settings.tsx` | Multi-department self-declaration |
-| `src/App.tsx` | Add new routes |
+| `src/types/modules.ts` | Add `ultra_admin` role info, update permission matrix |
+| `src/contexts/AuthContext.tsx` | Add `isUltraAdmin` check, update role detection |
+| `src/components/layout/AppSidebar.tsx` | Fix visibility rules for Admin IT restrictions |
+| `src/pages/Documents.tsx` | Fix departments join query |
+| `src/components/documents/WatchedSearchesList.tsx` | Replace `is_watched` with `is_pinned` |
+| `src/components/documents/WatchSearchButton.tsx` | Replace `is_watched` with `is_pinned` |
+| `src/pages/Upload.tsx` | Verify read-only staff redirect works |
+| `src/pages/Users.tsx` | Redirect Admin IT in restricted modules |
+| `src/pages/Analytics.tsx` | Redirect Admin IT in restricted modules |
+| `src/pages/Activity.tsx` | Redirect Admin IT in restricted modules |
+| `src/pages/MyAuthorization.tsx` | Add module change explanation |
 
-### Database Migrations
-| Migration | Purpose |
-|-----------|---------|
-| Add module enum and column | Enable module selection |
-| Create user_departments table | User-department M:N |
-| Create document_departments table | Document-department M:N |
-| Create role_acknowledgments table | Track acknowledgments |
-| Create document_immutable_log table | Fiscal audit trail |
-| Update RLS policies | Module-aware access control |
+### New Components/Pages
+| File | Purpose |
+|------|---------|
+| `src/pages/ModuleSelection.tsx` | First-time module selection for new orgs |
+| `src/components/auth/ModuleSelectionModal.tsx` | Modal alternative for module selection |
 
 ---
 
-## Implementation Order
+## Role Hierarchy Visualization
 
-1. **Database First**: Create all new tables and functions
-2. **AuthContext**: Add module awareness
-3. **Permission Hook**: Create `useModulePermissions`
-4. **My Authorization Page**: Core transparency feature
-5. **Read-Only Mode**: Update Document pages
-6. **Role Acknowledgment**: Add modal and flow
-7. **Multi-Department**: Update department handling
-8. **Directory**: Organization visibility
-9. **Fiscal Specifics**: Immutability and audit
-10. **Testing**: Comprehensive test scenarios
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                         ULTRA ADMIN                             │
+│         (DigiCam Staff - Platform Level)                        │
+│  • No client_id                                                 │
+│  • Creates/manages all organizations                            │
+│  • Not affected by modules                                      │
+│  • Can change organization modules                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SUPER ADMIN                                │
+│         (Organization Head - DSI, DG)                           │
+│  • Has client_id                                                │
+│  • Manages users, departments, structure                        │
+│  • Full access to org documents                                 │
+│  • Fiscal: can request purge with justification                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+┌─────────────────────────┐         ┌─────────────────────────────┐
+│   CORE MODULE           │         │ ADMIN/FISCAL MODULES        │
+│                         │         │                             │
+│  Admin (client_admin)   │         │  Admin IT (client_admin)    │
+│  • Manage users         │         │  • Upload documents only    │
+│  • Upload/edit docs     │         │  • Manage metadata          │
+│  • View analytics       │         │  • NO user management       │
+│                         │         │  • NO analytics/activity    │
+│  Staff                  │         │                             │
+│  • Full doc access      │         │  Staff (Utilisateur)        │
+│  • Can upload           │         │  • Read-only access         │
+│  • Personal collections │         │  • View public + dept docs  │
+└─────────────────────────┘         └─────────────────────────────┘
+```
 
 ---
 
-## Technical Notes
+## Immediate Fixes (Critical)
 
-### Backward Compatibility
-- Core module is default - existing orgs continue unchanged
-- Single department_id on profiles/documents remains for Core module
-- New M:N tables used only for Admin/Fiscal modules
+1. **Documents not loading** - Fix the departments join query
+2. **is_watched error** - Replace with is_pinned
+3. **First user gets staff role** - Update trigger to assign super_admin
 
-### Security Considerations
-- All module checks use SECURITY DEFINER functions
-- RLS policies prevent client-side bypass
-- Fiscal immutability enforced at database level
-- Audit logs are append-only
+## Secondary Fixes
 
-### Performance
-- Add indexes on new junction tables
-- Module detection function is cached per session
-- Minimal query overhead for permission checks
+4. Add ultra_admin role for DigiCam staff separation
+5. Restrict Admin IT access in restricted modules
+6. Add module selection for first-time org setup
+7. Add module change explanation in UI
+
