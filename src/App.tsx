@@ -23,6 +23,7 @@ import AuditLogs from "./pages/AuditLogs";
 import AdminPulse from "./pages/AdminPulse";
 import SharedWithMe from "./pages/SharedWithMe";
 import MyAuthorization from "./pages/MyAuthorization";
+import ModuleSetup from "./pages/ModuleSetup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,7 +39,7 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
-              
+              <Route path="/setup" element={<ModuleSetup />} />
               {/* Redirect root to dashboard */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               

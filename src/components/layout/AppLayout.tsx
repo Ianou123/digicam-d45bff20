@@ -26,7 +26,7 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole, moduleConfigured } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
   
@@ -46,6 +46,11 @@ export function AppLayout() {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Redirect super admins to module setup if not configured
+  if (isSuperAdmin && !moduleConfigured) {
+    return <Navigate to="/setup" replace />;
   }
 
   // Block deactivated users with full-page message
