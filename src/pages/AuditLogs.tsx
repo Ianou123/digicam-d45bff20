@@ -58,7 +58,7 @@ interface AdminUser {
 }
 
 export default function AuditLogs() {
-  const { isSuperAdmin } = useAuth();
+  const { isUltraAdmin, isSuperAdmin } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -73,15 +73,15 @@ export default function AuditLogs() {
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('all');
   const [adminFilter, setAdminFilter] = useState<string>('all');
 
-  // Redirect non-super-admins
-  if (!isSuperAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   useEffect(() => {
     fetchLogs();
     fetchAdminUsers();
   }, [actionTypeFilter, targetTypeFilter, adminFilter]);
+
+  // Redirect non-admins (Ultra Admin sees all, Super Admin sees their org)
+  if (!isUltraAdmin && !isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchAdminUsers = async () => {
     // Get all users who have made audit log entries from both tables
