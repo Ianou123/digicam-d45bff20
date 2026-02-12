@@ -117,6 +117,7 @@ export type Database = {
           last_activity_at: string | null
           logo_url: string | null
           module: Database["public"]["Enums"]["client_module"]
+          module_configured: boolean
           name: string
           slug: string
           status: string
@@ -129,6 +130,7 @@ export type Database = {
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
+          module_configured?: boolean
           name: string
           slug: string
           status?: string
@@ -141,6 +143,7 @@ export type Database = {
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
+          module_configured?: boolean
           name?: string
           slug?: string
           status?: string

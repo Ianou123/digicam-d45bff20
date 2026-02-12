@@ -50,6 +50,7 @@ interface AuthContextType {
   isUserDeactivated: boolean;
   // Module-based architecture
   clientModule: ClientModule | null;
+  moduleConfigured: boolean;
   requiresRoleAcknowledgment: boolean;
   acknowledgeRole: () => Promise<void>;
 }
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [clientName, setClientName] = useState<string | null>(null);
   const [clientInviteCode, setClientInviteCode] = useState<string | null>(null);
   const [clientModule, setClientModule] = useState<ClientModule | null>(null);
+  const [moduleConfigured, setModuleConfigured] = useState(true);
   const [requiresRoleAcknowledgment, setRequiresRoleAcknowledgment] = useState(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileData.client_id) {
           const { data: clientData } = await supabase
             .from('clients')
-            .select('status, name, invite_code, module')
+            .select('status, name, invite_code, module, module_configured')
             .eq('id', profileData.client_id)
             .maybeSingle();
 
@@ -108,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setClientName(clientData.name);
             setClientInviteCode(clientData.invite_code);
             setClientModule(clientData.module as ClientModule);
+            setModuleConfigured(clientData.module_configured ?? true);
           }
         } else {
           setClientStatus(null);
@@ -321,6 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isClientSuspended,
         isUserDeactivated,
         clientModule,
+        moduleConfigured,
         requiresRoleAcknowledgment,
         acknowledgeRole,
       }}
