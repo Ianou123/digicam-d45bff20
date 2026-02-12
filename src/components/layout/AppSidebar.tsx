@@ -157,7 +157,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/audit-logs', 
       icon: Shield, 
       label: t('nav.auditLogs'),
-      show: isUltraAdmin // Only Ultra Admin can see all audit logs
+      show: isUltraAdmin || isSuperAdmin // Ultra Admin sees all, Super Admin sees their org
     },
   ];
 
