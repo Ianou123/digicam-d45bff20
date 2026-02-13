@@ -23,7 +23,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
-  const { profile, isSuperAdmin, isClientAdmin, clientName } = useAuth();
+  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, clientName } = useAuth();
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const navigate = useNavigate();
@@ -53,6 +53,14 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
   }, [profile?.department_id]);
 
   const getRoleBadge = () => {
+    if (isUltraAdmin) {
+      return (
+        <Badge variant="default" className="bg-destructive text-destructive-foreground gap-1">
+          <ShieldCheck className="h-3 w-3" />
+          Ultra Admin
+        </Badge>
+      );
+    }
     if (isSuperAdmin) {
       return (
         <Badge variant="default" className="bg-primary/90 text-primary-foreground gap-1">
