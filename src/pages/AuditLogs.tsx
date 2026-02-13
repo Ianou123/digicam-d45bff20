@@ -58,7 +58,7 @@ interface AdminUser {
 }
 
 export default function AuditLogs() {
-  const { isUltraAdmin, isSuperAdmin } = useAuth();
+  const { isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -78,8 +78,8 @@ export default function AuditLogs() {
     fetchAdminUsers();
   }, [actionTypeFilter, targetTypeFilter, adminFilter]);
 
-  // Redirect non-admins (Ultra Admin sees all, Super Admin sees their org)
-  if (!isUltraAdmin && !isSuperAdmin) {
+  // Only Ultra Admin can access audit logs
+  if (!isUltraAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
