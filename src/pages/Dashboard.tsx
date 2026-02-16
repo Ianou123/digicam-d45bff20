@@ -78,7 +78,7 @@ interface MostViewedDoc {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
+  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
   const { t, language } = useLanguage();
   
   const [stats, setStats] = useState({
@@ -108,7 +108,7 @@ export default function Dashboard() {
   }, [profile?.client_id]);
 
   const fetchDashboardData = async () => {
-    if (!profile?.client_id && !isSuperAdmin) {
+    if (!profile?.client_id && !isSuperAdmin && !isUltraAdmin) {
       setLoading(false);
       return;
     }
@@ -120,7 +120,9 @@ export default function Dashboard() {
         .select('id, status, confidentiality_level', { count: 'exact' })
         .is('deleted_at', null);
       
-      if (!isSuperAdmin && profile?.client_id) {
+      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) {
+        documentsQuery = documentsQuery.eq('client_id', profile.client_id);
+      } else if (isSuperAdmin && profile?.client_id) {
         documentsQuery = documentsQuery.eq('client_id', profile.client_id);
       }
       
@@ -152,8 +154,8 @@ export default function Dashboard() {
         setStatusStats(statusCounts);
       }
 
-      // Super Admin specific data
-      if (isSuperAdmin) {
+      // Ultra Admin specific data (platform-level)
+      if (isUltraAdmin) {
         // Fetch client status counts
         const { data: clientsData } = await supabase
           .from('clients')
@@ -238,7 +240,9 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(10); // Fetch more to allow sorting
 
-      if (!isSuperAdmin && profile?.client_id) {
+      if (!isUltraAdmin && profile?.client_id) {
+        recentDocsQuery = recentDocsQuery.eq('client_id', profile.client_id);
+      } else if (isSuperAdmin && profile?.client_id) {
         recentDocsQuery = recentDocsQuery.eq('client_id', profile.client_id);
       }
 
@@ -272,7 +276,9 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (!isSuperAdmin && profile?.client_id) {
+      if (!isUltraAdmin && profile?.client_id) {
+        activityQuery = activityQuery.eq('client_id', profile.client_id);
+      } else if (isSuperAdmin && profile?.client_id) {
         activityQuery = activityQuery.eq('client_id', profile.client_id);
       }
 
@@ -330,8 +336,8 @@ export default function Dashboard() {
       let usersCount = 0;
       let clientsCount = 0;
 
-      if (isSuperAdmin || isClientAdmin) {
-        if (isSuperAdmin) {
+      if (isUltraAdmin || isSuperAdmin || isClientAdmin) {
+        if (isUltraAdmin) {
           const { count } = await supabase
             .from('profiles')
             .select('id', { count: 'exact', head: true });
@@ -341,6 +347,12 @@ export default function Dashboard() {
             .from('clients')
             .select('id', { count: 'exact', head: true });
           clientsCount = cCount || 0;
+        } else if (isSuperAdmin && profile?.client_id) {
+          const { count } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', profile.client_id);
+          usersCount = count || 0;
         } else if (profile?.client_id) {
           const { count } = await supabase
             .from('profiles')
@@ -400,8 +412,8 @@ export default function Dashboard() {
     );
   }
 
-  // Super Admin Dashboard
-  if (isSuperAdmin) {
+  // Ultra Admin Dashboard (Platform overview - clients, organizations)
+  if (isUltraAdmin) {
     return (
       <div className="space-y-6">
         {/* Welcome */}
@@ -579,7 +591,7 @@ export default function Dashboard() {
     );
   }
 
-  // Regular User / Client Admin Dashboard
+  // Super Admin / Client Admin / Staff Dashboard (document-focused)
   return (
     <div className="space-y-6">
       {/* Welcome */}
@@ -618,7 +630,7 @@ export default function Dashboard() {
 
         {/* Activity Timeline or Staff Insights Panel */}
         <div className="space-y-6">
-          {isClientAdmin ? (
+          {(isSuperAdmin || isClientAdmin) ? (
             <ActivityTimeline activities={recentActivity} maxItems={8} />
           ) : (
             <StaffInsightsPanel 
@@ -627,8 +639,8 @@ export default function Dashboard() {
               maxItems={8} 
             />
           )}
-          {/* Organization Trends for Client Admins */}
-          {isClientAdmin && <OrganizationTrends maxItems={5} />}
+          {/* Organization Trends for Super Admins and Client Admins */}
+          {(isSuperAdmin || isClientAdmin) && <OrganizationTrends maxItems={5} />}
         </div>
       </div>
 
