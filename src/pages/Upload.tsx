@@ -10,14 +10,29 @@ import { toast } from 'sonner';
 
 export default function Upload() {
   const navigate = useNavigate();
-  const { profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
+  const { profile, canManageDocuments, isSuperAdmin, isUltraAdmin, isClientSuspended, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(true);
 
+  // Check if Super Admin is in Fiscal module (cannot upload)
+  const isFiscalSuperAdmin = isSuperAdmin && clientModule === 'fiscal';
+
   useEffect(() => {
-    // Redirect Super Admin to Clients page
-    if (isSuperAdmin) {
+    // Redirect Super Admin in Fiscal module - cannot upload
+    if (isFiscalSuperAdmin) {
+      toast.error(
+        language === 'fr' 
+          ? 'En module Fiscal, le Super Administrateur ne peut pas téléverser de documents'
+          : 'In Fiscal module, Super Admin cannot upload documents',
+        { duration: 4000 }
+      );
+      navigate('/documents', { replace: true });
+      return;
+    }
+
+    // Redirect Ultra Admin (no client) to Clients page
+    if (isSuperAdmin && !profile?.client_id && isUltraAdmin) {
       toast.info(
         language === 'fr' 
           ? 'Veuillez sélectionner une organisation pour téléverser des documents'
@@ -43,7 +58,7 @@ export default function Upload() {
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id, isSuperAdmin, isClientSuspended, navigate, language]);
+  }, [profile?.client_id, isFiscalSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;
@@ -60,8 +75,8 @@ export default function Upload() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show nothing while redirecting for Super Admin or suspended clients
-  if (isSuperAdmin || isClientSuspended) {
+  // Show nothing while redirecting for Fiscal Super Admin or suspended clients
+  if (isFiscalSuperAdmin || isClientSuspended) {
     return null;
   }
 

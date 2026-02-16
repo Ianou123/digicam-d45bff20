@@ -135,8 +135,8 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
         {/* Right Content (e.g., Import button) */}
         {rightContent}
 
-        {/* Organization Name - visible for non-super-admins */}
-        {!isSuperAdmin && clientName && (
+        {/* Organization Name - visible for all users with a client */}
+        {clientName && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">{clientName}</span>
