@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MoreHorizontal, Pencil, Building2, UserX, Mail, UserCheck, FileText } from 'lucide-react';
+import { Search, MoreHorizontal, Pencil, Building2, UserX, Mail, UserCheck, FileText, ShieldCheck, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -573,18 +573,50 @@ export default function Users() {
   const getRoleBadge = (user: UserWithRole) => {
     // Show deactivated badge if user is deactivated
     if (user.status === 'deactivated') {
-      return <Badge variant="destructive">{t('deactivation.deactivated')}</Badge>;
+      return (
+        <Badge variant="destructive" className="gap-1.5">
+          <UserX className="h-3 w-3" />
+          {t('deactivation.deactivated')}
+        </Badge>
+      );
     }
     
     switch (user.role) {
+      case 'ultra_admin':
+        return (
+          <Badge className="bg-destructive text-destructive-foreground gap-1.5">
+            <ShieldCheck className="h-3 w-3" />
+            Ultra Admin
+          </Badge>
+        );
       case 'super_admin':
-        return <Badge className="bg-primary">{t('users.superAdmin')}</Badge>;
+        return (
+          <Badge className="bg-primary text-primary-foreground gap-1.5">
+            <ShieldCheck className="h-3 w-3" />
+            {t('users.superAdmin')}
+          </Badge>
+        );
       case 'client_admin':
-        return <Badge variant="secondary">{t('users.clientAdmin')}</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-accent text-accent-foreground gap-1.5 border border-border">
+            <Shield className="h-3 w-3" />
+            {t('users.clientAdmin')}
+          </Badge>
+        );
       case 'staff':
-        return <Badge variant="outline">{t('users.staff')}</Badge>;
+        return (
+          <Badge variant="outline" className="gap-1.5">
+            <User className="h-3 w-3" />
+            {t('users.staff')}
+          </Badge>
+        );
       default:
-        return <Badge variant="outline" className="text-muted-foreground">{language === 'fr' ? 'Aucun rôle' : 'No role'}</Badge>;
+        return (
+          <Badge variant="outline" className="text-muted-foreground gap-1.5">
+            <User className="h-3 w-3" />
+            {language === 'fr' ? 'Aucun rôle' : 'No role'}
+          </Badge>
+        );
     }
   };
 
