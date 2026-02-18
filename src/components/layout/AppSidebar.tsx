@@ -121,9 +121,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/users', 
       icon: Users, 
       label: t('nav.users'),
-      // Ultra Admin and Super Admin always have access
-      // Client Admin only in Core module (not in restricted modules)
-      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
+      // Ultra Admin and Super Admin only
+      show: isUltraAdmin || isSuperAdmin
     },
     { 
       href: '/clients', 
@@ -135,23 +134,21 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/activity', 
       icon: Activity, 
       label: t('nav.activity'),
-      // Ultra Admin and Super Admin always have access
-      // Client Admin only in Core module
-      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
+      // Ultra Admin and Super Admin only
+      show: isUltraAdmin || isSuperAdmin
     },
     { 
       href: '/analytics', 
       icon: BarChart3, 
       label: t('nav.analytics'),
-      // Ultra Admin and Super Admin always have access
-      // Client Admin only in Core module
-      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
+      // Ultra Admin and Super Admin only
+      show: isUltraAdmin || isSuperAdmin
     },
     { 
       href: '/pulse', 
       icon: Gauge, 
       label: language === 'fr' ? 'Pulse Admin' : 'Admin Pulse',
-      show: isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule)
+      show: isUltraAdmin || isSuperAdmin
     },
     { 
       href: '/audit-logs', 
