@@ -86,7 +86,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/documents', 
       icon: FileText, 
       label: t('nav.documents'),
-      show: true 
+      // Ultra admins access documents only via organization consultation
+      show: !isUltraAdmin 
     },
     { 
       href: '/shared-with-me', 
@@ -104,8 +105,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/departments', 
       icon: FolderOpen, 
       label: t('nav.departments'),
+      // Ultra admins access departments only via organization consultation
       // In restricted modules, only Super Admin can manage departments
-      show: (isClientAdmin && !isRestrictedModule) || isSuperAdmin
+      show: !isUltraAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
     },
     { 
       href: '/upload', 

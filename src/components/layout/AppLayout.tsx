@@ -6,6 +6,7 @@ import { GlobalImportButton } from './GlobalImportButton';
 import { SuspendedBanner } from './SuspendedBanner';
 import { DeactivatedUserPage } from '@/components/DeactivatedUserPage';
 import { RoleAcknowledgmentModal } from '@/components/auth/RoleAcknowledgmentModal';
+import { DepartmentSelectionModal } from '@/components/auth/DepartmentSelectionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -103,6 +104,9 @@ export function AppLayout() {
         open={requiresRoleAcknowledgment} 
         onAcknowledge={acknowledgeRole} 
       />
+
+      {/* Department Selection for new users */}
+      <DepartmentSelectionModal />
     </div>
   );
 }
