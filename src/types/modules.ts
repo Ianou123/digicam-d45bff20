@@ -195,7 +195,7 @@ export function getPermissionsForRoleAndModule(
   // Staff
   return {
     canViewDocuments: true,
-    canUploadDocuments: !isRestrictedModule, // Read-only in Admin/Fiscal
+    canUploadDocuments: false, // Staff never uploads
     canEditDocuments: !isRestrictedModule,
     canDeleteDocuments: false, // Staff never deletes
     canDownloadDocuments: true, // Can download if document allows
