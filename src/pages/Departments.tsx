@@ -236,14 +236,14 @@ export default function Departments() {
     setArchiveDialogOpen(true);
   };
 
-  // Super Admin and Client Admin can access
+  // Only Super Admin and Client Admin can access (not Ultra Admin directly)
   // Staff cannot access this page
   if (!isClientAdmin && !isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Super Admin can fully manage departments; Client Admin cannot in restricted modules
-  const canManage = (isSuperAdmin || isClientAdmin) && !isClientSuspended;
+  // Only Super Admin can manage departments
+  const canManage = isSuperAdmin && !isClientSuspended;
   const activeDepts = departments.filter(d => !d.archived_at);
   const archivedDepts = departments.filter(d => d.archived_at);
   const displayedDepts = showArchived ? archivedDepts : activeDepts;

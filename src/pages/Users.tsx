@@ -877,7 +877,10 @@ export default function Users() {
                   {isSuperAdmin && (
                     <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
                   )}
-                  <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  {/* Admin IT only available in restricted modules (admin_publique, fiscal), not Core */}
+                  {isRestrictedModule && (
+                    <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -919,7 +922,9 @@ export default function Users() {
                   {isSuperAdmin && (
                     <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
                   )}
-                  <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  {isRestrictedModule && (
+                    <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -1000,7 +1005,9 @@ export default function Users() {
                   {isSuperAdmin && (
                     <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
                   )}
-                  <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  {isRestrictedModule && (
+                    <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
+                  )}
                   <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 </SelectContent>
               </Select>

@@ -123,24 +123,26 @@ export function getPermissionsForRoleAndModule(
   const isRestrictedModule = module === 'admin_publique' || module === 'fiscal';
   const isFiscalModule = module === 'fiscal';
   
-  // Ultra Admin (DigiCam staff) - full platform access, not tied to modules
+  // Ultra Admin (DigiCam staff) - platform management only
+  // They manage organizations but cannot access sensitive document content
+  // They view department/document distribution and counts, not content
   if (role === 'ultra_admin') {
     return {
-      canViewDocuments: true,
-      canUploadDocuments: true,
-      canEditDocuments: true,
-      canDeleteDocuments: true,
-      canDownloadDocuments: true,
+      canViewDocuments: true, // View distribution/counts only, not content
+      canUploadDocuments: false,
+      canEditDocuments: false,
+      canDeleteDocuments: false,
+      canDownloadDocuments: false,
       canManageUsers: true,
       canManageRoles: true,
-      canManageDepartments: true,
+      canManageDepartments: false, // View-only, managed by Super Admin
       canViewDirectory: true,
       canViewAuditLogs: true,
       canViewAnalytics: true,
       canViewActivity: true,
       canManageOrganization: true,
       canChangeModule: true,
-      isReadOnly: false,
+      isReadOnly: true,
       requiresImmutability: false,
       requiresAuditLog: false,
     };
