@@ -21,15 +21,15 @@ const moduleDetails: Record<ClientModule, {
     features: {
       fr: [
         'Gestion documentaire complète (CRUD)',
-        'Tous les rôles peuvent importer des documents',
-        'Départements avec gestion simple',
+        'Deux rôles : Super Admin et Staff (pas d\'Admin IT)',
+        'Super Admin gère documents, utilisateurs et départements',
         'Partage de documents entre utilisateurs',
         'Recherche avancée et filtres',
       ],
       en: [
         'Full document management (CRUD)',
-        'All roles can upload documents',
-        'Departments with simple management',
+        'Two roles: Super Admin and Staff (no IT Admin)',
+        'Super Admin manages documents, users and departments',
         'Document sharing between users',
         'Advanced search and filters',
       ],
