@@ -36,7 +36,6 @@ export function RoleAcknowledgmentModal({ open, onAcknowledge }: RoleAcknowledgm
 
   const getModuleIcon = () => {
     switch (moduleInfo.icon) {
-      case 'lock': return <Lock className="h-6 w-6" />;
       case 'shield': return <Shield className="h-6 w-6" />;
       default: return <Building2 className="h-6 w-6" />;
     }

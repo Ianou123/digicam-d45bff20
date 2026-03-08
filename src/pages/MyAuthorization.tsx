@@ -311,25 +311,6 @@ export default function MyAuthorization() {
         </CardContent>
       </Card>
 
-      {/* Module-specific warnings */}
-      {permissions.requiresImmutability && (
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-5 w-5" />
-              {language === 'fr' ? 'Mode Immutabilité WORM' : 'WORM Immutability Mode'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {language === 'fr' 
-                ? 'Ce module impose une immutabilité totale. Les documents ne peuvent pas être modifiés ou supprimés une fois créés. Chaque modification crée une nouvelle version.'
-                : 'This module enforces total immutability. Documents cannot be modified or deleted once created. Each modification creates a new version.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Report Inconsistency */}
       <Card>
         <CardContent className="pt-6">

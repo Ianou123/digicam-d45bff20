@@ -121,7 +121,7 @@ export default function Users() {
   const [formDepartmentId, setFormDepartmentId] = useState<string>('');
 
   // Determine access - Admin IT cannot access in restricted modules
-  const isRestrictedModule = clientModule === 'admin_publique' || clientModule === 'fiscal';
+  const isRestrictedModule = clientModule === 'admin_publique';
   const hasAccess = isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule);
 
   useEffect(() => {

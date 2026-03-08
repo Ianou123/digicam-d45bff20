@@ -75,8 +75,8 @@ export default function Upload() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show nothing while redirecting for Fiscal Super Admin or suspended clients
-  if (isFiscalSuperAdmin || isClientSuspended) {
+  // Show nothing while redirecting for Admin Super Admin or suspended clients
+  if (isAdminSuperAdmin || isClientSuspended) {
     return null;
   }
 
