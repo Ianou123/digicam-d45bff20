@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
@@ -9,6 +9,7 @@ import { RoleAcknowledgmentModal } from '@/components/auth/RoleAcknowledgmentMod
 import { DepartmentSelectionModal } from '@/components/auth/DepartmentSelectionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 
