@@ -570,7 +570,13 @@ export default function Dashboard() {
     );
   }
 
-  // ==================== ADMIN / SUPER ADMIN / STAFF DASHBOARD ====================
+  // ==================== STAFF USER DASHBOARD ====================
+  const isStaffUser = !isSuperAdmin && !isClientAdmin;
+  if (isStaffUser) {
+    return <UserDashboard />;
+  }
+
+  // ==================== ADMIN / SUPER ADMIN DASHBOARD ====================
   const isAdmin = isSuperAdmin || isClientAdmin;
 
   return (
