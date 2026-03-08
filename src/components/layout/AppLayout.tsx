@@ -36,7 +36,7 @@ export function AppLayout() {
 
   // IT Admin in Administrative module = restricted to specific routes only
   const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
-  const allowedRoutesForRestrictedITAdmin = ['/upload', '/documents', '/settings'];
+  const allowedRoutesForRestrictedITAdmin = ['/upload', '/documents', '/settings', '/my-authorization'];
   const isRouteAllowed = !isRestrictedITAdmin || allowedRoutesForRestrictedITAdmin.some(
     route => location.pathname === route || location.pathname.startsWith(route + '/')
   );
