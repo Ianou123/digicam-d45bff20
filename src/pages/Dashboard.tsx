@@ -404,7 +404,7 @@ export default function Dashboard() {
 
         {/* Platform Health Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+          <Card className="border-l-4 border-l-green-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Organisations Actives' : 'Active Organizations'}</CardTitle>
               <Building2 className="h-4 w-4 text-green-500" />
@@ -414,7 +414,7 @@ export default function Dashboard() {
               {clientStatus.inactive > 0 && <p className="text-xs text-muted-foreground mt-1">{clientStatus.inactive} {language === 'fr' ? 'inactive(s)' : 'inactive'}</p>}
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Utilisateurs Totaux' : 'Total Users'}</CardTitle>
               <Users className="h-4 w-4 text-blue-500" />
@@ -423,7 +423,7 @@ export default function Dashboard() {
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Documents Traités' : 'Documents Processed'}</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -432,7 +432,7 @@ export default function Dashboard() {
               <div className="text-2xl font-bold">{stats.totalDocuments}</div>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
+          <Card className="border-l-4 border-l-primary hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Activité (7j)' : 'Activity (7d)'}</CardTitle>
               {activityTrend.percentChange >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
