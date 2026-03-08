@@ -414,9 +414,9 @@ export default function Clients() {
               : 'Manage platform organizations'}
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
+        <Button onClick={() => setIsAddModalOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
-          {t('clients.addClient')}
+          {language === 'fr' ? '+ Créer une Organisation' : '+ Create Organization'}
         </Button>
       </div>
 
