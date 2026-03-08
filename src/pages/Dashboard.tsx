@@ -241,7 +241,7 @@ export default function Dashboard() {
       const userDeptId = profile?.department_id;
       let recentDocsQuery = supabase
         .from('documents')
-        .select(`id, title, document_type, confidentiality_level, status, created_at, updated_at, tags, current_version, department_id, departments(name)`)
+        .select(`id, title, document_type, confidentiality_level, status, created_at, updated_at, tags, current_version, department_id, departments!documents_department_id_fkey(name)`)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -265,7 +265,7 @@ export default function Dashboard() {
       // Fetch recent activity
       let activityQuery = supabase
         .from('activity_logs')
-        .select(`id, action_type, created_at, search_query, user_id, documents(title), profiles:user_id(full_name, email)`)
+        .select(`id, action_type, created_at, search_query, user_id, documents(title)`)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -274,6 +274,24 @@ export default function Dashboard() {
       }
 
       const { data: activityData } = await activityQuery;
+      
+      // Fetch profile names for activity items
+      if (activityData && activityData.length > 0) {
+        const activityUserIds = [...new Set(activityData.map(a => a.user_id))];
+        const { data: activityProfiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', activityUserIds);
+        
+        const profileMap = new Map(activityProfiles?.map(p => [p.id, p]) || []);
+        const enrichedActivity = activityData.map(a => ({
+          ...a,
+          profiles: profileMap.get(a.user_id) || null,
+        }));
+        setRecentActivity(enrichedActivity as any);
+      } else {
+        setRecentActivity([]);
+      }
 
       // Fetch departments
       if (profile?.client_id) {
@@ -328,11 +346,6 @@ export default function Dashboard() {
       }
 
       setStats({ totalDocuments: docsCount || 0, totalUsers: usersCount, totalClients: clientsCount });
-      const mappedActivity = (activityData || []).map((activity: any) => ({
-        ...activity,
-        user_name: activity.profiles?.full_name || activity.profiles?.email?.split('@')[0] || null,
-      }));
-      setRecentActivity(mappedActivity as ActivityItem[]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

@@ -177,7 +177,7 @@ export default function DocumentDetailPage() {
           document_date,
           uploaded_by,
           folder_id,
-          departments(name)
+          departments!documents_department_id_fkey(name)
         `)
         .eq('id', id)
         .maybeSingle();
