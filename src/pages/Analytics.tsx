@@ -20,7 +20,7 @@ interface TopClient {
 }
 
 export default function Analytics() {
-  const { isUltraAdmin, isSuperAdmin, isClientAdmin, profile, clientModule } = useAuth();
+  const { user, isUltraAdmin, isSuperAdmin, isClientAdmin, profile, clientModule } = useAuth();
   const { t, language } = useLanguage();
   
   const [loading, setLoading] = useState(true);

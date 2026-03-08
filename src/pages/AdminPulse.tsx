@@ -52,7 +52,7 @@ interface PopularSearch {
 
 export default function AdminPulse() {
   const navigate = useNavigate();
-  const { profile, isClientAdmin, isSuperAdmin } = useAuth();
+  const { user, profile, isClientAdmin, isSuperAdmin } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
