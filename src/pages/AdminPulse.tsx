@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   Search, FileQuestion, TrendingDown, Building2, AlertTriangle,
   Calendar, Eye, Users, Loader2, FileText, Clock, Upload,
-  Target, Timer, Archive, Activity, CheckCircle2, ArrowRight
+  Target, Timer, Archive, Activity, CheckCircle2, ArrowRight, Download as DownloadIcon
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
