@@ -113,9 +113,11 @@ export default function Dashboard() {
   const [failedSearchesThisWeek, setFailedSearchesThisWeek] = useState(0);
   const [totalStorageMb, setTotalStorageMb] = useState(0);
 
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+
   useEffect(() => {
     fetchDashboardData();
-  }, [profile?.client_id]);
+  }, [profile?.client_id, isRestrictedITAdmin]);
 
   const fetchDashboardData = async () => {
     if (!profile?.client_id && !isSuperAdmin && !isUltraAdmin) {
