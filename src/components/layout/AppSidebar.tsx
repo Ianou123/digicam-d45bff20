@@ -179,7 +179,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
-        <Link to={isStaffUser ? '/documents' : '/dashboard'} className="flex items-center gap-3">
+        <Link to="/dashboard" className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
