@@ -10,6 +10,7 @@ import { RecentDocuments } from '@/components/dashboard/RecentDocuments';
 import { StaffInsightsPanel } from '@/components/dashboard/StaffInsightsPanel';
 import { OrganizationTrends } from '@/components/dashboard/OrganizationTrends';
 import { OverviewPanel } from '@/components/dashboard/OverviewPanel';
+import { UserDashboard } from '@/components/dashboard/UserDashboard';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
