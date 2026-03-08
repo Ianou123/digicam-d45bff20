@@ -1,8 +1,8 @@
 import { 
-  FileCheck, 
-  Archive, 
+  FileText, 
   Lock, 
-  Share2 
+  Share2,
+  Search
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -13,6 +13,8 @@ interface StatusStats {
   archived: number;
   confidential: number;
   shared: number;
+  searchesThisMonth?: number;
+  searchSuccessRate?: number;
 }
 
 interface StatusCardsProps {
@@ -25,22 +27,13 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
 
   const cards = [
     {
-      key: 'pendingValidation',
-      label: language === 'fr' ? 'À valider' : 'Pending Validation',
-      value: stats.pendingValidation,
-      icon: FileCheck,
-      color: 'text-info',
-      bgColor: 'bg-info/10',
-      borderColor: 'border-l-info',
-    },
-    {
       key: 'archived',
-      label: language === 'fr' ? 'Archives' : 'Archived',
+      label: language === 'fr' ? 'Documents Archivés' : 'Archived Documents',
       value: stats.archived,
-      icon: Archive,
-      color: 'text-muted-foreground',
-      bgColor: 'bg-muted',
-      borderColor: 'border-l-muted-foreground',
+      icon: FileText,
+      color: 'text-green-600',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-l-green-500',
     },
     {
       key: 'confidential',
@@ -53,12 +46,24 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
     },
     {
       key: 'shared',
-      label: language === 'fr' ? 'Partagés récents' : 'Recently Shared',
+      label: language === 'fr' ? 'Partagés Récents' : 'Recently Shared',
       value: stats.shared,
       icon: Share2,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-      borderColor: 'border-l-success',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-l-blue-500',
+    },
+    {
+      key: 'searches',
+      label: language === 'fr' ? 'Recherches ce mois' : 'Searches this month',
+      value: stats.searchesThisMonth ?? 0,
+      subtitle: stats.searchSuccessRate !== undefined 
+        ? `${stats.searchSuccessRate}% ${language === 'fr' ? 'taux de succès' : 'success rate'}`
+        : undefined,
+      icon: Search,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+      borderColor: 'border-l-primary',
     },
   ];
 
@@ -68,9 +73,8 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
         <Card 
           key={card.key}
           className={cn(
-            'border-l-4 cursor-pointer transition-all hover:shadow-md',
+            'border-l-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]',
             card.borderColor,
-            onCardClick && 'hover:scale-[1.02]'
           )}
           onClick={() => onCardClick?.(card.key)}
         >
@@ -82,6 +86,9 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>
+            {'subtitle' in card && card.subtitle && (
+              <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
+            )}
           </CardContent>
         </Card>
       ))}
