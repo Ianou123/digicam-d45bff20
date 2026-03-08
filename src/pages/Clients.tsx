@@ -396,7 +396,7 @@ export default function Clients() {
     );
   });
 
-  if (!isSuperAdmin) {
+  if (!isUltraAdmin && !isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
