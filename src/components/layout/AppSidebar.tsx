@@ -157,9 +157,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const isAdmin = isSuperAdmin || (isClientAdmin && !isRestrictedITAdmin);
 
   const mainNavItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard'), show: isAdmin },
+    { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
     { href: '/documents', icon: FileText, label: isRestrictedITAdmin ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents') : (language === 'fr' ? 'Documents' : 'Documents'), show: true },
-    { href: '/my-documents', icon: FolderOpen, label: language === 'fr' ? 'Mes Documents' : 'My Documents', show: !isRestrictedITAdmin && isStaffUser },
     { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: !isRestrictedITAdmin },
     { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
   ];
