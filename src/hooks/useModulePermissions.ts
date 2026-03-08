@@ -12,22 +12,14 @@ import {
 } from '@/types/modules';
 
 interface UseModulePermissionsResult {
-  // Current state
   module: ClientModule;
   role: AppRole;
   permissions: ModulePermissions;
-  
-  // Module info
   moduleInfo: ModuleInfo;
   roleInfo: RoleInfo;
-  
-  // Quick checks
   isRestrictedModule: boolean;
-  isFiscalModule: boolean;
   isReadOnly: boolean;
   isUltraAdmin: boolean;
-  
-  // Helper functions
   can: (permission: keyof ModulePermissions) => boolean;
 }
 
@@ -39,7 +31,9 @@ export function useModulePermissions(): UseModulePermissionsResult {
     clientModule 
   } = useAuth();
   
-  const module: ClientModule = clientModule || 'core';
+  const module: ClientModule = (clientModule === 'core' || clientModule === 'admin_publique') 
+    ? clientModule 
+    : 'core';
   
   const role: AppRole = useMemo(() => {
     if (isUltraAdmin) return 'ultra_admin';
@@ -55,8 +49,7 @@ export function useModulePermissions(): UseModulePermissionsResult {
   const moduleInfo = MODULE_INFO[module];
   const roleInfo = ROLE_INFO[role];
   
-  const isRestrictedModule = module === 'admin_publique' || module === 'fiscal';
-  const isFiscalModule = module === 'fiscal';
+  const isRestrictedModule = module === 'admin_publique';
   
   const can = (permission: keyof ModulePermissions): boolean => {
     const value = permissions[permission];
@@ -70,7 +63,6 @@ export function useModulePermissions(): UseModulePermissionsResult {
     moduleInfo,
     roleInfo,
     isRestrictedModule,
-    isFiscalModule,
     isReadOnly: permissions.isReadOnly,
     isUltraAdmin,
     can,

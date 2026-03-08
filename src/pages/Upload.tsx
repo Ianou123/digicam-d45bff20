@@ -15,16 +15,16 @@ export default function Upload() {
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(true);
 
-  // Check if Super Admin is in Fiscal module (cannot upload)
-  const isFiscalSuperAdmin = isSuperAdmin && clientModule === 'fiscal';
+  // Check if Super Admin is in Administrative module (cannot upload - separation of concerns)
+  const isAdminSuperAdmin = isSuperAdmin && clientModule === 'admin_publique';
 
   useEffect(() => {
-    // Redirect Super Admin in Fiscal module - cannot upload
-    if (isFiscalSuperAdmin) {
+    // Redirect Super Admin in Administrative module - cannot upload
+    if (isAdminSuperAdmin) {
       toast.error(
         language === 'fr' 
-          ? 'En module Fiscal, le Super Administrateur ne peut pas téléverser de documents'
-          : 'In Fiscal module, Super Admin cannot upload documents',
+          ? 'En module Administratif, le Super Admin ne peut pas téléverser de documents (séparation des tâches)'
+          : 'In Administrative module, Super Admin cannot upload documents (separation of duties)',
         { duration: 4000 }
       );
       navigate('/documents', { replace: true });
@@ -58,7 +58,7 @@ export default function Upload() {
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id, isFiscalSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
+  }, [profile?.client_id, isAdminSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;
@@ -75,8 +75,8 @@ export default function Upload() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show nothing while redirecting for Fiscal Super Admin or suspended clients
-  if (isFiscalSuperAdmin || isClientSuspended) {
+  // Show nothing while redirecting for Admin Super Admin or suspended clients
+  if (isAdminSuperAdmin || isClientSuspended) {
     return null;
   }
 

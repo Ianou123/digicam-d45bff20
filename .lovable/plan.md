@@ -1,75 +1,58 @@
 
+# DigiCam Archive - Plan
 
-# Plan: Reduce to 2 Modules (Core + Administrative) and Update Plan
+## Architecture: 2 Modules
 
-## Summary
+DigiCam supports **two modules** chosen at organization creation:
 
-Remove the "Fiscal" module entirely, keeping only **Core** and **Administrative** (currently named `admin_publique`). The Administrative module absorbs the key security features (mandatory departments, separation of concerns, audit logging) but drops the WORM immutability / no-deletion constraints that were Fiscal-specific.
+### Module 1: Core
+- **Roles**: Admin (Super Admin), Utilisateur (Staff)
+- **Description**: GED moderne pour PME, cabinets, freelances
+- Admin gère tout : upload, users, départements, logs
+- Utilisateur : consultation, recherche, téléchargement, envoi
+- Départements optionnels
 
-## Changes Required
+### Module 2: Administratif (admin_publique)
+- **Roles**: Super Admin, Admin IT (client_admin), Utilisateur (Staff)
+- **Description**: Pour institutions et grandes entreprises
+- **Principe clé** : Séparation des tâches
+  - Super Admin : gestion users, départements, analytics, audit logs — **NE PEUT PAS uploader**
+  - Admin IT : upload documents uniquement — **NE PEUT PAS voir les documents/logs**
+  - Utilisateur : consultation en lecture seule
+- Départements obligatoires
+- Journalisation obligatoire
 
-### 1. Database Migration
-- Alter the `client_module` enum: remove `fiscal`, keep `core` and `admin_publique`
-- Update any existing clients with `module = 'fiscal'` to `admin_publique` (safety measure)
-- Update the `get_user_module`, `is_restricted_module`, `can_delete_in_module`, `can_user_upload` functions to remove fiscal references
+### Ultra Admin (DigiCam Staff)
+- Pas lié à une organisation
+- Crée/gère les organisations
+- Voit les logs d'audit globaux (pas le contenu des documents)
+- Peut changer le module d'une organisation
 
-### 2. `src/types/modules.ts`
-- Remove `'fiscal'` from `ClientModule` type → `'core' | 'admin_publique'`
-- Remove `fiscal` entry from `MODULE_INFO`
-- Remove all `isFiscalModule` logic from `getPermissionsForRoleAndModule`:
-  - `canDeleteDocuments` becomes `true` for all roles (no WORM)
-  - `requiresImmutability` always `false`
-  - `requiresAuditLog` → `true` only for `admin_publique`
-  - `isRestrictedModule` simplified to `module === 'admin_publique'`
-- Remove `isFiscalModule` references from `getRestrictionReason`
-- Remove `requiresImmutability` permission entirely (or always false)
+## Changement de module
+Le changement de module n'est PAS en libre-service. Contacter DigiCam.
 
-### 3. `src/hooks/useModulePermissions.ts`
-- Remove `isFiscalModule` property and its computation
+## Rôles dans la base de données
+- `ultra_admin` : Staff DigiCam
+- `super_admin` : Responsable d'organisation
+- `client_admin` : Admin IT (module Administratif uniquement)
+- `staff` : Utilisateur standard
 
-### 4. `src/pages/ModuleSetup.tsx`
-- Remove `fiscal` from `moduleDetails` and `modules` array
-- Change grid from 3-column to 2-column layout
-- Update Administrative module description to match spec (3 roles: Super Admin, IT Admin, User; separation of concerns; mandatory departments)
+## Permissions (Résumé)
 
-### 5. `src/components/layout/AppSidebar.tsx`
-- Remove `Lock` icon import and `fiscal` case from `getModuleBadgeColor` / `getModuleIcon`
+| Permission | Core Admin | Core User | Admin Super | Admin IT | Admin User | Ultra |
+|---|---|---|---|---|---|---|
+| Upload | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Search & Download | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Send Docs | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Manage Depts | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Manage Users | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| View Analytics | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| View Audit Logs | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Admin Pages | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
 
-### 6. `src/components/auth/RoleAcknowledgmentModal.tsx`
-- Remove fiscal-specific badge color case
-- Remove WORM immutability warning section
-
-### 7. Other files referencing fiscal
-- `src/pages/MyAuthorization.tsx` — remove fiscal-specific restriction reasons
-- `src/pages/OrganizationDetail.tsx` — remove fiscal badge/color if present
-- `src/pages/Clients.tsx` — remove fiscal references in module display
-- `src/pages/AdminPulse.tsx`, `src/pages/Settings.tsx` — check for fiscal references
-
-### 8. Update `.lovable/plan.md`
-- Replace all "Admin/Fiscal" references with just "Administrative"
-- Remove fiscal-specific items (WORM, no deletion, file hash)
-- Update role hierarchy diagram to show only Core and Administrative
-- Rename `admin_publique` display label to "Administratif" per the spec
-
-### 9. Database functions cleanup
-- `can_delete_in_module` → simplify (always allow delete, or remove function)
-- `can_user_upload` → remove fiscal check for super_admin (Super Admin cannot upload in Administrative module per spec)
-- `is_restricted_module` → `module = 'admin_publique'` only
-
-### 10. Spec alignment (in same pass)
-- **Super Admin in Administrative: cannot upload** — update `can_user_upload` DB function and `getPermissionsForRoleAndModule` in types
-- **IT Admin: upload only** — already partially done, verify sidebar hides everything except upload for IT Admin in Administrative
-- **Core module: no IT Admin role** — already done in Users page, verify
-
-## Files Touched
-| File | Change |
-|---|---|
-| DB migration (new) | Remove `fiscal` from enum, update functions |
-| `src/types/modules.ts` | Remove fiscal, simplify permissions |
-| `src/hooks/useModulePermissions.ts` | Remove `isFiscalModule` |
-| `src/pages/ModuleSetup.tsx` | Remove fiscal card, 2-col layout |
-| `src/components/layout/AppSidebar.tsx` | Remove fiscal icon/color |
-| `src/components/auth/RoleAcknowledgmentModal.tsx` | Remove WORM warning |
-| `.lovable/plan.md` | Update to 2-module spec |
-| Various pages | Remove fiscal references |
-
+## Key Technical Details
+- Module enum: `client_module` = `'core' | 'admin_publique'`
+- Role enum: `app_role` = `'ultra_admin' | 'super_admin' | 'client_admin' | 'staff'`
+- DB function `can_user_upload()` enforces separation of concerns
+- DB function `is_restricted_module()` checks `admin_publique` only
+- `can_delete_in_module()` always returns true (no WORM)

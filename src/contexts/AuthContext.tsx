@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .maybeSingle();
           
           const module = clientData?.module as ClientModule;
-          if (module && (module === 'admin_publique' || module === 'fiscal')) {
+          if (module && module === 'admin_publique') {
             const currentRole = userRoles.includes('super_admin') 
               ? 'super_admin' 
               : userRoles.includes('client_admin') 

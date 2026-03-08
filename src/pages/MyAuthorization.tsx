@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Shield, CheckCircle2, XCircle, AlertTriangle, Building2, Lock, Users, Send } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, Building2, Users, Send } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -131,7 +131,6 @@ export default function MyAuthorization() {
 
   const getModuleIcon = () => {
     switch (moduleInfo.icon) {
-      case 'lock': return <Lock className="h-5 w-5" />;
       case 'shield': return <Shield className="h-5 w-5" />;
       default: return <Building2 className="h-5 w-5" />;
     }
@@ -139,7 +138,6 @@ export default function MyAuthorization() {
 
   const getModuleBadgeColor = () => {
     switch (module) {
-      case 'fiscal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'admin_publique': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       default: return 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300';
     }
@@ -312,25 +310,6 @@ export default function MyAuthorization() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Module-specific warnings */}
-      {permissions.requiresImmutability && (
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-5 w-5" />
-              {language === 'fr' ? 'Mode Immutabilité WORM' : 'WORM Immutability Mode'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {language === 'fr' 
-                ? 'Ce module impose une immutabilité totale. Les documents ne peuvent pas être modifiés ou supprimés une fois créés. Chaque modification crée une nouvelle version.'
-                : 'This module enforces total immutability. Documents cannot be modified or deleted once created. Each modification creates a new version.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Report Inconsistency */}
       <Card>

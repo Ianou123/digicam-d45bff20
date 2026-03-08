@@ -1,5 +1,5 @@
 // Module types for DigiCam Archive
-export type ClientModule = 'core' | 'admin_publique' | 'fiscal';
+export type ClientModule = 'core' | 'admin_publique';
 
 // App role types - includes ultra_admin for DigiCam staff
 export type AppRole = 'ultra_admin' | 'super_admin' | 'client_admin' | 'staff';
@@ -30,7 +30,6 @@ export interface ModulePermissions {
   
   // Module-specific
   isReadOnly: boolean;
-  requiresImmutability: boolean;
   requiresAuditLog: boolean;
 }
 
@@ -42,7 +41,7 @@ export interface ModuleInfo {
   descriptionFr: string;
   descriptionEn: string;
   color: string;
-  icon: 'building' | 'shield' | 'lock';
+  icon: 'building' | 'shield';
 }
 
 export const MODULE_INFO: Record<ClientModule, ModuleInfo> = {
@@ -57,21 +56,12 @@ export const MODULE_INFO: Record<ClientModule, ModuleInfo> = {
   },
   admin_publique: {
     key: 'admin_publique',
-    labelFr: 'Administration Publique',
-    labelEn: 'Public Administration',
-    descriptionFr: 'Pour ministères et collectivités - accès en lecture pour le staff',
-    descriptionEn: 'For ministries and public entities - read-only for staff',
+    labelFr: 'Administratif',
+    labelEn: 'Administrative',
+    descriptionFr: 'Pour institutions et grandes entreprises — séparation des tâches',
+    descriptionEn: 'For institutions and large enterprises — separation of duties',
     color: 'blue',
     icon: 'shield',
-  },
-  fiscal: {
-    key: 'fiscal',
-    labelFr: 'Fiscal',
-    labelEn: 'Fiscal',
-    descriptionFr: 'Haute sécurité avec immutabilité WORM - DGI, Douanes, Trésor',
-    descriptionEn: 'High security with WORM immutability - Tax, Customs, Treasury',
-    color: 'amber',
-    icon: 'lock',
   },
 };
 
@@ -120,22 +110,19 @@ export function getPermissionsForRoleAndModule(
   role: AppRole,
   module: ClientModule
 ): ModulePermissions {
-  const isRestrictedModule = module === 'admin_publique' || module === 'fiscal';
-  const isFiscalModule = module === 'fiscal';
+  const isAdminModule = module === 'admin_publique';
   
   // Ultra Admin (DigiCam staff) - platform management only
-  // They manage organizations but cannot access sensitive document content
-  // They view department/document distribution and counts, not content
   if (role === 'ultra_admin') {
     return {
-      canViewDocuments: true, // View distribution/counts only, not content
+      canViewDocuments: true,
       canUploadDocuments: false,
       canEditDocuments: false,
       canDeleteDocuments: false,
       canDownloadDocuments: false,
       canManageUsers: true,
       canManageRoles: true,
-      canManageDepartments: false, // View-only, managed by Super Admin
+      canManageDepartments: false,
       canViewDirectory: true,
       canViewAuditLogs: true,
       canViewAnalytics: true,
@@ -143,18 +130,18 @@ export function getPermissionsForRoleAndModule(
       canManageOrganization: true,
       canChangeModule: true,
       isReadOnly: true,
-      requiresImmutability: false,
       requiresAuditLog: false,
     };
   }
   
-  // Super Admin has full access everywhere
+  // Super Admin
   if (role === 'super_admin') {
     return {
       canViewDocuments: true,
-      canUploadDocuments: true,
+      // In Administrative module, Super Admin CANNOT upload (separation of concerns)
+      canUploadDocuments: !isAdminModule,
       canEditDocuments: true,
-      canDeleteDocuments: !isFiscalModule, // Fiscal: no deletion
+      canDeleteDocuments: true,
       canDownloadDocuments: true,
       canManageUsers: true,
       canManageRoles: true,
@@ -164,65 +151,60 @@ export function getPermissionsForRoleAndModule(
       canViewAnalytics: true,
       canViewActivity: true,
       canManageOrganization: true,
-      canChangeModule: false, // Must contact DigiCam
+      canChangeModule: false,
       isReadOnly: false,
-      requiresImmutability: isFiscalModule,
-      requiresAuditLog: isFiscalModule,
+      requiresAuditLog: isAdminModule,
     };
   }
   
-  // Client Admin (Admin IT)
+  // Client Admin (Admin IT) - upload only in Administrative, full admin in Core
   if (role === 'client_admin') {
     return {
-      canViewDocuments: true,
+      canViewDocuments: !isAdminModule, // In Admin module, IT Admin only uploads
       canUploadDocuments: true,
       canEditDocuments: true,
-      canDeleteDocuments: !isFiscalModule, // Fiscal: no deletion
-      canDownloadDocuments: true,
-      canManageUsers: !isRestrictedModule, // Only in Core module
-      canManageRoles: !isRestrictedModule, // Only in Core module
-      canManageDepartments: !isRestrictedModule, // Only in Core module
-      canViewDirectory: true,
-      canViewAuditLogs: !isRestrictedModule, // Only in Core module
-      canViewAnalytics: !isRestrictedModule, // Only in Core module
-      canViewActivity: !isRestrictedModule, // Only in Core module
+      canDeleteDocuments: !isAdminModule,
+      canDownloadDocuments: !isAdminModule,
+      canManageUsers: !isAdminModule,
+      canManageRoles: !isAdminModule,
+      canManageDepartments: !isAdminModule,
+      canViewDirectory: !isAdminModule,
+      canViewAuditLogs: !isAdminModule,
+      canViewAnalytics: !isAdminModule,
+      canViewActivity: !isAdminModule,
       canManageOrganization: false,
       canChangeModule: false,
       isReadOnly: false,
-      requiresImmutability: isFiscalModule,
-      requiresAuditLog: isRestrictedModule,
+      requiresAuditLog: isAdminModule,
     };
   }
   
   // Staff
   return {
     canViewDocuments: true,
-    canUploadDocuments: false, // Staff never uploads
-    canEditDocuments: !isRestrictedModule,
-    canDeleteDocuments: false, // Staff never deletes
-    canDownloadDocuments: true, // Can download if document allows
+    canUploadDocuments: false,
+    canEditDocuments: !isAdminModule,
+    canDeleteDocuments: false,
+    canDownloadDocuments: true,
     canManageUsers: false,
     canManageRoles: false,
     canManageDepartments: false,
-    canViewDirectory: isRestrictedModule, // Directory visible in Admin/Fiscal
+    canViewDirectory: isAdminModule,
     canViewAuditLogs: false,
     canViewAnalytics: false,
     canViewActivity: false,
     canManageOrganization: false,
     canChangeModule: false,
-    isReadOnly: isRestrictedModule,
-    requiresImmutability: isFiscalModule,
-    requiresAuditLog: isRestrictedModule,
+    isReadOnly: isAdminModule,
+    requiresAuditLog: isAdminModule,
   };
 }
 
-// Permission item for display in MyAuthorization page
+// Permission item for display
 export interface PermissionItem {
   key: keyof ModulePermissions;
   labelFr: string;
   labelEn: string;
-  reasonFr?: string;
-  reasonEn?: string;
 }
 
 export const PERMISSION_LABELS: PermissionItem[] = [
@@ -247,28 +229,27 @@ export function getRestrictionReason(
   module: ClientModule,
   language: 'fr' | 'en'
 ): string | null {
-  const isRestrictedModule = module === 'admin_publique' || module === 'fiscal';
-  const isFiscalModule = module === 'fiscal';
+  const isAdminModule = module === 'admin_publique';
   
-  if (permission === 'canDeleteDocuments' && isFiscalModule) {
-    return language === 'fr' 
-      ? 'Suppression interdite en module Fiscal (immutabilité WORM)' 
-      : 'Deletion forbidden in Fiscal module (WORM immutability)';
+  if (role === 'super_admin' && isAdminModule && permission === 'canUploadDocuments') {
+    return language === 'fr'
+      ? 'Séparation des tâches : l\'upload est réservé à l\'Admin IT en module Administratif'
+      : 'Separation of duties: upload is reserved for IT Admin in Administrative module';
   }
   
-  if (role === 'staff' && isRestrictedModule) {
-    if (['canUploadDocuments', 'canEditDocuments'].includes(permission)) {
+  if (role === 'client_admin' && isAdminModule) {
+    if (['canManageUsers', 'canManageRoles', 'canManageDepartments', 'canViewDocuments', 'canDownloadDocuments'].includes(permission)) {
       return language === 'fr'
-        ? 'Réservé aux administrateurs en module Administration/Fiscal'
-        : 'Reserved for administrators in Admin/Fiscal module';
+        ? 'Séparation des tâches : réservé au Super Admin en module Administratif'
+        : 'Separation of duties: reserved for Super Admin in Administrative module';
     }
   }
   
-  if (role === 'client_admin' && isRestrictedModule) {
-    if (['canManageUsers', 'canManageRoles', 'canManageDepartments'].includes(permission)) {
+  if (role === 'staff' && isAdminModule) {
+    if (['canUploadDocuments', 'canEditDocuments'].includes(permission)) {
       return language === 'fr'
-        ? 'Réservé au Super Admin en module Administration/Fiscal'
-        : 'Reserved for Super Admin in Admin/Fiscal module';
+        ? 'Réservé aux administrateurs en module Administratif'
+        : 'Reserved for administrators in Administrative module';
     }
   }
   

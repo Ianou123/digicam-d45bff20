@@ -14,7 +14,6 @@ import {
   Gauge,
   Share2,
   KeyRound,
-  Lock
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -61,7 +60,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const getModuleBadgeColor = () => {
     switch (module) {
-      case 'fiscal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'admin_publique': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       default: return 'bg-muted text-muted-foreground';
     }
@@ -69,7 +67,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const getModuleIcon = () => {
     switch (module) {
-      case 'fiscal': return Lock;
       case 'admin_publique': return Shield;
       default: return Building2;
     }

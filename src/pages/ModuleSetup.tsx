@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Building2, Shield, Lock, Check, Loader2 } from 'lucide-react';
+import { FileText, Building2, Shield, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,18 +19,18 @@ const moduleDetails: Record<ClientModule, {
     icon: Building2,
     features: {
       fr: [
-        'Gestion documentaire complète (CRUD)',
-        'Deux rôles : Super Admin et Staff (pas d\'Admin IT)',
-        'Super Admin gère documents, utilisateurs et départements',
+        '2 rôles : Admin, Utilisateur',
+        'L\'admin gère tout : upload, users, logs',
+        'Départements optionnels',
         'Partage de documents entre utilisateurs',
-        'Recherche avancée et filtres',
+        'Idéal pour : PME, cabinets, freelances',
       ],
       en: [
-        'Full document management (CRUD)',
-        'Two roles: Super Admin and Staff (no IT Admin)',
-        'Super Admin manages documents, users and departments',
+        '2 roles: Admin, User',
+        'Admin manages everything: upload, users, logs',
+        'Optional departments',
         'Document sharing between users',
-        'Advanced search and filters',
+        'Ideal for: SMBs, firms, freelancers',
       ],
     },
     tagline: {
@@ -43,46 +42,23 @@ const moduleDetails: Record<ClientModule, {
     icon: Shield,
     features: {
       fr: [
-        'Staff en lecture seule (consultation uniquement)',
-        'Admin IT restreint aux opérations documentaires',
-        'Accès multi-départements pour les agents',
+        '3 rôles : Super Admin, Admin IT, Utilisateur',
+        'Séparation des tâches : Super Admin gère, Admin IT upload',
+        'Départements obligatoires',
         'Journalisation obligatoire de toutes les actions',
-        'Annuaire interne visible pour tous',
+        'Idéal pour : institutions, grandes entreprises',
       ],
       en: [
-        'Staff in read-only mode (view only)',
-        'IT Admin restricted to document operations',
-        'Multi-department access for agents',
+        '3 roles: Super Admin, IT Admin, User',
+        'Separation of duties: Super Admin manages, IT Admin uploads',
+        'Mandatory departments',
         'Mandatory logging of all actions',
-        'Internal directory visible to all',
+        'Ideal for: institutions, large enterprises',
       ],
     },
     tagline: {
-      fr: 'Pour ministères et collectivités territoriales',
-      en: 'For ministries and public entities',
-    },
-  },
-  fiscal: {
-    icon: Lock,
-    features: {
-      fr: [
-        'Immutabilité WORM — aucune suppression possible',
-        'Staff en lecture seule stricte',
-        'Admin IT restreint aux opérations documentaires',
-        'Journal immutable avec hash de fichier',
-        'Traçabilité totale et non-répudiation',
-      ],
-      en: [
-        'WORM immutability — no deletion possible',
-        'Staff in strict read-only mode',
-        'IT Admin restricted to document operations',
-        'Immutable log with file hash',
-        'Full traceability and non-repudiation',
-      ],
-    },
-    tagline: {
-      fr: 'Pour DGI, Douanes, Trésor — Haute sécurité',
-      en: 'For Tax, Customs, Treasury — High security',
+      fr: 'Pour institutions et grandes entreprises',
+      en: 'For institutions and large enterprises',
     },
   },
 };
@@ -125,7 +101,7 @@ export default function ModuleSetup() {
     }
   };
 
-  const modules: ClientModule[] = ['core', 'admin_publique', 'fiscal'];
+  const modules: ClientModule[] = ['core', 'admin_publique'];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -142,7 +118,7 @@ export default function ModuleSetup() {
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-5xl mx-auto w-full">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
             {language === 'fr' 
@@ -151,12 +127,12 @@ export default function ModuleSetup() {
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             {language === 'fr'
-              ? 'Le module détermine les règles de gouvernance, les permissions et le niveau de sécurité de votre organisation. Ce choix est définitif — contactez DigiCam pour le modifier.'
-              : 'The module determines governance rules, permissions and security level for your organization. This choice is permanent — contact DigiCam to change it.'}
+              ? 'Le module détermine les règles de gouvernance, les permissions et le niveau de sécurité de votre organisation. Pour changer de module, contactez DigiCam.'
+              : 'The module determines governance rules, permissions and security level for your organization. To change module, contact DigiCam.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-8">
           {modules.map((mod) => {
             const info = MODULE_INFO[mod];
             const details = moduleDetails[mod];
@@ -184,13 +160,11 @@ export default function ModuleSetup() {
                     'h-14 w-14 rounded-xl flex items-center justify-center mx-auto mb-3',
                     mod === 'core' && 'bg-muted',
                     mod === 'admin_publique' && 'bg-blue-100 dark:bg-blue-900/30',
-                    mod === 'fiscal' && 'bg-amber-100 dark:bg-amber-900/30',
                   )}>
                     <Icon className={cn(
                       'h-7 w-7',
                       mod === 'core' && 'text-muted-foreground',
                       mod === 'admin_publique' && 'text-blue-600 dark:text-blue-400',
-                      mod === 'fiscal' && 'text-amber-600 dark:text-amber-400',
                     )} />
                   </div>
                   <CardTitle className="text-lg">

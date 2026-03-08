@@ -121,7 +121,7 @@ export default function Users() {
   const [formDepartmentId, setFormDepartmentId] = useState<string>('');
 
   // Determine access - Admin IT cannot access in restricted modules
-  const isRestrictedModule = clientModule === 'admin_publique' || clientModule === 'fiscal';
+  const isRestrictedModule = clientModule === 'admin_publique';
   const hasAccess = isUltraAdmin || isSuperAdmin || (isClientAdmin && !isRestrictedModule);
 
   useEffect(() => {
@@ -877,7 +877,7 @@ export default function Users() {
                   {isSuperAdmin && (
                     <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
                   )}
-                  {/* Admin IT only available in restricted modules (admin_publique, fiscal), not Core */}
+                  {/* Admin IT only available in Administrative module, not Core */}
                   {isRestrictedModule && (
                     <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   )}

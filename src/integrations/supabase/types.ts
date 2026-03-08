@@ -902,7 +902,7 @@ export type Database = {
         | "update"
         | "delete"
       app_role: "super_admin" | "client_admin" | "staff" | "ultra_admin"
-      client_module: "core" | "admin_publique" | "fiscal"
+      client_module: "core" | "admin_publique"
       confidentiality_level: "public" | "internal" | "confidential"
       document_type:
         | "pdf"
@@ -1043,7 +1043,7 @@ export const Constants = {
     Enums: {
       action_type: ["search", "view", "download", "upload", "update", "delete"],
       app_role: ["super_admin", "client_admin", "staff", "ultra_admin"],
-      client_module: ["core", "admin_publique", "fiscal"],
+      client_module: ["core", "admin_publique"],
       confidentiality_level: ["public", "internal", "confidential"],
       document_type: [
         "pdf",
