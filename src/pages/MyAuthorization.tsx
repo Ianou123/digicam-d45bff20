@@ -52,6 +52,7 @@ export default function MyAuthorization() {
   
   const [userDepartments, setUserDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
 
   useEffect(() => {
     const fetchUserDepartments = async () => {
