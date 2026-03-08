@@ -236,80 +236,82 @@ export function UserDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card 
-          className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          className="border-l-4 border-l-green-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
           onClick={() => navigate('/documents')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {language === 'fr' ? 'Documents Accessibles' : 'Accessible Documents'}
-                </p>
-                <p className="text-3xl font-semibold tracking-tight mt-1">{stats.accessibleDocs}</p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-green-500/10">
-                <FolderOpen className="h-5 w-5 text-green-600" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {language === 'fr' ? 'Documents Accessibles' : 'Accessible Documents'}
+            </CardTitle>
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <FolderOpen className="h-4 w-4 text-green-600" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.accessibleDocs}</div>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          className="border-l-4 border-l-blue-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
           onClick={() => navigate('/documents')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {language === 'fr' ? 'Consultés ce mois' : 'Viewed this month'}
-                </p>
-                <p className="text-3xl font-semibold tracking-tight mt-1">{stats.viewedThisMonth}</p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-blue-500/10">
-                <Eye className="h-5 w-5 text-blue-600" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {language === 'fr' ? 'Consultés ce mois' : 'Viewed this month'}
+            </CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/10">
+              <Eye className="h-4 w-4 text-blue-600" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.viewedThisMonth}</div>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          className="border-l-4 border-l-orange-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
           onClick={() => navigate('/shared-with-me')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {language === 'fr' ? 'Reçus' : 'Received'}
-                </p>
-                <p className="text-3xl font-semibold tracking-tight mt-1">{stats.receivedShares}</p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-orange-500/10">
-                <Mail className="h-5 w-5 text-orange-600" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {language === 'fr' ? 'Reçus' : 'Received'}
+            </CardTitle>
+            <div className="p-2 rounded-lg bg-orange-500/10">
+              <Mail className="h-4 w-4 text-orange-600" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.receivedShares}</div>
+            {stats.unreadShares > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.unreadShares} {language === 'fr' ? 'non lu(s)' : 'unread'}
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-teal-500 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+          className="border-l-4 border-l-teal-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
           onClick={() => navigate('/documents')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {language === 'fr' ? 'Recherches ce mois' : 'Searches this month'}
-                </p>
-                <p className="text-3xl font-semibold tracking-tight mt-1">{stats.searchesThisMonth}</p>
-              </div>
-              <div className="p-2.5 rounded-lg bg-teal-500/10">
-                <Search className="h-5 w-5 text-teal-600" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {language === 'fr' ? 'Recherches ce mois' : 'Searches this month'}
+            </CardTitle>
+            <div className="p-2 rounded-lg bg-teal-500/10">
+              <Search className="h-4 w-4 text-teal-600" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.searchesThisMonth}</div>
+            {stats.searchSuccessRate > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats.searchSuccessRate}% {language === 'fr' ? 'taux de succès' : 'success rate'}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
