@@ -127,8 +127,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/users', 
       icon: Users, 
       label: t('nav.users'),
-      // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      // Ultra Admin and Super Admin only — never IT Admin in restricted mode
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/clients', 
@@ -141,20 +141,20 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       icon: Activity, 
       label: t('nav.activity'),
       // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/analytics', 
       icon: BarChart3, 
       label: t('nav.analytics'),
       // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/pulse', 
       icon: Gauge, 
       label: language === 'fr' ? 'Pulse Admin' : 'Admin Pulse',
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/audit-logs', 
