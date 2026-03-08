@@ -104,25 +104,6 @@ export function RoleAcknowledgmentModal({ open, onAcknowledge }: RoleAcknowledgm
               </div>
             </div>
 
-            {/* WORM Warning for Fiscal */}
-            {permissions.requiresImmutability && (
-              <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-amber-800 dark:text-amber-300">
-                      {language === 'fr' ? 'Mode Immutabilité WORM' : 'WORM Immutability Mode'}
-                    </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                      {language === 'fr' 
-                        ? 'Ce module impose une immutabilité totale. Les documents ne peuvent pas être supprimés.'
-                        : 'This module enforces total immutability. Documents cannot be deleted.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <Separator />
 
             {/* Permissions */}
