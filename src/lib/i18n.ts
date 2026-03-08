@@ -291,6 +291,7 @@ export const translations = {
       logout: 'Logout',
       auditLogs: 'Audit Logs',
       admin: 'Admin',
+      myDocuments: 'My Documents',
     },
     // Auth
     auth: {
