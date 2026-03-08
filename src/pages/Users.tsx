@@ -622,6 +622,9 @@ export default function Users() {
 
 
   const filteredUsers = users.filter(user => {
+    // Hide Ultra Admins from non-Ultra Admin users
+    if (!isUltraAdmin && user.role === 'ultra_admin') return false;
+    
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       user.email.toLowerCase().includes(searchLower) ||
