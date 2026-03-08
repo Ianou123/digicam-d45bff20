@@ -307,6 +307,95 @@ export default function MyAuthorization() {
     );
   }
 
+  // ==================== IT ADMIN (RESTRICTED MODULE) VIEW ====================
+  if (isRestrictedITAdmin) {
+    const departmentLabel = userDepartments[0]?.name || (language === 'fr' ? 'Non assigné' : 'Unassigned');
+
+    const canDoItems = [
+      language === 'fr' ? 'Importer des documents' : 'Upload documents',
+      language === 'fr' ? 'Voir l’historique de mes téléversements' : 'View my upload history',
+      language === 'fr' ? 'Assigner des documents à un département' : 'Assign documents to a department',
+    ];
+
+    const cannotDoItems = [
+      language === 'fr' ? 'Rechercher des documents' : 'Search documents',
+      language === 'fr' ? 'Consulter des documents' : 'View documents',
+      language === 'fr' ? 'Télécharger des documents' : 'Download documents',
+      language === 'fr' ? 'Gérer les utilisateurs' : 'Manage users',
+      language === 'fr' ? 'Voir les logs d’activité' : 'View activity logs',
+      language === 'fr' ? 'Voir les statistiques' : 'View analytics',
+      language === 'fr' ? 'Gérer les départements' : 'Manage departments',
+    ];
+
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Mon Habilitation' : 'My Authorization'}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {language === 'fr'
+              ? 'Vos droits dans le module Administratif'
+              : 'Your rights in the Administrative module'}
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">{language === 'fr' ? 'Mon Rôle' : 'My Role'}</CardTitle></CardHeader>
+            <CardContent><Badge variant="destructive">IT Admin</Badge></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">{language === 'fr' ? 'Mon Module' : 'My Module'}</CardTitle></CardHeader>
+            <CardContent><Badge variant="secondary">{language === 'fr' ? 'Administratif' : 'Administrative'}</Badge></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">{language === 'fr' ? 'Mon Département' : 'My Department'}</CardTitle></CardHeader>
+            <CardContent><Badge variant="outline">{departmentLabel}</Badge></CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{language === 'fr' ? 'Ce que je peux faire' : 'What I can do'}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {canDoItems.map((item) => (
+              <div key={item} className="flex items-center gap-2 text-sm p-2 rounded bg-success/10">
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{language === 'fr' ? 'Ce que je ne peux pas faire' : 'What I cannot do'}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {cannotDoItems.map((item) => (
+              <div key={item} className="flex items-center gap-2 text-sm p-2 rounded bg-destructive/10">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-warning">
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              {language === 'fr'
+                ? 'Dans le module Administratif, la personne qui importe les documents n\'est pas celle qui les consulte. Cette séparation garantit la sécurité et la traçabilité de vos archives. Pour toute question, contactez votre Super Administrateur.'
+                : 'In the Administrative module, the person uploading documents is not the one consulting them. This separation guarantees security and traceability. For any question, contact your Super Admin.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // ==================== STANDARD USER VIEW ====================
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

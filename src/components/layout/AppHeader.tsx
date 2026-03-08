@@ -148,8 +148,8 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
 
       {/* Right: badges, language, notifications */}
       <div className="flex items-center gap-3">
-        {/* Right Content (Import button) - NOT shown for Ultra Admin */}
-        {!isUltraAdmin && rightContent}
+        {/* Right Content (Import button) - hidden for Ultra Admin and upload-only IT Admin */}
+        {!isUltraAdmin && !isRestrictedITAdmin && rightContent}
 
         {/* Organization Name - visible for all users with a client */}
         {clientName && (

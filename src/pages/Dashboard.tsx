@@ -587,6 +587,10 @@ export default function Dashboard() {
     );
   }
 
+  if (isRestrictedITAdmin) {
+    return <ITAdminDashboard />;
+  }
+
   // ==================== STAFF USER DASHBOARD ====================
   const isStaffUser = !isSuperAdmin && !isClientAdmin;
   if (isStaffUser) {

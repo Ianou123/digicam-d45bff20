@@ -54,7 +54,7 @@ const App = () => (
                 <Route path="/departments" element={<Departments />} />
                 <Route path="/shared-with-me" element={<SharedWithMe />} />
                 <Route path="/my-authorization" element={<MyAuthorization />} />
-                <Route path="/my-documents" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/my-documents" element={<MyDocuments />} />
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/users" element={<Users />} />
