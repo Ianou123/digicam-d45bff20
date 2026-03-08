@@ -248,8 +248,8 @@ export function getRestrictionReason(
   if (role === 'staff' && isAdminModule) {
     if (['canUploadDocuments', 'canEditDocuments'].includes(permission)) {
       return language === 'fr'
-        ? 'Réservé aux administrateurs en module Administratif'
-        : 'Reserved for administrators in Administrative module';
+        ? 'Séparation des tâches : réservé à l\'Admin IT en module Administratif'
+        : 'Separation of duties: reserved for IT Admin in Administrative module';
     }
   }
   
