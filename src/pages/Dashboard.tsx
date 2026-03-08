@@ -414,7 +414,7 @@ export default function Dashboard() {
               {clientStatus.inactive > 0 && <p className="text-xs text-muted-foreground mt-1">{clientStatus.inactive} {language === 'fr' ? 'inactive(s)' : 'inactive'}</p>}
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Utilisateurs Totaux' : 'Total Users'}</CardTitle>
               <Users className="h-4 w-4 text-blue-500" />
