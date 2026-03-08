@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, 
   FileText, 
-  FolderOpen,
+  
   Upload, 
   Users, 
   Building2, 
@@ -157,9 +157,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const isAdmin = isSuperAdmin || (isClientAdmin && !isRestrictedITAdmin);
 
   const mainNavItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard'), show: isAdmin },
+    { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
     { href: '/documents', icon: FileText, label: isRestrictedITAdmin ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents') : (language === 'fr' ? 'Documents' : 'Documents'), show: true },
-    { href: '/my-documents', icon: FolderOpen, label: language === 'fr' ? 'Mes Documents' : 'My Documents', show: !isRestrictedITAdmin && isStaffUser },
     { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: !isRestrictedITAdmin },
     { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
   ];
@@ -180,7 +179,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
-        <Link to={isStaffUser ? '/documents' : '/dashboard'} className="flex items-center gap-3">
+        <Link to="/dashboard" className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
