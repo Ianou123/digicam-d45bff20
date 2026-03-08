@@ -346,11 +346,6 @@ export default function Dashboard() {
       }
 
       setStats({ totalDocuments: docsCount || 0, totalUsers: usersCount, totalClients: clientsCount });
-      const mappedActivity = (activityData || []).map((activity: any) => ({
-        ...activity,
-        user_name: activity.profiles?.full_name || activity.profiles?.email?.split('@')[0] || null,
-      }));
-      setRecentActivity(mappedActivity as ActivityItem[]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
