@@ -120,21 +120,21 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Global Search Bar - hidden on documents page */}
+      {/* Center: Global Search Bar */}
+      <div className="flex justify-center">
         {showGlobalSearch && (
           <form 
-            className="hidden md:flex items-center"
+            className="hidden md:flex items-center w-full max-w-lg"
             onSubmit={handleSearchSubmit}
           >
-            <div className="relative">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder={searchPlaceholder}
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-[200px] lg:w-[320px] pl-9 h-9 text-sm"
+                className="w-full pl-9 h-9 text-sm"
               />
               <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                 <span className="text-xs">⌘</span>K
@@ -142,7 +142,10 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
             </div>
           </form>
         )}
+      </div>
 
+      {/* Right: badges, language, notifications */}
+      <div className="flex items-center gap-3">
         {/* Right Content (Import button) - NOT shown for Ultra Admin */}
         {!isUltraAdmin && rightContent}
 
