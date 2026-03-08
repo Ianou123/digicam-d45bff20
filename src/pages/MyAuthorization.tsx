@@ -131,7 +131,6 @@ export default function MyAuthorization() {
 
   const getModuleIcon = () => {
     switch (moduleInfo.icon) {
-      case 'lock': return <Lock className="h-5 w-5" />;
       case 'shield': return <Shield className="h-5 w-5" />;
       default: return <Building2 className="h-5 w-5" />;
     }
@@ -139,7 +138,6 @@ export default function MyAuthorization() {
 
   const getModuleBadgeColor = () => {
     switch (module) {
-      case 'fiscal': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
       case 'admin_publique': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       default: return 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300';
     }
