@@ -98,10 +98,10 @@ export const ROLE_INFO: Record<AppRole, RoleInfo> = {
   },
   staff: {
     key: 'staff',
-    labelFr: 'Staff',
-    labelEn: 'Staff',
-    descriptionFr: 'Utilisateur standard - Consultation et recherche',
-    descriptionEn: 'Standard user - Viewing and searching',
+    labelFr: 'Utilisateur',
+    labelEn: 'User',
+    descriptionFr: 'Utilisateur standard - Consultation, recherche et téléchargement',
+    descriptionEn: 'Standard user - Viewing, searching and downloading',
   },
 };
 
