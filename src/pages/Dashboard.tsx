@@ -427,10 +427,12 @@ export default function Dashboard() {
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md hover:scale-[1.02] transition-all">
+          <Card className="border-l-4 border-l-amber-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Documents Traités' : 'Documents Processed'}</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <FileText className="h-4 w-4 text-amber-600" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalDocuments}</div>
