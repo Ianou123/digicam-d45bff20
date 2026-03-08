@@ -645,11 +645,13 @@ export default function Users() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('users.title')}</h2>
+          <h2 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Utilisateurs' : 'Users'}
+          </h2>
           <p className="text-muted-foreground">
-            {language === 'fr' 
-              ? 'Gérez les utilisateurs de votre organisation'
-              : 'Manage users in your organization'}
+            {isUltraAdmin 
+              ? (language === 'fr' ? 'Tous les utilisateurs de la plateforme DigiCam' : 'All users on the DigiCam platform')
+              : (language === 'fr' ? 'Gérez les utilisateurs de votre organisation' : 'Manage users in your organization')}
           </p>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
