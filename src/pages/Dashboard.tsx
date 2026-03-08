@@ -241,7 +241,7 @@ export default function Dashboard() {
       const userDeptId = profile?.department_id;
       let recentDocsQuery = supabase
         .from('documents')
-        .select(`id, title, document_type, confidentiality_level, status, created_at, updated_at, tags, current_version, department_id, departments(name)`)
+        .select(`id, title, document_type, confidentiality_level, status, created_at, updated_at, tags, current_version, department_id, departments!documents_department_id_fkey(name)`)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(10);
