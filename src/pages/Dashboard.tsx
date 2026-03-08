@@ -407,7 +407,9 @@ export default function Dashboard() {
           <Card className="border-l-4 border-l-green-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Organisations Actives' : 'Active Organizations'}</CardTitle>
-              <Building2 className="h-4 w-4 text-green-500" />
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <Building2 className="h-4 w-4 text-green-600" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{clientStatus.active}</div>
@@ -417,16 +419,20 @@ export default function Dashboard() {
           <Card className="border-l-4 border-l-blue-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Utilisateurs Totaux' : 'Total Users'}</CardTitle>
-              <Users className="h-4 w-4 text-blue-500" />
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md hover:scale-[1.02] transition-all">
+          <Card className="border-l-4 border-l-amber-500 hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Documents Traités' : 'Documents Processed'}</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <FileText className="h-4 w-4 text-amber-600" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalDocuments}</div>
@@ -435,7 +441,9 @@ export default function Dashboard() {
           <Card className="border-l-4 border-l-primary hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Activité (7j)' : 'Activity (7d)'}</CardTitle>
-              {activityTrend.percentChange >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
+              <div className="p-2 rounded-lg bg-primary/10">
+                {activityTrend.percentChange >= 0 ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{activityTrend.current}</div>
@@ -559,7 +567,7 @@ export default function Dashboard() {
               <Building2 className="h-16 w-16 text-muted-foreground/30 mb-4" />
               <h3 className="text-lg font-semibold mb-2">{language === 'fr' ? 'Prêt à démarrer ?' : 'Ready to start?'}</h3>
               <p className="text-muted-foreground text-center mb-4 max-w-md">{language === 'fr' ? 'Créez votre première organisation pour commencer.' : 'Create your first organization to get started.'}</p>
-              <Button onClick={() => navigate('/clients')} className="bg-teal-600 hover:bg-teal-700 text-white">
+              <Button onClick={() => navigate('/clients')} className="btn-institutional">
                 <Building2 className="h-4 w-4 mr-2" />
                 {language === 'fr' ? 'Créer une organisation →' : 'Create an organization →'}
               </Button>
