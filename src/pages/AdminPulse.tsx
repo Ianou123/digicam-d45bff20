@@ -52,7 +52,7 @@ interface PopularSearch {
 
 export default function AdminPulse() {
   const navigate = useNavigate();
-  const { profile, isClientAdmin, isSuperAdmin } = useAuth();
+  const { user, profile, isClientAdmin, isSuperAdmin } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -254,6 +254,11 @@ export default function AdminPulse() {
         const { data: ultraRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'ultra_admin').in('user_id', userIds);
         const ultraIds = new Set(ultraRoles?.map(r => r.user_id) || []);
         filteredUserIds = userIds.filter(id => !ultraIds.has(id));
+      }
+
+      const fallbackUserId = user?.id || profile?.id;
+      if (filteredUserIds.length === 0 && fallbackUserId) {
+        filteredUserIds = [fallbackUserId];
       }
       const totalUsers = filteredUserIds.length;
 
