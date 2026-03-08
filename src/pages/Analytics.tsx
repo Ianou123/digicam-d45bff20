@@ -62,8 +62,12 @@ export default function Analytics() {
 
       // Active users (had activity in last 30 days)
       const thirtyDaysAgo = subDays(new Date(), 30);
-      const { data: activeData } = await supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
-      const activeUserIds = new Set(activeData?.map(a => a.user_id) || []);
+      let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
+      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
+      const { data: activeData } = await activeQuery;
+      // Only count users that belong to the fetched user list
+      const userIdSet = new Set(usersData?.map(u => u.id) || []);
+      const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => userIdSet.has(id)));
 
       // Activity logs
       const { data: activityData } = await supabase.from('activity_logs').select('action_type, document_id, client_id, created_at');

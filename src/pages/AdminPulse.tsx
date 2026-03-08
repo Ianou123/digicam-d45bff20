@@ -246,17 +246,35 @@ export default function AdminPulse() {
       if (!isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: users } = await userQuery;
 
-      const totalUsers = users?.length || 0;
+      // Only count users that are in the org (exclude ultra_admins)
+      const userIds = users?.map(u => u.id) || [];
+      // Filter out ultra_admin users
+      let filteredUserIds = userIds;
+      if (userIds.length > 0) {
+        const { data: ultraRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'ultra_admin').in('user_id', userIds);
+        const ultraIds = new Set(ultraRoles?.map(r => r.user_id) || []);
+        filteredUserIds = userIds.filter(id => !ultraIds.has(id));
+      }
+      const totalUsers = filteredUserIds.length;
+
       const thirtyDaysAgo = subDays(new Date(), 30);
-      // Check activity logs for active users
       let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
       if (!isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
       const { data: activeData } = await activeQuery;
-      const activeUserIds = new Set(activeData?.map(a => a.user_id) || []);
+      const filteredSet = new Set(filteredUserIds);
+      const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => filteredSet.has(id)));
+
+      // Fetch search metrics fresh for health score (don't rely on stale state)
+      const startDate = subDays(new Date(), parseInt(timeRange)).toISOString();
+      let searchQuery = supabase.from('search_logs').select('result_count').gte('created_at', startDate);
+      if (!isSuperAdmin && profile?.client_id) searchQuery = searchQuery.eq('client_id', profile.client_id);
+      const { data: healthSearchLogs } = await searchQuery;
+      const healthTotalSearches = healthSearchLogs?.length || 0;
+      const healthSuccessful = healthSearchLogs?.filter(s => s.result_count > 0).length || 0;
+      const searchSuccessRate = healthTotalSearches > 0 ? (healthSuccessful / healthTotalSearches) * 100 : 100;
 
       // Health score calculation
       const storageScore = 80; // placeholder
-      const searchSuccessRate = metrics.totalSearches > 0 ? ((metrics.totalSearches - (metrics.totalSearches * metrics.failedSearchRate / 100)) / metrics.totalSearches) * 100 : 100;
       const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
       const archiveCoverage = searchSuccessRate;
       const healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
