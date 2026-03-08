@@ -71,10 +71,10 @@ export default function Clients() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isSuperAdmin) {
+    if (isUltraAdmin || isSuperAdmin) {
       fetchClients();
     }
-  }, [isSuperAdmin]);
+  }, [isUltraAdmin, isSuperAdmin]);
 
   const fetchClients = async () => {
     setLoading(true);
