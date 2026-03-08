@@ -319,7 +319,7 @@ export function UserDashboard() {
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card 
-          className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group border-2 border-transparent hover:border-primary/20"
+          className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group border-2 border-transparent hover:border-primary/20"
           onClick={() => navigate('/documents')}
         >
           <CardContent className="p-6 flex items-start gap-4">
@@ -339,7 +339,7 @@ export function UserDashboard() {
         </Card>
 
         <Card 
-          className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group border-2 border-transparent hover:border-primary/20"
+          className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group border-2 border-transparent hover:border-primary/20"
           onClick={() => navigate('/shared-with-me')}
         >
           <CardContent className="p-6 flex items-start gap-4">
