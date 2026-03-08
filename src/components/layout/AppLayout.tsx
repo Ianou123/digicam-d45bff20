@@ -28,9 +28,17 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole, moduleConfigured } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin, isClientAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole, moduleConfigured } = useAuth();
   const { t } = useLanguage();
+  const { isRestrictedModule } = useModulePermissions();
   const location = useLocation();
+
+  // IT Admin in Administrative module = restricted to specific routes only
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+  const allowedRoutesForRestrictedITAdmin = ['/upload', '/documents', '/settings'];
+  const isRouteAllowed = !isRestrictedITAdmin || allowedRoutesForRestrictedITAdmin.some(
+    route => location.pathname === route || location.pathname.startsWith(route + '/')
+  );
   
   // Dynamic page title based on route
   usePageTitle();
