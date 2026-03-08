@@ -75,23 +75,32 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     }
   };
 
+  // Staff sees Documents (search) first as their "home"
+  const isStaffUser = !isUltraAdmin && !isSuperAdmin && !isClientAdmin;
+
   const mainNavItems = [
     { 
       href: '/dashboard', 
       icon: LayoutDashboard, 
       label: t('nav.dashboard'),
-      // Hide dashboard for restricted IT Admin (they only upload)
-      show: !isRestrictedITAdmin
+      // Dashboard for admins only, not for staff or restricted IT Admin
+      show: !isRestrictedITAdmin && !isStaffUser
     },
     { 
       href: '/documents', 
       icon: FileText, 
       label: isRestrictedITAdmin 
         ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents')
-        : t('nav.documents'),
-      // Ultra admins access documents only via organization consultation
-      // Restricted IT Admin sees only their uploaded docs
+        : (language === 'fr' ? 'Recherche & Documents' : 'Search & Documents'),
+      // Main entry point for staff users (search-first)
       show: !isUltraAdmin
+    },
+    {
+      href: '/my-documents',
+      icon: FolderOpen,
+      label: language === 'fr' ? 'Mes Documents' : 'My Documents',
+      // Personal documents page for non-admin users
+      show: !isUltraAdmin && !isRestrictedITAdmin && isStaffUser
     },
     { 
       href: '/shared-with-me', 
@@ -109,15 +118,12 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/departments', 
       icon: FolderOpen, 
       label: t('nav.departments'),
-      // Ultra admins access departments only via organization consultation
-      // In restricted modules, only Super Admin can manage departments
       show: !isUltraAdmin && !isRestrictedITAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
     },
     { 
       href: '/upload', 
       icon: Upload, 
       label: t('nav.upload'),
-      // Hide upload for read-only staff in restricted modules
       show: permissions.canUploadDocuments && !isUltraAdmin 
     },
   ];
@@ -188,7 +194,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
-        <Link to="/dashboard" className="flex items-center gap-3">
+        <Link to={isStaffUser ? '/documents' : '/dashboard'} className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
