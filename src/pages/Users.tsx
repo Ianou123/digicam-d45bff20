@@ -715,8 +715,8 @@ export default function Users() {
                 ))}
               </SelectContent>
             </Select>
-            {/* Status filter for Super Admin */}
-            {isSuperAdmin && (
+            {/* Status filter */}
+            {(isUltraAdmin || isSuperAdmin) && (
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('users.status')} />
