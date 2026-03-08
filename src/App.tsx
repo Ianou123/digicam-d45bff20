@@ -25,6 +25,7 @@ import SharedWithMe from "./pages/SharedWithMe";
 import MyAuthorization from "./pages/MyAuthorization";
 import MyDocuments from "./pages/MyDocuments";
 import ModuleSetup from "./pages/ModuleSetup";
+import Guide from "./pages/Guide";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/pulse" element={<AdminPulse />} />
+                <Route path="/guide" element={<Guide />} />
               </Route>
               
               {/* Catch-all */}

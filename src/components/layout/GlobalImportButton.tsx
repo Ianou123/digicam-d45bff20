@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export function GlobalImportButton() {
-  const { profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
+  const { profile, canManageDocuments, isUltraAdmin, isSuperAdmin, isClientSuspended } = useAuth();
   const { language } = useLanguage();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -90,8 +90,8 @@ export function GlobalImportButton() {
     setUploadModalOpen(true);
   };
 
-  // Don't render for super admin or if user can't manage documents
-  if (isSuperAdmin || !canManageDocuments) {
+  // Don't render for ultra admin, super admin, or if user can't manage documents
+  if (isUltraAdmin || isSuperAdmin || !canManageDocuments) {
     return null;
   }
 

@@ -51,7 +51,7 @@ interface ClientWithStats {
 }
 
 export default function Clients() {
-  const { isSuperAdmin, user } = useAuth();
+  const { isUltraAdmin, isSuperAdmin, user } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -71,10 +71,10 @@ export default function Clients() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isSuperAdmin) {
+    if (isUltraAdmin || isSuperAdmin) {
       fetchClients();
     }
-  }, [isSuperAdmin]);
+  }, [isUltraAdmin, isSuperAdmin]);
 
   const fetchClients = async () => {
     setLoading(true);
@@ -396,7 +396,7 @@ export default function Clients() {
     );
   });
 
-  if (!isSuperAdmin) {
+  if (!isUltraAdmin && !isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -405,16 +405,18 @@ export default function Clients() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('clients.title')}</h2>
+          <h2 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Organisations' : 'Organizations'}
+          </h2>
           <p className="text-muted-foreground">
             {language === 'fr' 
-              ? 'Gérez les organisations clientes de DigiCam'
-              : 'Manage DigiCam client organizations'}
+              ? 'Gérer les organisations de la plateforme'
+              : 'Manage platform organizations'}
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
+        <Button onClick={() => setIsAddModalOpen(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
-          {t('clients.addClient')}
+          {language === 'fr' ? '+ Créer une Organisation' : '+ Create Organization'}
         </Button>
       </div>
 

@@ -645,11 +645,13 @@ export default function Users() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('users.title')}</h2>
+          <h2 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Utilisateurs' : 'Users'}
+          </h2>
           <p className="text-muted-foreground">
-            {language === 'fr' 
-              ? 'Gérez les utilisateurs de votre organisation'
-              : 'Manage users in your organization'}
+            {isUltraAdmin 
+              ? (language === 'fr' ? 'Tous les utilisateurs de la plateforme DigiCam' : 'All users on the DigiCam platform')
+              : (language === 'fr' ? 'Gérez les utilisateurs de votre organisation' : 'Manage users in your organization')}
           </p>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
@@ -671,12 +673,12 @@ export default function Users() {
                 className="pl-10"
               />
             </div>
-            {/* Organization filter for Super Admin */}
-            {isSuperAdmin && (
+            {/* Organization filter for Ultra Admin or Super Admin */}
+            {(isUltraAdmin || isSuperAdmin) && (
               <Select value={clientFilter} onValueChange={setClientFilter}>
                 <SelectTrigger className="w-[200px]">
                   <Building2 className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder={language === 'fr' ? 'Organisation' : 'Organization'} />
+                  <SelectValue placeholder={language === 'fr' ? 'Toutes les organisations' : 'All organizations'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
@@ -693,7 +695,8 @@ export default function Users() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{language === 'fr' ? 'Tous les rôles' : 'All roles'}</SelectItem>
-                {isSuperAdmin && <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>}
+                {isUltraAdmin && <SelectItem value="ultra_admin">Ultra Admin</SelectItem>}
+                {(isUltraAdmin || isSuperAdmin) && <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>}
                 <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                 <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 <SelectItem value="none">{language === 'fr' ? 'Aucun rôle' : 'No role'}</SelectItem>
@@ -712,8 +715,8 @@ export default function Users() {
                 ))}
               </SelectContent>
             </Select>
-            {/* Status filter for Super Admin */}
-            {isSuperAdmin && (
+            {/* Status filter */}
+            {(isUltraAdmin || isSuperAdmin) && (
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('users.status')} />

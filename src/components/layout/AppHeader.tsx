@@ -85,6 +85,23 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
     );
   };
 
+  // Ultra Admin search targets orgs/users, not documents
+  const searchPlaceholder = isUltraAdmin
+    ? (language === 'fr' ? 'Rechercher une organisation ou un utilisateur...' : 'Search an organization or user...')
+    : (language === 'fr' ? 'Rechercher des documents...' : 'Search documents...');
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!globalSearch.trim()) return;
+    if (isUltraAdmin) {
+      // Ultra Admin: search in users or clients page
+      navigate(`/users?search=${encodeURIComponent(globalSearch.trim())}`);
+    } else {
+      navigate(`/documents?search=${encodeURIComponent(globalSearch.trim())}`);
+    }
+    setGlobalSearch('');
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       <div className="flex items-center gap-4">
@@ -108,22 +125,16 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
         {showGlobalSearch && (
           <form 
             className="hidden md:flex items-center"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (globalSearch.trim()) {
-                navigate(`/documents?search=${encodeURIComponent(globalSearch.trim())}`);
-                setGlobalSearch('');
-              }
-            }}
+            onSubmit={handleSearchSubmit}
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder={language === 'fr' ? 'Rechercher des documents...' : 'Search documents...'}
+                placeholder={searchPlaceholder}
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="w-[200px] lg:w-[280px] pl-9 h-9 text-sm"
+                className="w-[200px] lg:w-[320px] pl-9 h-9 text-sm"
               />
               <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                 <span className="text-xs">⌘</span>K
@@ -132,8 +143,8 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
           </form>
         )}
 
-        {/* Right Content (e.g., Import button) */}
-        {rightContent}
+        {/* Right Content (Import button) - NOT shown for Ultra Admin */}
+        {!isUltraAdmin && rightContent}
 
         {/* Organization Name - visible for all users with a client */}
         {clientName && (

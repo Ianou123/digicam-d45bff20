@@ -395,6 +395,13 @@ export default function Activity() {
                         <span className="text-sm text-muted-foreground italic">
                           "{log.search_query}"
                         </span>
+                      ) : isUltraAdmin ? (
+                        // Ultra Admin: hide document names for privacy
+                        <span className="text-sm text-muted-foreground italic">
+                          {log.document_title 
+                            ? (language === 'fr' ? 'un document' : 'a document')
+                            : '-'}
+                        </span>
                       ) : log.document_title ? (
                         <span className="text-sm">{log.document_title}</span>
                       ) : (
