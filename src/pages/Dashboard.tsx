@@ -422,40 +422,43 @@ export default function Dashboard() {
             {t('dashboard.welcome')}, {profile?.full_name || 'Administrateur'}
           </h2>
           <p className="text-muted-foreground">
-            {language === 'fr' ? 'Vue d\'ensemble de la plateforme' : 'Platform overview'}
+            {language === 'fr' ? 'Centre de contrôle de la plateforme DigiCam' : 'DigiCam Platform Control Center'}
           </p>
         </div>
 
-        {/* Client Status Stats */}
+        {/* Platform Health Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-l-4 border-l-green-500">
+          <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Clients actifs' : 'Active Clients'}</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Organisations Actives' : 'Active Organizations'}</CardTitle>
+              <Building2 className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{clientStatus.active}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {clientStatus.inactive > 0 && `${clientStatus.inactive} ${language === 'fr' ? 'inactive(s)' : 'inactive'}`}
+              </p>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-muted">
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Clients inactifs' : 'Inactive Clients'}</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Utilisateurs Totaux' : 'Total Users'}</CardTitle>
+              <Users className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clientStatus.inactive}</div>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-destructive">
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Clients suspendus' : 'Suspended Clients'}</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Documents Traités' : 'Documents Processed'}</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clientStatus.suspended}</div>
+              <div className="text-2xl font-bold">{stats.totalDocuments}</div>
             </CardContent>
           </Card>
-          <Card className="border-l-4 border-l-primary">
+          <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Activité (7j)' : 'Activity (7d)'}</CardTitle>
               {activityTrend.percentChange >= 0 ? (
@@ -473,37 +476,66 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Secondary Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <StatsCard
-            title={t('dashboard.totalDocuments')}
-            value={stats.totalDocuments}
-            icon={FileText}
-          />
-          <StatsCard
-            title={t('nav.users')}
-            value={stats.totalUsers}
-            icon={Users}
-          />
-          <StatsCard
-            title={t('nav.clients')}
-            value={stats.totalClients}
-            icon={Building2}
-          />
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Clients Needing Attention */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Content Grid: Activity Feed + Attention Alerts */}
+        <div className="grid gap-6 lg:grid-cols-5">
+          {/* Activity Feed (60%) */}
+          <div className="lg:col-span-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-serif">
-                  {language === 'fr' ? 'Clients nécessitant attention' : 'Clients Needing Attention'}
+                  {language === 'fr' ? 'Activité Récente' : 'Recent Activity'}
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/clients')}>
-                  {language === 'fr' ? 'Voir tous' : 'View all'}
+                <Button variant="ghost" size="sm" onClick={() => navigate('/activity')}>
+                  {language === 'fr' ? 'Voir tout →' : 'View all →'}
                 </Button>
+              </CardHeader>
+              <CardContent>
+                {recentActivity.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentActivity.slice(0, 10).map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm">
+                            <span className="font-medium">{activity.user_name || 'Utilisateur'}</span>
+                            {' '}
+                            <span className="text-muted-foreground">
+                              {activity.action_type === 'view' && (language === 'fr' ? 'a consulté un document' : 'viewed a document')}
+                              {activity.action_type === 'upload' && (language === 'fr' ? 'a uploadé un document' : 'uploaded a document')}
+                              {activity.action_type === 'download' && (language === 'fr' ? 'a téléchargé un document' : 'downloaded a document')}
+                              {activity.action_type === 'search' && (language === 'fr' ? 'a effectué une recherche' : 'performed a search')}
+                              {activity.action_type === 'update' && (language === 'fr' ? 'a modifié un document' : 'updated a document')}
+                              {activity.action_type === 'delete' && (language === 'fr' ? 'a supprimé un document' : 'deleted a document')}
+                            </span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(activity.created_at).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { 
+                              hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>{language === 'fr' ? 'Aucune activité récente' : 'No recent activity'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Attention Alerts (40%) */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-serif">
+                  {language === 'fr' ? 'Organisations Nécessitant Attention' : 'Organizations Needing Attention'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {clientsNeedingAttention.length > 0 ? (
@@ -512,18 +544,25 @@ export default function Dashboard() {
                       <div 
                         key={client.id} 
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                        onClick={() => navigate('/clients')}
+                        onClick={() => navigate(`/clients/${client.id}`)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-primary" />
+                          <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center",
+                            client.status === 'suspended' ? 'bg-destructive/10' : 'bg-amber-500/10'
+                          )}>
+                            {client.status === 'suspended' 
+                              ? <AlertTriangle className="h-5 w-5 text-destructive" />
+                              : <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            }
                           </div>
                           <div>
-                            <p className="font-medium">{client.name}</p>
+                            <p className="font-medium text-sm">{client.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {client.last_activity_at 
-                                ? `${language === 'fr' ? 'Dernière activité' : 'Last activity'}: ${new Date(client.last_activity_at).toLocaleDateString()}`
-                                : language === 'fr' ? 'Aucune activité' : 'No activity'}
+                              {client.status === 'suspended' 
+                                ? (language === 'fr' ? 'Suspendue' : 'Suspended')
+                                : (language === 'fr' ? 'Inactivité prolongée' : 'Extended inactivity')
+                              }
                             </p>
                           </div>
                         </div>
@@ -533,8 +572,13 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>{language === 'fr' ? 'Tous les clients sont en bonne santé' : 'All clients are healthy'}</p>
+                    <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500/30" />
+                    <p className="font-medium">
+                      {language === 'fr' ? '✅ Tout est normal' : '✅ All is well'}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {language === 'fr' ? 'Aucune action requise.' : 'No action required.'}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -544,10 +588,10 @@ export default function Dashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-serif">
-                  {t('deactivation.deactivatedUsers')}
+                  {language === 'fr' ? 'Utilisateurs Désactivés' : 'Deactivated Users'}
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
-                  {language === 'fr' ? 'Voir tous' : 'View all'}
+                <Button variant="ghost" size="sm" onClick={() => navigate('/users?status=deactivated')}>
+                  {language === 'fr' ? 'Gérer' : 'Manage'}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -556,37 +600,56 @@ export default function Dashboard() {
                     {deactivatedUsers.map((user) => (
                       <div 
                         key={user.id} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                        onClick={() => navigate('/users')}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                            <UserX className="h-5 w-5 text-destructive" />
+                          <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                            <UserX className="h-4 w-4 text-destructive" />
                           </div>
                           <div>
-                            <p className="font-medium">{user.full_name || user.email}</p>
+                            <p className="text-sm font-medium">{user.full_name || user.email}</p>
                             <p className="text-xs text-muted-foreground">
-                              {user.clients?.name || (language === 'fr' ? 'Aucune organisation' : 'No organization')}
+                              {user.clients?.name || (language === 'fr' ? 'Sans organisation' : 'No organization')}
                             </p>
                           </div>
                         </div>
-                        <Badge variant="destructive">{t('deactivation.deactivated')}</Badge>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>{t('deactivation.noDeactivatedUsers')}</p>
+                  <div className="text-center py-6 text-muted-foreground">
+                    <UserCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">{language === 'fr' ? 'Aucun utilisateur désactivé' : 'No deactivated users'}</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
-
-          {/* Activity Timeline */}
-          <ActivityTimeline activities={recentActivity} showUser maxItems={8} />
         </div>
+
+        {/* Empty State CTA if no orgs */}
+        {stats.totalClients === 0 && (
+          <Card className="border-dashed border-2">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Building2 className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {language === 'fr' ? 'Prêt à démarrer ?' : 'Ready to start?'}
+              </h3>
+              <p className="text-muted-foreground text-center mb-4 max-w-md">
+                {language === 'fr' 
+                  ? 'Créez votre première organisation pour commencer à gérer des documents sur la plateforme DigiCam.'
+                  : 'Create your first organization to start managing documents on the DigiCam platform.'}
+              </p>
+              <Button 
+                onClick={() => navigate('/clients')} 
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                {language === 'fr' ? 'Créer une organisation →' : 'Create an organization →'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }

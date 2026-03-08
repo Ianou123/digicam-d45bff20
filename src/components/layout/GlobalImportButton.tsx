@@ -90,8 +90,8 @@ export function GlobalImportButton() {
     setUploadModalOpen(true);
   };
 
-  // Don't render for super admin or if user can't manage documents
-  if (isSuperAdmin || !canManageDocuments) {
+  // Don't render for ultra admin, super admin, or if user can't manage documents
+  if (isUltraAdmin || isSuperAdmin || !canManageDocuments) {
     return null;
   }
 
