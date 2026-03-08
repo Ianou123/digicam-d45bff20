@@ -156,11 +156,17 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
+      // Fetch profiles - filter by client_id for non-ultra-admins
+      let profilesQuery = supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (!isUltraAdmin && profile?.client_id) {
+        profilesQuery = profilesQuery.eq('client_id', profile.client_id);
+      }
+
+      const { data: profiles, error: profilesError } = await profilesQuery;
 
       if (profilesError) throw profilesError;
 
