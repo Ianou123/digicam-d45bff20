@@ -606,5 +606,3 @@ export default function AdminPulse() {
   );
 }
 
-// Need DownloadIcon for the popular docs section
-import { Download as DownloadIcon } from 'lucide-react';
