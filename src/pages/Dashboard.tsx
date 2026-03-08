@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ITAdminDashboard } from '@/components/dashboard/ITAdminDashboard';
+import { subDays, startOfDay, startOfMonth } from 'date-fns';
 
 interface Document {
   id: string;
