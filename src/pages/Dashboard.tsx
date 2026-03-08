@@ -441,7 +441,9 @@ export default function Dashboard() {
           <Card className="border-l-4 border-l-primary hover:shadow-md hover:scale-[1.02] transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{language === 'fr' ? 'Activité (7j)' : 'Activity (7d)'}</CardTitle>
-              {activityTrend.percentChange >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
+              <div className="p-2 rounded-lg bg-primary/10">
+                {activityTrend.percentChange >= 0 ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{activityTrend.current}</div>
