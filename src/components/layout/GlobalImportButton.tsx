@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export function GlobalImportButton() {
-  const { profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
+  const { profile, canManageDocuments, isUltraAdmin, isSuperAdmin, isClientSuspended } = useAuth();
   const { language } = useLanguage();
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
