@@ -51,7 +51,7 @@ interface ClientWithStats {
 }
 
 export default function Clients() {
-  const { isSuperAdmin, user } = useAuth();
+  const { isUltraAdmin, isSuperAdmin, user } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
