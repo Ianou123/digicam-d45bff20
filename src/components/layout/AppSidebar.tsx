@@ -41,6 +41,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const { t, language } = useLanguage();
   const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
 
+  // IT Admin in Administrative module = restricted view (upload only)
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
