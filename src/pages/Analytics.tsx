@@ -58,7 +58,8 @@ export default function Analytics() {
       let userQuery = supabase.from('profiles').select('id, updated_at');
       if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: usersData } = await userQuery;
-      const totalUsers = usersData?.length || 0;
+      const fallbackUserId = user?.id || profile?.id;
+      const totalUsers = (usersData?.length || 0) > 0 ? (usersData?.length || 0) : fallbackUserId ? 1 : 0;
 
       // Active users (had activity in last 30 days)
       const thirtyDaysAgo = subDays(new Date(), 30);

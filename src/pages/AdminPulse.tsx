@@ -255,6 +255,11 @@ export default function AdminPulse() {
         const ultraIds = new Set(ultraRoles?.map(r => r.user_id) || []);
         filteredUserIds = userIds.filter(id => !ultraIds.has(id));
       }
+
+      const fallbackUserId = user?.id || profile?.id;
+      if (filteredUserIds.length === 0 && fallbackUserId) {
+        filteredUserIds = [fallbackUserId];
+      }
       const totalUsers = filteredUserIds.length;
 
       const thirtyDaysAgo = subDays(new Date(), 30);
