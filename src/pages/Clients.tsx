@@ -405,11 +405,13 @@ export default function Clients() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('clients.title')}</h2>
+          <h2 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Organisations' : 'Organizations'}
+          </h2>
           <p className="text-muted-foreground">
             {language === 'fr' 
-              ? 'Gérez les organisations clientes de DigiCam'
-              : 'Manage DigiCam client organizations'}
+              ? 'Gérer les organisations de la plateforme'
+              : 'Manage platform organizations'}
           </p>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="btn-institutional">
