@@ -41,6 +41,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const { t, language } = useLanguage();
   const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
 
+  // IT Admin in Administrative module = restricted view (upload only)
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -77,26 +80,30 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/dashboard', 
       icon: LayoutDashboard, 
       label: t('nav.dashboard'),
-      show: true // Unified dashboard for all users
+      // Hide dashboard for restricted IT Admin (they only upload)
+      show: !isRestrictedITAdmin
     },
     { 
       href: '/documents', 
       icon: FileText, 
-      label: t('nav.documents'),
+      label: isRestrictedITAdmin 
+        ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents')
+        : t('nav.documents'),
       // Ultra admins access documents only via organization consultation
-      show: !isUltraAdmin 
+      // Restricted IT Admin sees only their uploaded docs
+      show: !isUltraAdmin
     },
     { 
       href: '/shared-with-me', 
       icon: Share2, 
       label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me',
-      show: !isUltraAdmin 
+      show: !isUltraAdmin && !isRestrictedITAdmin
     },
     { 
       href: '/my-authorization', 
       icon: KeyRound, 
       label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization',
-      show: true 
+      show: !isRestrictedITAdmin
     },
     { 
       href: '/departments', 
@@ -104,7 +111,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       label: t('nav.departments'),
       // Ultra admins access departments only via organization consultation
       // In restricted modules, only Super Admin can manage departments
-      show: !isUltraAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
+      show: !isUltraAdmin && !isRestrictedITAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
     },
     { 
       href: '/upload', 
@@ -120,8 +127,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/users', 
       icon: Users, 
       label: t('nav.users'),
-      // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      // Ultra Admin and Super Admin only — never IT Admin in restricted mode
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/clients', 
@@ -134,20 +141,20 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       icon: Activity, 
       label: t('nav.activity'),
       // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/analytics', 
       icon: BarChart3, 
       label: t('nav.analytics'),
       // Ultra Admin and Super Admin only
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/pulse', 
       icon: Gauge, 
       label: language === 'fr' ? 'Pulse Admin' : 'Admin Pulse',
-      show: isUltraAdmin || isSuperAdmin
+      show: !isRestrictedITAdmin && (isUltraAdmin || isSuperAdmin)
     },
     { 
       href: '/audit-logs', 

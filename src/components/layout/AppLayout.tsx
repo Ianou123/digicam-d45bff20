@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
@@ -9,6 +9,7 @@ import { RoleAcknowledgmentModal } from '@/components/auth/RoleAcknowledgmentMod
 import { DepartmentSelectionModal } from '@/components/auth/DepartmentSelectionModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/lib/utils';
 
@@ -27,9 +28,17 @@ const pageTitles: Record<string, string> = {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading, isClientSuspended, isSuperAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole, moduleConfigured } = useAuth();
+  const { user, loading, isClientSuspended, isSuperAdmin, isClientAdmin, isUserDeactivated, requiresRoleAcknowledgment, acknowledgeRole, moduleConfigured } = useAuth();
   const { t } = useLanguage();
+  const { isRestrictedModule } = useModulePermissions();
   const location = useLocation();
+
+  // IT Admin in Administrative module = restricted to specific routes only
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+  const allowedRoutesForRestrictedITAdmin = ['/upload', '/documents', '/settings'];
+  const isRouteAllowed = !isRestrictedITAdmin || allowedRoutesForRestrictedITAdmin.some(
+    route => location.pathname === route || location.pathname.startsWith(route + '/')
+  );
   
   // Dynamic page title based on route
   usePageTitle();
@@ -57,6 +66,11 @@ export function AppLayout() {
   // Block deactivated users with full-page message
   if (isUserDeactivated) {
     return <DeactivatedUserPage />;
+  }
+
+  // Redirect restricted IT Admin to /upload if accessing unauthorized route
+  if (!isRouteAllowed) {
+    return <Navigate to="/upload" replace />;
   }
 
   const titleKey = pageTitles[location.pathname];
