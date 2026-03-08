@@ -68,6 +68,11 @@ export function AppLayout() {
     return <DeactivatedUserPage />;
   }
 
+  // Redirect restricted IT Admin to /upload if accessing unauthorized route
+  if (!isRouteAllowed) {
+    return <Navigate to="/upload" replace />;
+  }
+
   const titleKey = pageTitles[location.pathname];
   const pageTitle = titleKey ? t(titleKey) : '';
 
