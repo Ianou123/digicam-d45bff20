@@ -622,6 +622,9 @@ export default function Users() {
 
 
   const filteredUsers = users.filter(user => {
+    // Hide Ultra Admins from non-Ultra Admin users
+    if (!isUltraAdmin && user.role === 'ultra_admin') return false;
+    
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       user.email.toLowerCase().includes(searchLower) ||
@@ -673,8 +676,8 @@ export default function Users() {
                 className="pl-10"
               />
             </div>
-            {/* Organization filter for Ultra Admin or Super Admin */}
-            {(isUltraAdmin || isSuperAdmin) && (
+            {/* Organization filter for Ultra Admin only */}
+            {isUltraAdmin && (
               <Select value={clientFilter} onValueChange={setClientFilter}>
                 <SelectTrigger className="w-[200px]">
                   <Building2 className="h-4 w-4 mr-2" />

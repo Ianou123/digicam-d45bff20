@@ -1,4 +1,4 @@
-import { Upload, FolderPlus, Tag, UserPlus } from 'lucide-react';
+import { Upload, Search, UserPlus, Activity, Building2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,44 +7,52 @@ import { useNavigate } from 'react-router-dom';
 
 interface QuickActionsProps {
   onImportClick: () => void;
-  onCreateFolderClick?: () => void;
-  onCreateTagClick?: () => void;
 }
 
-export function QuickActions({ 
-  onImportClick, 
-  onCreateFolderClick,
-  onCreateTagClick 
-}: QuickActionsProps) {
-  const { isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
+export function QuickActions({ onImportClick }: QuickActionsProps) {
+  const { isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
 
+  const isAdmin = isSuperAdmin || isClientAdmin;
+
   const actions = [
     {
-      label: language === 'fr' ? 'Importer' : 'Import',
+      label: language === 'fr' ? 'Importer un document' : 'Import document',
       icon: Upload,
       onClick: onImportClick,
       show: canManageDocuments && !isClientSuspended,
       primary: true,
     },
     {
-      label: language === 'fr' ? 'Créer dossier' : 'Create Folder',
-      icon: FolderPlus,
-      onClick: onCreateFolderClick,
-      show: isClientAdmin && onCreateFolderClick,
+      label: language === 'fr' ? 'Rechercher un document' : 'Search document',
+      icon: Search,
+      onClick: () => navigate('/documents'),
+      show: true,
     },
     {
-      label: language === 'fr' ? 'Créer étiquette' : 'Create Tag',
-      icon: Tag,
-      onClick: onCreateTagClick,
-      show: isClientAdmin && onCreateTagClick,
-    },
-    {
-      label: language === 'fr' ? 'Inviter utilisateur' : 'Invite User',
+      label: language === 'fr' ? 'Inviter un utilisateur' : 'Invite user',
       icon: UserPlus,
       onClick: () => navigate('/users'),
-      show: isClientAdmin,
+      show: isAdmin,
+    },
+    {
+      label: language === 'fr' ? 'Voir les logs' : 'View logs',
+      icon: Activity,
+      onClick: () => navigate('/activity'),
+      show: isAdmin,
+    },
+    {
+      label: language === 'fr' ? 'Gérer les départements' : 'Manage departments',
+      icon: Building2,
+      onClick: () => navigate('/departments'),
+      show: isAdmin,
+    },
+    {
+      label: language === 'fr' ? 'Voir les statistiques' : 'View statistics',
+      icon: BarChart3,
+      onClick: () => navigate('/admin-pulse'),
+      show: isAdmin,
     },
   ];
 
@@ -60,17 +68,16 @@ export function QuickActions({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {visibleActions.map((action, index) => (
             <Button
               key={index}
               variant={action.primary ? 'default' : 'outline'}
-              size="sm"
+              className={`h-auto py-4 flex flex-col items-center gap-2 ${action.primary ? 'btn-institutional' : 'hover:border-primary/50 hover:bg-primary/5'}`}
               onClick={action.onClick}
-              className={action.primary ? 'btn-institutional' : ''}
             >
-              <action.icon className="h-4 w-4 mr-2" />
-              {action.label}
+              <action.icon className="h-5 w-5" />
+              <span className="text-xs font-medium text-center leading-tight">{action.label}</span>
             </Button>
           ))}
         </div>
