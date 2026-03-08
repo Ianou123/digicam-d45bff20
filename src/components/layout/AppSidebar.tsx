@@ -1,7 +1,7 @@
 import { 
   LayoutDashboard, 
   FileText, 
-  FolderOpen,
+  
   Upload, 
   Users, 
   Building2, 
