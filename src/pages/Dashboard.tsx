@@ -120,6 +120,11 @@ export default function Dashboard() {
   }, [profile?.client_id, isRestrictedITAdmin]);
 
   const fetchDashboardData = async () => {
+    if (isRestrictedITAdmin) {
+      setLoading(false);
+      return;
+    }
+
     if (!profile?.client_id && !isSuperAdmin && !isUltraAdmin) {
       setLoading(false);
       return;
