@@ -79,6 +79,13 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
       );
     }
     if (isClientAdmin) {
+      return (
+        <Badge variant="secondary" className="bg-accent text-accent-foreground gap-1">
+          <Shield className="h-3 w-3" />
+          {t('users.clientAdmin')}
+        </Badge>
+      );
+    }
     return (
       <Badge variant="outline" className="gap-1">
         <User className="h-3 w-3" />
