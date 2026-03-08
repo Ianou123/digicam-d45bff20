@@ -21,8 +21,8 @@ import Activity from "./pages/Activity";
 import Analytics from "./pages/Analytics";
 import AuditLogs from "./pages/AuditLogs";
 import AdminPulse from "./pages/AdminPulse";
-import SharedWithMe from "./pages/SharedWithMe";
 import MyAuthorization from "./pages/MyAuthorization";
+import MyDocuments from "./pages/MyDocuments";
 
 import ModuleSetup from "./pages/ModuleSetup";
 import Guide from "./pages/Guide";

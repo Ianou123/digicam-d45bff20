@@ -14,10 +14,11 @@ import { UserDashboard } from '@/components/dashboard/UserDashboard';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { subDays, startOfDay, startOfMonth } from 'date-fns';
+import { ITAdminDashboard } from '@/components/dashboard/ITAdminDashboard';
 
 interface Document {
   id: string;

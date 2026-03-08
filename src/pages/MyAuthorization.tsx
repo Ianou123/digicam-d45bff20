@@ -38,7 +38,7 @@ const ULTRA_ADMIN_PERMISSIONS = {
 };
 
 export default function MyAuthorization() {
-  const { profile, user, isUltraAdmin } = useAuth();
+  const { profile, user, isUltraAdmin, isClientAdmin } = useAuth();
   const { language } = useLanguage();
   const { toast } = useToast();
   const { 

@@ -23,14 +23,15 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
-  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, clientName } = useAuth();
+  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, clientName, clientModule } = useAuth();
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const isRestrictedITAdmin = isClientAdmin && clientModule === 'admin_publique';
 
-  // Don't show global search on the documents page (it has its own search)
-  const showGlobalSearch = !location.pathname.startsWith('/documents');
+  // No global search for upload-only IT Admins nor documents pages
+  const showGlobalSearch = !isRestrictedITAdmin && !location.pathname.startsWith('/documents');
 
   // Fetch department name if user has one assigned
   useEffect(() => {
