@@ -877,7 +877,7 @@ export default function Users() {
                   {isSuperAdmin && (
                     <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>
                   )}
-                  {/* Admin IT only available in restricted modules (admin_publique, fiscal), not Core */}
+                  {/* Admin IT only available in Administrative module, not Core */}
                   {isRestrictedModule && (
                     <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                   )}
