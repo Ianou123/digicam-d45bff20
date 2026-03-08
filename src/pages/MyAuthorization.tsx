@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Shield, CheckCircle2, XCircle, Building2, Users, Send } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, Building2, Users, Send, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,25 @@ interface Department {
   name: string;
 }
 
+// Ultra Admin platform permissions (separate from module-based permissions)
+const ULTRA_ADMIN_PERMISSIONS = {
+  allowed: [
+    { fr: 'Créer des organisations', en: 'Create organizations' },
+    { fr: 'Gérer les organisations', en: 'Manage organizations' },
+    { fr: 'Voir les utilisateurs (toutes organisations)', en: 'View users (all organizations)' },
+    { fr: 'Voir les logs d\'activité (toutes organisations)', en: 'View activity logs (all organizations)' },
+    { fr: 'Voir les statistiques globales', en: 'View global statistics' },
+    { fr: 'Gérer les rôles', en: 'Manage roles' },
+  ],
+  denied: [
+    { fr: 'Accéder aux documents des organisations (confidentialité)', en: 'Access organization documents (confidentiality)' },
+    { fr: 'Télécharger des documents', en: 'Download documents' },
+    { fr: 'Uploader des documents', en: 'Upload documents' },
+  ],
+};
+
 export default function MyAuthorization() {
-  const { profile, user } = useAuth();
+  const { profile, user, isUltraAdmin } = useAuth();
   const { language } = useLanguage();
   const { toast } = useToast();
   const { 
@@ -44,7 +61,6 @@ export default function MyAuthorization() {
       }
 
       if (isRestrictedModule) {
-        // Fetch from user_departments junction table
         const { data } = await supabase
           .from('user_departments')
           .select('department_id, departments(id, name)')
@@ -61,7 +77,6 @@ export default function MyAuthorization() {
           );
         }
       } else if (profile.department_id) {
-        // Core module: single department from profile
         const { data } = await supabase
           .from('departments')
           .select('id, name')
@@ -76,14 +91,17 @@ export default function MyAuthorization() {
       setLoading(false);
     };
 
-    fetchUserDepartments();
-  }, [user, profile, isRestrictedModule]);
+    if (isUltraAdmin) {
+      setLoading(false);
+    } else {
+      fetchUserDepartments();
+    }
+  }, [user, profile, isRestrictedModule, isUltraAdmin]);
 
   const handleReportInconsistency = async () => {
     if (!user || !profile?.client_id) return;
 
     try {
-      // Create a notification for all super admins in the organization
       const { data: superAdmins } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -161,6 +179,134 @@ export default function MyAuthorization() {
     );
   }
 
+  // ==================== ULTRA ADMIN VIEW ====================
+  if (isUltraAdmin) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-serif font-semibold">
+            {language === 'fr' ? 'Mon Habilitation' : 'My Authorization'}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {language === 'fr' 
+              ? 'Consultez vos droits et responsabilités dans DigiCam'
+              : 'View your rights and responsibilities in DigiCam'}
+          </p>
+        </div>
+
+        {/* Role & Access Level */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                {language === 'fr' ? 'Mon Rôle' : 'My Role'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Badge variant="secondary" className="text-base px-3 py-1 bg-destructive/10 text-destructive border-destructive/20">
+                  Ultra Admin
+                </Badge>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'fr' 
+                    ? 'Personnel DigiCam - Gestion de la plateforme et des organisations'
+                    : 'DigiCam Staff - Platform and organization management'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                <span className="text-primary">
+                  {language === 'fr' ? 'Niveau d\'Accès' : 'Access Level'}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-base px-3 py-1">
+                  {language === 'fr' ? 'Plateforme' : 'Platform'}
+                </Badge>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'fr' 
+                    ? 'Accès administrateur à l\'ensemble de la plateforme DigiCam. Vous pouvez gérer les organisations, consulter les logs et voir les statistiques globales.'
+                    : 'Administrator access to the entire DigiCam platform. You can manage organizations, view logs and see global statistics.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ultra Admin Permissions Matrix */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {language === 'fr' ? 'Matrice des Permissions' : 'Permissions Matrix'}
+            </CardTitle>
+            <CardDescription>
+              {language === 'fr' 
+                ? 'Ce que vous pouvez et ne pouvez pas faire'
+                : 'What you can and cannot do'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Allowed */}
+            <div>
+              <h3 className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2 mb-3">
+                <CheckCircle2 className="h-5 w-5" />
+                {language === 'fr' ? 'Ce que je peux faire' : 'What I can do'}
+              </h3>
+              <div className="space-y-2">
+                {ULTRA_ADMIN_PERMISSIONS.allowed.map((p, i) => (
+                  <div 
+                    key={i} 
+                    className="flex items-center gap-2 text-sm p-2 rounded bg-green-50 dark:bg-green-950/30"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span>{language === 'fr' ? p.fr : p.en}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Denied */}
+            <div>
+              <h3 className="font-medium text-red-700 dark:text-red-400 flex items-center gap-2 mb-3">
+                <XCircle className="h-5 w-5" />
+                {language === 'fr' ? 'Ce que je ne peux pas faire' : 'What I cannot do'}
+              </h3>
+              <div className="space-y-2">
+                {ULTRA_ADMIN_PERMISSIONS.denied.map((p, i) => (
+                  <div 
+                    key={i} 
+                    className="flex items-start gap-2 text-sm p-2 rounded bg-red-50 dark:bg-red-950/30"
+                  >
+                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span>{language === 'fr' ? p.fr : p.en}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {language === 'fr'
+                          ? 'Confidentialité client — l\'Ultra Admin ne peut pas accéder au contenu des documents'
+                          : 'Client confidentiality — Ultra Admin cannot access document content'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ==================== STANDARD USER VIEW ====================
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
@@ -259,7 +405,6 @@ export default function MyAuthorization() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Allowed */}
           <div>
             <h3 className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2 mb-3">
               <CheckCircle2 className="h-5 w-5" />
@@ -280,7 +425,6 @@ export default function MyAuthorization() {
 
           <Separator />
 
-          {/* Denied */}
           <div>
             <h3 className="font-medium text-red-700 dark:text-red-400 flex items-center gap-2 mb-3">
               <XCircle className="h-5 w-5" />
