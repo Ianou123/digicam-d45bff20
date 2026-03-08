@@ -254,7 +254,12 @@ export function getRestrictionReason(
   }
   
   if (role === 'staff') {
-    if (['canManageUsers', 'canManageRoles', 'canManageDepartments', 'canViewAuditLogs', 'canViewAnalytics', 'canManageOrganization', 'canDeleteDocuments'].includes(permission)) {
+    if (['canUploadDocuments', 'canEditDocuments', 'canDeleteDocuments'].includes(permission)) {
+      return language === 'fr'
+        ? 'Réservé aux administrateurs'
+        : 'Reserved for administrators';
+    }
+    if (['canManageUsers', 'canManageRoles', 'canManageDepartments', 'canViewAuditLogs', 'canViewAnalytics', 'canManageOrganization'].includes(permission)) {
       return language === 'fr'
         ? 'Réservé aux administrateurs'
         : 'Reserved for administrators';
