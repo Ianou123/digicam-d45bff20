@@ -64,6 +64,7 @@ const App = () => (
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/pulse" element={<AdminPulse />} />
+                <Route path="/guide" element={<Guide />} />
               </Route>
               
               {/* Catch-all */}
