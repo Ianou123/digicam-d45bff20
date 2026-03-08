@@ -601,20 +601,7 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Super Admin Warning */}
-      {isSuperAdmin && (
-        <Alert variant="destructive" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-          <ShieldAlert className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 dark:text-amber-200">
-            {language === 'fr' ? 'Accès système' : 'System-level access'}
-          </AlertTitle>
-          <AlertDescription className="text-amber-700 dark:text-amber-300">
-            {language === 'fr' 
-              ? 'Les modifications ici affectent directement les données des clients. Utilisez les vues spécifiques aux clients quand possible.'
-              : 'Changes here directly affect client data. Use client-specific views when possible.'}
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Super Admin Warning - only shown to Super Admins viewing cross-org data, not regular admins */}
 
       {/* Header */}
       <div className="flex items-center justify-between">
