@@ -43,7 +43,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/setup" element={<ModuleSetup />} />
               {/* Root redirect handled by AppLayout based on role */}
-              <Route path="/" element={<Navigate to="/documents" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               
               {/* Protected routes with layout */}
               <Route element={<AppLayout />}>
