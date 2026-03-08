@@ -58,7 +58,7 @@ export default function Upload() {
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id, isFiscalSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
+  }, [profile?.client_id, isAdminSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;
