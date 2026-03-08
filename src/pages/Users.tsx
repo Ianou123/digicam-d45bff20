@@ -695,7 +695,8 @@ export default function Users() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{language === 'fr' ? 'Tous les rôles' : 'All roles'}</SelectItem>
-                {isSuperAdmin && <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>}
+                {isUltraAdmin && <SelectItem value="ultra_admin">Ultra Admin</SelectItem>}
+                {(isUltraAdmin || isSuperAdmin) && <SelectItem value="super_admin">{t('users.superAdmin')}</SelectItem>}
                 <SelectItem value="client_admin">{t('users.clientAdmin')}</SelectItem>
                 <SelectItem value="staff">{t('users.staff')}</SelectItem>
                 <SelectItem value="none">{language === 'fr' ? 'Aucun rôle' : 'No role'}</SelectItem>
