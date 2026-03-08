@@ -80,26 +80,30 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       href: '/dashboard', 
       icon: LayoutDashboard, 
       label: t('nav.dashboard'),
-      show: true // Unified dashboard for all users
+      // Hide dashboard for restricted IT Admin (they only upload)
+      show: !isRestrictedITAdmin
     },
     { 
       href: '/documents', 
       icon: FileText, 
-      label: t('nav.documents'),
+      label: isRestrictedITAdmin 
+        ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents')
+        : t('nav.documents'),
       // Ultra admins access documents only via organization consultation
-      show: !isUltraAdmin 
+      // Restricted IT Admin sees only their uploaded docs
+      show: !isUltraAdmin
     },
     { 
       href: '/shared-with-me', 
       icon: Share2, 
       label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me',
-      show: !isUltraAdmin 
+      show: !isUltraAdmin && !isRestrictedITAdmin
     },
     { 
       href: '/my-authorization', 
       icon: KeyRound, 
       label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization',
-      show: true 
+      show: !isRestrictedITAdmin
     },
     { 
       href: '/departments', 
@@ -107,7 +111,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       label: t('nav.departments'),
       // Ultra admins access departments only via organization consultation
       // In restricted modules, only Super Admin can manage departments
-      show: !isUltraAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
+      show: !isUltraAdmin && !isRestrictedITAdmin && ((isClientAdmin && !isRestrictedModule) || isSuperAdmin)
     },
     { 
       href: '/upload', 
