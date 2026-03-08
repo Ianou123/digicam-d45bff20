@@ -18,17 +18,17 @@ export function QuickActions({ onImportClick }: QuickActionsProps) {
 
   const actions = [
     {
+      label: language === 'fr' ? 'Rechercher un document' : 'Search document',
+      icon: Search,
+      onClick: () => navigate('/documents'),
+      show: true,
+    },
+    {
       label: language === 'fr' ? 'Importer un document' : 'Import document',
       icon: Upload,
       onClick: onImportClick,
       show: canManageDocuments && !isClientSuspended,
       primary: true,
-    },
-    {
-      label: language === 'fr' ? 'Rechercher un document' : 'Search document',
-      icon: Search,
-      onClick: () => navigate('/documents'),
-      show: true,
     },
     {
       label: language === 'fr' ? 'Inviter un utilisateur' : 'Invite user',
