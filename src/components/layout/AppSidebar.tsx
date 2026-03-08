@@ -156,12 +156,18 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   // ==================== STANDARD SIDEBAR ====================
   const isAdmin = isSuperAdmin || (isClientAdmin && !isRestrictedITAdmin);
 
-  const mainNavItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
-    { href: '/documents', icon: FileText, label: isRestrictedITAdmin ? (language === 'fr' ? 'Documents uploadés' : 'Uploaded Documents') : (language === 'fr' ? 'Documents' : 'Documents'), show: true },
-    { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: !isRestrictedITAdmin },
-    { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
-  ];
+  const mainNavItems = isRestrictedITAdmin
+    ? [
+        { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
+        { href: '/upload', icon: Upload, label: t('nav.upload'), show: true },
+        { href: '/my-documents', icon: FileText, label: language === 'fr' ? 'Mes Téléversements' : 'My Uploads', show: true },
+      ]
+    : [
+        { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
+        { href: '/documents', icon: FileText, label: language === 'fr' ? 'Documents' : 'Documents', show: true },
+        { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: true },
+        { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
+      ];
 
   const adminNavItems = [
     { href: '/users', icon: Users, label: t('nav.users'), show: isAdmin },
@@ -172,7 +178,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   ];
 
   const accountNavItems = [
-    { href: '/my-authorization', icon: KeyRound, label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization', show: !isRestrictedITAdmin },
+    { href: '/my-authorization', icon: KeyRound, label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization', show: true },
     { href: '/guide', icon: HelpCircle, label: language === 'fr' ? 'Aide' : 'Help', show: true },
   ];
 

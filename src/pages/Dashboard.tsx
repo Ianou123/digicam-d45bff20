@@ -14,9 +14,11 @@ import { UserDashboard } from '@/components/dashboard/UserDashboard';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ITAdminDashboard } from '@/components/dashboard/ITAdminDashboard';
 import { subDays, startOfDay, startOfMonth } from 'date-fns';
 
 interface Document {
@@ -83,6 +85,7 @@ interface MostViewedDoc {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended, clientName } = useAuth();
+  const { isRestrictedModule } = useModulePermissions();
   const { t, language } = useLanguage();
   
   const [stats, setStats] = useState({
@@ -111,11 +114,18 @@ export default function Dashboard() {
   const [failedSearchesThisWeek, setFailedSearchesThisWeek] = useState(0);
   const [totalStorageMb, setTotalStorageMb] = useState(0);
 
+  const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+
   useEffect(() => {
     fetchDashboardData();
-  }, [profile?.client_id]);
+  }, [profile?.client_id, isRestrictedITAdmin]);
 
   const fetchDashboardData = async () => {
+    if (isRestrictedITAdmin) {
+      setLoading(false);
+      return;
+    }
+
     if (!profile?.client_id && !isSuperAdmin && !isUltraAdmin) {
       setLoading(false);
       return;
@@ -576,6 +586,10 @@ export default function Dashboard() {
         )}
       </div>
     );
+  }
+
+  if (isRestrictedITAdmin) {
+    return <ITAdminDashboard />;
   }
 
   // ==================== STAFF USER DASHBOARD ====================

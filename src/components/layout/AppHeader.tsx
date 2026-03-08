@@ -23,14 +23,15 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) {
   const { language, setLanguage, t } = useLanguage();
-  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, clientName } = useAuth();
+  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, clientName, clientModule } = useAuth();
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const isRestrictedITAdmin = isClientAdmin && clientModule === 'admin_publique';
 
-  // Don't show global search on the documents page (it has its own search)
-  const showGlobalSearch = !location.pathname.startsWith('/documents');
+  // No global search for upload-only IT Admins nor documents pages
+  const showGlobalSearch = !isRestrictedITAdmin && !location.pathname.startsWith('/documents');
 
   // Fetch department name if user has one assigned
   useEffect(() => {
@@ -66,6 +67,14 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
         <Badge variant="default" className="bg-primary/90 text-primary-foreground gap-1">
           <ShieldCheck className="h-3 w-3" />
           {t('users.superAdmin')}
+        </Badge>
+      );
+    }
+    if (isRestrictedITAdmin) {
+      return (
+        <Badge variant="destructive" className="gap-1">
+          <Shield className="h-3 w-3" />
+          IT Admin
         </Badge>
       );
     }
@@ -146,8 +155,8 @@ export function AppHeader({ title, onMenuClick, rightContent }: AppHeaderProps) 
 
       {/* Right: badges, language, notifications */}
       <div className="flex items-center gap-3">
-        {/* Right Content (Import button) - NOT shown for Ultra Admin */}
-        {!isUltraAdmin && rightContent}
+        {/* Right Content (Import button) - hidden for Ultra Admin and upload-only IT Admin */}
+        {!isUltraAdmin && !isRestrictedITAdmin && rightContent}
 
         {/* Organization Name - visible for all users with a client */}
         {clientName && (

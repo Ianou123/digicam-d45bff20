@@ -19,7 +19,7 @@ export const translations = {
       logout: 'Déconnexion',
       auditLogs: 'Journal d\'audit',
       admin: 'Administration',
-      myDocuments: 'Mes Documents',
+      myDocuments: 'Mes Téléversements',
     },
     // Auth
     auth: {
@@ -291,7 +291,7 @@ export const translations = {
       logout: 'Logout',
       auditLogs: 'Audit Logs',
       admin: 'Admin',
-      myDocuments: 'My Documents',
+      myDocuments: 'My Uploads',
     },
     // Auth
     auth: {
