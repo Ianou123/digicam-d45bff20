@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Shield, Building2, Lock, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Shield, Building2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
