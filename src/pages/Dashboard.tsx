@@ -567,7 +567,7 @@ export default function Dashboard() {
               <Building2 className="h-16 w-16 text-muted-foreground/30 mb-4" />
               <h3 className="text-lg font-semibold mb-2">{language === 'fr' ? 'Prêt à démarrer ?' : 'Ready to start?'}</h3>
               <p className="text-muted-foreground text-center mb-4 max-w-md">{language === 'fr' ? 'Créez votre première organisation pour commencer.' : 'Create your first organization to get started.'}</p>
-              <Button onClick={() => navigate('/clients')} className="bg-teal-600 hover:bg-teal-700 text-white">
+              <Button onClick={() => navigate('/clients')} className="btn-institutional">
                 <Building2 className="h-4 w-4 mr-2" />
                 {language === 'fr' ? 'Créer une organisation →' : 'Create an organization →'}
               </Button>
