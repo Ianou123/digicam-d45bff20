@@ -84,6 +84,7 @@ interface MostViewedDoc {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended, clientName } = useAuth();
+  const { isRestrictedModule } = useModulePermissions();
   const { t, language } = useLanguage();
   
   const [stats, setStats] = useState({
