@@ -98,10 +98,10 @@ export const ROLE_INFO: Record<AppRole, RoleInfo> = {
   },
   staff: {
     key: 'staff',
-    labelFr: 'Staff',
-    labelEn: 'Staff',
-    descriptionFr: 'Utilisateur standard - Consultation et recherche',
-    descriptionEn: 'Standard user - Viewing and searching',
+    labelFr: 'Utilisateur',
+    labelEn: 'User',
+    descriptionFr: 'Utilisateur standard - Consultation, recherche et téléchargement',
+    descriptionEn: 'Standard user - Viewing, searching and downloading',
   },
 };
 
@@ -179,23 +179,23 @@ export function getPermissionsForRoleAndModule(
     };
   }
   
-  // Staff
+  // Staff — read-only in both modules, no upload, no edit, no delete
   return {
     canViewDocuments: true,
     canUploadDocuments: false,
-    canEditDocuments: !isAdminModule,
+    canEditDocuments: false,
     canDeleteDocuments: false,
     canDownloadDocuments: true,
     canManageUsers: false,
     canManageRoles: false,
     canManageDepartments: false,
-    canViewDirectory: isAdminModule,
+    canViewDirectory: true,
     canViewAuditLogs: false,
     canViewAnalytics: false,
     canViewActivity: false,
     canManageOrganization: false,
     canChangeModule: false,
-    isReadOnly: isAdminModule,
+    isReadOnly: true,
     requiresAuditLog: isAdminModule,
   };
 }
@@ -248,13 +248,18 @@ export function getRestrictionReason(
   if (role === 'staff' && isAdminModule) {
     if (['canUploadDocuments', 'canEditDocuments'].includes(permission)) {
       return language === 'fr'
-        ? 'Réservé aux administrateurs en module Administratif'
-        : 'Reserved for administrators in Administrative module';
+        ? 'Séparation des tâches : réservé à l\'Admin IT en module Administratif'
+        : 'Separation of duties: reserved for IT Admin in Administrative module';
     }
   }
   
   if (role === 'staff') {
-    if (['canManageUsers', 'canManageRoles', 'canManageDepartments', 'canViewAuditLogs', 'canViewAnalytics', 'canManageOrganization', 'canDeleteDocuments'].includes(permission)) {
+    if (['canUploadDocuments', 'canEditDocuments', 'canDeleteDocuments'].includes(permission)) {
+      return language === 'fr'
+        ? 'Réservé aux administrateurs'
+        : 'Reserved for administrators';
+    }
+    if (['canManageUsers', 'canManageRoles', 'canManageDepartments', 'canViewAuditLogs', 'canViewAnalytics', 'canManageOrganization'].includes(permission)) {
       return language === 'fr'
         ? 'Réservé aux administrateurs'
         : 'Reserved for administrators';
