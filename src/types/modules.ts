@@ -179,23 +179,23 @@ export function getPermissionsForRoleAndModule(
     };
   }
   
-  // Staff
+  // Staff — read-only in both modules, no upload, no edit, no delete
   return {
     canViewDocuments: true,
     canUploadDocuments: false,
-    canEditDocuments: !isAdminModule,
+    canEditDocuments: false,
     canDeleteDocuments: false,
     canDownloadDocuments: true,
     canManageUsers: false,
     canManageRoles: false,
     canManageDepartments: false,
-    canViewDirectory: isAdminModule,
+    canViewDirectory: true,
     canViewAuditLogs: false,
     canViewAnalytics: false,
     canViewActivity: false,
     canManageOrganization: false,
     canChangeModule: false,
-    isReadOnly: isAdminModule,
+    isReadOnly: true,
     requiresAuditLog: isAdminModule,
   };
 }
