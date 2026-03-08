@@ -673,12 +673,12 @@ export default function Users() {
                 className="pl-10"
               />
             </div>
-            {/* Organization filter for Super Admin */}
-            {isSuperAdmin && (
+            {/* Organization filter for Ultra Admin or Super Admin */}
+            {(isUltraAdmin || isSuperAdmin) && (
               <Select value={clientFilter} onValueChange={setClientFilter}>
                 <SelectTrigger className="w-[200px]">
                   <Building2 className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder={language === 'fr' ? 'Organisation' : 'Organization'} />
+                  <SelectValue placeholder={language === 'fr' ? 'Toutes les organisations' : 'All organizations'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
