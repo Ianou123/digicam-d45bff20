@@ -466,11 +466,11 @@ export default function OrganizationDetail() {
                 </TableHeader>
                 <TableBody>
                   {departments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                        {language === 'fr' ? 'Aucun département' : 'No departments'}
-                      </TableCell>
-                    </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={isUltraAdmin ? 2 : 3} className="text-center py-8 text-muted-foreground">
+                          {language === 'fr' ? 'Aucun département' : 'No departments'}
+                        </TableCell>
+                      </TableRow>
                   ) : (
                     departments.map(dept => (
                       <TableRow key={dept.id}>
