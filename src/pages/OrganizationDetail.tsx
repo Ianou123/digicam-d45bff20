@@ -59,7 +59,7 @@ interface OrgDocument {
 export default function OrganizationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
 
@@ -68,13 +68,14 @@ export default function OrganizationDetail() {
   const [users, setUsers] = useState<OrgUser[]>([]);
   const [departments, setDepartments] = useState<OrgDepartment[]>([]);
   const [documents, setDocuments] = useState<OrgDocument[]>([]);
+  const [documentsCount, setDocumentsCount] = useState<number>(0);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
-    if (isSuperAdmin && id) {
+    if ((isSuperAdmin || isUltraAdmin) && id) {
       fetchOrganizationData();
     }
-  }, [isSuperAdmin, id]);
+  }, [isSuperAdmin, isUltraAdmin, id]);
 
   const fetchOrganizationData = async () => {
     if (!id) return;
