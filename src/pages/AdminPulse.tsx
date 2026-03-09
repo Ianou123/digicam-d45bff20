@@ -312,13 +312,16 @@ export default function AdminPulse() {
 
   const maxActivity = Math.max(...departmentActivity.map(d => d.total_views + d.total_downloads), 1);
   const timeSavedHours = Math.round(metrics.timeSavedMinutes / 60);
-  const healthColor = metrics.healthScore >= 80 ? 'text-green-600' : metrics.healthScore >= 60 ? 'text-amber-600' : 'text-destructive';
-  const healthLabel = metrics.healthScore >= 80
-    ? (language === 'fr' ? 'Excellent' : 'Excellent')
-    : metrics.healthScore >= 60
-      ? (language === 'fr' ? 'À améliorer' : 'Needs improvement')
-      : (language === 'fr' ? 'Action requise' : 'Action required');
-  const healthBg = metrics.healthScore >= 80 ? 'bg-green-500' : metrics.healthScore >= 60 ? 'bg-amber-500' : 'bg-destructive';
+  const noHealthData = metrics.healthScore === -1;
+  const healthColor = noHealthData ? 'text-muted-foreground' : metrics.healthScore >= 80 ? 'text-green-600' : metrics.healthScore >= 60 ? 'text-amber-600' : 'text-destructive';
+  const healthLabel = noHealthData
+    ? (language === 'fr' ? 'Aucune donnée' : 'No data')
+    : metrics.healthScore >= 80
+      ? (language === 'fr' ? 'Excellent' : 'Excellent')
+      : metrics.healthScore >= 60
+        ? (language === 'fr' ? 'À améliorer' : 'Needs improvement')
+        : (language === 'fr' ? 'Action requise' : 'Action required');
+  const healthBg = noHealthData ? 'bg-muted' : metrics.healthScore >= 80 ? 'bg-green-500' : metrics.healthScore >= 60 ? 'bg-amber-500' : 'bg-destructive';
 
   const deptChartData = departmentActivity.map(d => ({
     name: d.department_name.length > 12 ? d.department_name.slice(0, 12) + '…' : d.department_name,
