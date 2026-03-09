@@ -460,7 +460,7 @@ export default function OrganizationDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('clients.name')}</TableHead>
-                    <TableHead>{t('clients.documentsCount')}</TableHead>
+                    {!isUltraAdmin && <TableHead>{t('clients.documentsCount')}</TableHead>}
                     <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
                   </TableRow>
                 </TableHeader>
