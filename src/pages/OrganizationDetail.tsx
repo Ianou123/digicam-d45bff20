@@ -564,9 +564,9 @@ export default function OrganizationDetail() {
             <CardHeader>
               <CardTitle>{t('nav.documents')}</CardTitle>
               <CardDescription>
-                {language === 'fr' 
-                  ? `${documents.length} document(s) récent(s)`
-                  : `${documents.length} recent document(s)`}
+                {language === 'fr'
+                  ? `${documentsCount} document(s)`
+                  : `${documentsCount} document(s)`}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
