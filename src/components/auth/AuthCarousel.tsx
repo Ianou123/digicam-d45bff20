@@ -64,6 +64,10 @@ export default function AuthCarousel() {
             />
           ))}
         </div>
+
+        <div className="flex items-center justify-center gap-2 pt-6 text-primary-foreground/60 text-sm">
+          <span className="font-serif font-semibold">DigiCam</span>
+        </div>
       </div>
     </div>
   );
