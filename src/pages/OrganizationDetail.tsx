@@ -59,7 +59,7 @@ interface OrgDocument {
 export default function OrganizationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
 
@@ -68,13 +68,14 @@ export default function OrganizationDetail() {
   const [users, setUsers] = useState<OrgUser[]>([]);
   const [departments, setDepartments] = useState<OrgDepartment[]>([]);
   const [documents, setDocuments] = useState<OrgDocument[]>([]);
+  const [documentsCount, setDocumentsCount] = useState<number>(0);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
-    if (isSuperAdmin && id) {
+    if ((isSuperAdmin || isUltraAdmin) && id) {
       fetchOrganizationData();
     }
-  }, [isSuperAdmin, id]);
+  }, [isSuperAdmin, isUltraAdmin, id]);
 
   const fetchOrganizationData = async () => {
     if (!id) return;
@@ -91,7 +92,7 @@ export default function OrganizationDetail() {
       if (orgError) throw orgError;
       setOrganization(org as Organization);
 
-      // Fetch users with roles
+      // Fetch users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name, status, created_at')
@@ -100,20 +101,21 @@ export default function OrganizationDetail() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles for all users
-      const userIds = profilesData?.map(p => p.id) || [];
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
+      // Fetch roles for users
+      const userIds = profilesData?.map((p) => p.id) || [];
+      const { data: rolesData, error: rolesError } = userIds.length
+        ? await supabase.from('user_roles').select('user_id, role').in('user_id', userIds)
+        : { data: [], error: null };
 
-      const usersWithRoles: OrgUser[] = (profilesData || []).map(profile => ({
+      if (rolesError) throw rolesError;
+
+      const usersWithRoles: OrgUser[] = (profilesData || []).map((profile) => ({
         ...profile,
-        roles: rolesData?.filter(r => r.user_id === profile.id).map(r => r.role) || [],
+        roles: rolesData?.filter((r) => r.user_id === profile.id).map((r) => r.role) || [],
       }));
       setUsers(usersWithRoles);
 
-      // Fetch departments with document counts
+      // Fetch departments
       const { data: depts, error: deptsError } = await supabase
         .from('departments')
         .select('id, name, created_at')
@@ -123,37 +125,59 @@ export default function OrganizationDetail() {
 
       if (deptsError) throw deptsError;
 
-      // Count documents per department
-      const { data: docsForCount } = await supabase
+      // Total documents count (exclude deleted)
+      const { count: totalDocsCount, error: docsCountError } = await supabase
         .from('documents')
-        .select('department_id')
+        .select('id', { count: 'exact', head: true })
         .eq('client_id', id)
         .is('deleted_at', null);
 
-      const deptsWithCounts: OrgDepartment[] = (depts || []).map(dept => ({
-        ...dept,
-        documentsCount: docsForCount?.filter(d => d.department_id === dept.id).length || 0,
-      }));
-      setDepartments(deptsWithCounts);
+      if (docsCountError) throw docsCountError;
+      setDocumentsCount(totalDocsCount ?? 0);
 
-      // Fetch recent documents (limit 50)
-      const { data: docs, error: docsError } = await supabase
-        .from('documents')
-        .select('id, title, document_type, confidentiality_level, created_at, department_id')
-        .eq('client_id', id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Department document counts and recent documents are only shown to Super Admins
+      if (isSuperAdmin) {
+        // Count documents per department (used for department stats)
+        const { data: docsForCount, error: docsForCountError } = await supabase
+          .from('documents')
+          .select('department_id')
+          .eq('client_id', id)
+          .is('deleted_at', null);
 
-      if (docsError) throw docsError;
+        if (docsForCountError) throw docsForCountError;
 
-      // Map department names
-      const docsWithDeptNames: OrgDocument[] = (docs || []).map(doc => ({
-        ...doc,
-        department_name: depts?.find(d => d.id === doc.department_id)?.name || null,
-      }));
-      setDocuments(docsWithDeptNames);
+        const deptsWithCounts: OrgDepartment[] = (depts || []).map((dept) => ({
+          ...dept,
+          documentsCount: docsForCount?.filter((d) => d.department_id === dept.id).length || 0,
+        }));
+        setDepartments(deptsWithCounts);
 
+        // Fetch recent documents (limit 50)
+        const { data: docs, error: docsError } = await supabase
+          .from('documents')
+          .select('id, title, document_type, confidentiality_level, created_at, department_id')
+          .eq('client_id', id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (docsError) throw docsError;
+
+        // Map department names
+        const docsWithDeptNames: OrgDocument[] = (docs || []).map((doc) => ({
+          ...doc,
+          department_name: depts?.find((d) => d.id === doc.department_id)?.name || null,
+        }));
+        setDocuments(docsWithDeptNames);
+      } else {
+        // Ultra Admin: can see org-level stats, but not document lists/counts per department
+        const deptsWithoutCounts: OrgDepartment[] = (depts || []).map((dept) => ({
+          ...dept,
+          documentsCount: 0,
+        }));
+        setDepartments(deptsWithoutCounts);
+        setDocuments([]);
+      }
     } catch (error) {
       console.error('Error fetching organization data:', error);
       toast({
@@ -250,7 +274,7 @@ export default function OrganizationDetail() {
     return email.slice(0, 2).toUpperCase();
   };
 
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !isUltraAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -316,7 +340,7 @@ export default function OrganizationDetail() {
               <FileText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{documents.length}</p>
+              <p className="text-2xl font-semibold">{documentsCount}</p>
               <p className="text-sm text-muted-foreground">{t('clients.documentsCount')}</p>
             </div>
           </CardContent>
@@ -433,17 +457,17 @@ export default function OrganizationDetail() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('clients.name')}</TableHead>
-                    <TableHead>{t('clients.documentsCount')}</TableHead>
+                    {!isUltraAdmin && <TableHead>{t('clients.documentsCount')}</TableHead>}
                     <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {departments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                        {language === 'fr' ? 'Aucun département' : 'No departments'}
-                      </TableCell>
-                    </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={isUltraAdmin ? 2 : 3} className="text-center py-8 text-muted-foreground">
+                          {language === 'fr' ? 'Aucun département' : 'No departments'}
+                        </TableCell>
+                      </TableRow>
                   ) : (
                     departments.map(dept => (
                       <TableRow key={dept.id}>
@@ -453,8 +477,8 @@ export default function OrganizationDetail() {
                             {dept.name}
                           </div>
                         </TableCell>
-                        <TableCell>{dept.documentsCount}</TableCell>
-                        <TableCell>{format(new Date(dept.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
+                          {!isUltraAdmin && <TableCell>{dept.documentsCount}</TableCell>}
+                          <TableCell>{format(new Date(dept.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -537,49 +561,63 @@ export default function OrganizationDetail() {
             <CardHeader>
               <CardTitle>{t('nav.documents')}</CardTitle>
               <CardDescription>
-                {language === 'fr' 
-                  ? `${documents.length} document(s) récent(s)`
-                  : `${documents.length} recent document(s)`}
+                {language === 'fr'
+                  ? `${documentsCount} document(s)`
+                  : `${documentsCount} document(s)`}
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('documents.title')}</TableHead>
-                    <TableHead>{t('documents.type')}</TableHead>
-                    <TableHead>{t('documents.department')}</TableHead>
-                    <TableHead>{t('documents.confidentiality')}</TableHead>
-                    <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.length === 0 ? (
+            <CardContent className={isUltraAdmin ? "p-6" : "p-0"}>
+              {isUltraAdmin ? (
+                <p className="text-sm text-muted-foreground">
+                  {language === 'fr'
+                    ? "La liste des documents n’est pas affichée pour les Ultra Admins (confidentialité)."
+                    : "The document list is hidden for Ultra Admins (privacy)."}
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {t('documents.noDocuments')}
-                      </TableCell>
+                      <TableHead>{t('documents.title')}</TableHead>
+                      <TableHead>{t('documents.type')}</TableHead>
+                      <TableHead>{t('documents.department')}</TableHead>
+                      <TableHead>{t('documents.confidentiality')}</TableHead>
+                      <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
                     </TableRow>
-                  ) : (
-                    documents.map(doc => (
-                      <TableRow key={doc.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium truncate max-w-[200px]">{doc.title}</span>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {documents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          {t('documents.noDocuments')}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="uppercase text-xs">{doc.document_type}</Badge>
-                        </TableCell>
-                        <TableCell>{doc.department_name || <span className="text-muted-foreground">-</span>}</TableCell>
-                        <TableCell>{getConfidentialityBadge(doc.confidentiality_level)}</TableCell>
-                        <TableCell>{format(new Date(doc.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      documents.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium truncate max-w-[200px]">{doc.title}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="uppercase text-xs">
+                              {doc.document_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {doc.department_name || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell>{getConfidentialityBadge(doc.confidentiality_level)}</TableCell>
+                          <TableCell>
+                            {format(new Date(doc.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
