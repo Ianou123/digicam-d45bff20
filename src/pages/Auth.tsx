@@ -137,15 +137,12 @@ export default function Auth() {
         {/* Form */}
         <main className="flex-1 flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-md space-y-8 animate-fade-in">
-            <div className="space-y-2">
+            <div className="rounded-xl bg-muted/60 border border-border/50 p-6 space-y-2">
               <h1 className="text-3xl font-serif font-bold text-foreground">
                 {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
               </h1>
               <p className="text-muted-foreground">
-                {isLogin 
-                  ? (language === 'fr' ? 'Connectez-vous pour accéder à vos documents' : 'Sign in to access your documents')
-                  : (language === 'fr' ? 'Créez votre compte pour commencer' : 'Create your account to get started')
-                }
+                {isLogin ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
               </p>
             </div>
 
@@ -239,9 +236,7 @@ export default function Auth() {
                     className="font-mono uppercase"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {language === 'fr' 
-                      ? 'Laissez vide si vous êtes administrateur DigiCam'
-                      : 'Leave empty if you are a DigiCam administrator'}
+                    {t('auth.adminHint')}
                   </p>
                 </div>
               )}

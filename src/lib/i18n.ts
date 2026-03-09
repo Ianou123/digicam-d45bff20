@@ -40,6 +40,17 @@ export const translations = {
       emailInUse: 'Cette adresse e-mail est déjà utilisée',
       passwordMismatch: 'Les mots de passe ne correspondent pas',
       inviteCode: 'Code d\'invitation',
+      signInSubtitle: 'Connectez-vous pour accéder à vos documents',
+      signUpSubtitle: 'Créez votre compte pour commencer',
+      adminHint: 'Laissez vide si vous êtes administrateur DigiCam',
+      carousel: {
+        ocrTitle: 'Recherche OCR intelligente',
+        ocrDesc: 'Retrouvez n\'importe quel document en quelques secondes grâce à notre moteur de recherche par contenu.',
+        archiveTitle: 'Archives organisées',
+        archiveDesc: 'Classez, versionnez et partagez vos documents dans une structure claire et intuitive.',
+        auditTitle: 'Audit & traçabilité',
+        auditDesc: 'Suivez chaque action, chaque consultation, chaque modification avec un historique complet et infalsifiable.',
+      },
     },
     // Documents
     documents: {
@@ -312,6 +323,17 @@ export const translations = {
       emailInUse: 'This email is already in use',
       passwordMismatch: 'Passwords do not match',
       inviteCode: 'Invite code',
+      signInSubtitle: 'Sign in to access your documents',
+      signUpSubtitle: 'Create your account to get started',
+      adminHint: 'Leave empty if you are a DigiCam administrator',
+      carousel: {
+        ocrTitle: 'Smart OCR Search',
+        ocrDesc: 'Find any document in seconds with our content-based search engine.',
+        archiveTitle: 'Organized Archives',
+        archiveDesc: 'Classify, version and share your documents in a clear and intuitive structure.',
+        auditTitle: 'Audit & Traceability',
+        auditDesc: 'Track every action, every view, every change with a complete and tamper-proof history.',
+      },
     },
     // Documents
     documents: {
