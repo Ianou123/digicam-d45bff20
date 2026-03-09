@@ -569,44 +569,58 @@ export default function OrganizationDetail() {
                   : `${documentsCount} document(s)`}
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('documents.title')}</TableHead>
-                    <TableHead>{t('documents.type')}</TableHead>
-                    <TableHead>{t('documents.department')}</TableHead>
-                    <TableHead>{t('documents.confidentiality')}</TableHead>
-                    <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.length === 0 ? (
+            <CardContent className={isUltraAdmin ? "p-6" : "p-0"}>
+              {isUltraAdmin ? (
+                <p className="text-sm text-muted-foreground">
+                  {language === 'fr'
+                    ? "La liste des documents n’est pas affichée pour les Ultra Admins (confidentialité)."
+                    : "The document list is hidden for Ultra Admins (privacy)."}
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {t('documents.noDocuments')}
-                      </TableCell>
+                      <TableHead>{t('documents.title')}</TableHead>
+                      <TableHead>{t('documents.type')}</TableHead>
+                      <TableHead>{t('documents.department')}</TableHead>
+                      <TableHead>{t('documents.confidentiality')}</TableHead>
+                      <TableHead>{language === 'fr' ? 'Créé le' : 'Created'}</TableHead>
                     </TableRow>
-                  ) : (
-                    documents.map(doc => (
-                      <TableRow key={doc.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium truncate max-w-[200px]">{doc.title}</span>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {documents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          {t('documents.noDocuments')}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="uppercase text-xs">{doc.document_type}</Badge>
-                        </TableCell>
-                        <TableCell>{doc.department_name || <span className="text-muted-foreground">-</span>}</TableCell>
-                        <TableCell>{getConfidentialityBadge(doc.confidentiality_level)}</TableCell>
-                        <TableCell>{format(new Date(doc.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      documents.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium truncate max-w-[200px]">{doc.title}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="uppercase text-xs">
+                              {doc.document_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {doc.department_name || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell>{getConfidentialityBadge(doc.confidentiality_level)}</TableCell>
+                          <TableCell>
+                            {format(new Date(doc.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
