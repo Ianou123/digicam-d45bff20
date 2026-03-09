@@ -1,58 +1,27 @@
 
-# DigiCam Archive - Plan
 
-## Architecture: 2 Modules
+## Plan: Show "No Score" when there's no data
 
-DigiCam supports **two modules** chosen at organization creation:
+### Problem
+The health score shows a misleading percentage (71%) when there are no documents, users, or searches. 
 
-### Module 1: Core
-- **Roles**: Admin (Super Admin), Utilisateur (Staff)
-- **Description**: GED moderne pour PME, cabinets, freelances
-- Admin gère tout : upload, users, départements, logs
-- Utilisateur : consultation, recherche, téléchargement, envoi
-- Départements optionnels
+### Solution
+Instead of computing a score from placeholder/default values, detect when there's no meaningful data and display a "—" or "N/A" state instead of a percentage.
 
-### Module 2: Administratif (admin_publique)
-- **Roles**: Super Admin, Admin IT (client_admin), Utilisateur (Staff)
-- **Description**: Pour institutions et grandes entreprises
-- **Principe clé** : Séparation des tâches
-  - Super Admin : gestion users, départements, analytics, audit logs — **NE PEUT PAS uploader**
-  - Admin IT : upload documents uniquement — **NE PEUT PAS voir les documents/logs**
-  - Utilisateur : consultation en lecture seule
-- Départements obligatoires
-- Journalisation obligatoire
+### Changes
 
-### Ultra Admin (DigiCam Staff)
-- Pas lié à une organisation
-- Crée/gère les organisations
-- Voit les logs d'audit globaux (pas le contenu des documents)
-- Peut changer le module d'une organisation
+**`src/pages/AdminPulse.tsx`**
 
-## Changement de module
-Le changement de module n'est PAS en libre-service. Contacter DigiCam.
+1. **Calculation (lines 272-292)**: When `totalDocs === 0 && healthTotalSearches === 0 && activeUserIds.size === 0`, set `healthScore` to **-1** (sentinel value meaning "no data").
 
-## Rôles dans la base de données
-- `ultra_admin` : Staff DigiCam
-- `super_admin` : Responsable d'organisation
-- `client_admin` : Admin IT (module Administratif uniquement)
-- `staff` : Utilisateur standard
+2. **Display logic (lines 308-316)**: When `metrics.healthScore === -1`:
+   - Set `healthColor` to `text-muted-foreground`
+   - Set `healthLabel` to "Aucune donnée" / "No data"
+   - Set `healthBg` to `bg-muted`
 
-## Permissions (Résumé)
+3. **SVG circle (line 418)**: When score is -1, set `strokeDasharray` to `0 251` (empty ring).
 
-| Permission | Core Admin | Core User | Admin Super | Admin IT | Admin User | Ultra |
-|---|---|---|---|---|---|---|
-| Upload | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Search & Download | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Send Docs | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Manage Depts | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Manage Users | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| View Analytics | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| View Audit Logs | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Admin Pages | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+4. **Score text (line 422)**: Show "—" instead of the number when score is -1.
 
-## Key Technical Details
-- Module enum: `client_module` = `'core' | 'admin_publique'`
-- Role enum: `app_role` = `'ultra_admin' | 'super_admin' | 'client_admin' | 'staff'`
-- DB function `can_user_upload()` enforces separation of concerns
-- DB function `is_restricted_module()` checks `admin_publique` only
-- `can_delete_in_module()` always returns true (no WORM)
+This is a small, contained change in one file.
+
