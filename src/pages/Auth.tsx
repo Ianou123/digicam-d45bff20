@@ -145,7 +145,6 @@ export default function Auth() {
                 {isLogin ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
               </p>
             </div>
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
