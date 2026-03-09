@@ -103,14 +103,11 @@ export default function OrganizationDetail() {
 
       // Fetch roles for users
       const userIds = profilesData?.map((p) => p.id) || [];
-      const rolesData = userIds.length
-        ? (
-            await supabase
-              .from('user_roles')
-              .select('user_id, role')
-              .in('user_id', userIds)
-          ).data
-        : [];
+      const { data: rolesData, error: rolesError } = userIds.length
+        ? await supabase.from('user_roles').select('user_id, role').in('user_id', userIds)
+        : { data: [], error: null };
+
+      if (rolesError) throw rolesError;
 
       const usersWithRoles: OrgUser[] = (profilesData || []).map((profile) => ({
         ...profile,
