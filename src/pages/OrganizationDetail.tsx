@@ -92,7 +92,7 @@ export default function OrganizationDetail() {
       if (orgError) throw orgError;
       setOrganization(org as Organization);
 
-      // Fetch users with roles
+      // Fetch users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name, status, created_at')
@@ -101,20 +101,24 @@ export default function OrganizationDetail() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles for all users
-      const userIds = profilesData?.map(p => p.id) || [];
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
+      // Fetch roles for users
+      const userIds = profilesData?.map((p) => p.id) || [];
+      const rolesData = userIds.length
+        ? (
+            await supabase
+              .from('user_roles')
+              .select('user_id, role')
+              .in('user_id', userIds)
+          ).data
+        : [];
 
-      const usersWithRoles: OrgUser[] = (profilesData || []).map(profile => ({
+      const usersWithRoles: OrgUser[] = (profilesData || []).map((profile) => ({
         ...profile,
-        roles: rolesData?.filter(r => r.user_id === profile.id).map(r => r.role) || [],
+        roles: rolesData?.filter((r) => r.user_id === profile.id).map((r) => r.role) || [],
       }));
       setUsers(usersWithRoles);
 
-      // Fetch departments with document counts
+      // Fetch departments
       const { data: depts, error: deptsError } = await supabase
         .from('departments')
         .select('id, name, created_at')
@@ -124,37 +128,59 @@ export default function OrganizationDetail() {
 
       if (deptsError) throw deptsError;
 
-      // Count documents per department
-      const { data: docsForCount } = await supabase
+      // Total documents count (exclude deleted)
+      const { count: totalDocsCount, error: docsCountError } = await supabase
         .from('documents')
-        .select('department_id')
+        .select('id', { count: 'exact', head: true })
         .eq('client_id', id)
         .is('deleted_at', null);
 
-      const deptsWithCounts: OrgDepartment[] = (depts || []).map(dept => ({
-        ...dept,
-        documentsCount: docsForCount?.filter(d => d.department_id === dept.id).length || 0,
-      }));
-      setDepartments(deptsWithCounts);
+      if (docsCountError) throw docsCountError;
+      setDocumentsCount(totalDocsCount ?? 0);
 
-      // Fetch recent documents (limit 50)
-      const { data: docs, error: docsError } = await supabase
-        .from('documents')
-        .select('id, title, document_type, confidentiality_level, created_at, department_id')
-        .eq('client_id', id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Department document counts and recent documents are only shown to Super Admins
+      if (isSuperAdmin) {
+        // Count documents per department (used for department stats)
+        const { data: docsForCount, error: docsForCountError } = await supabase
+          .from('documents')
+          .select('department_id')
+          .eq('client_id', id)
+          .is('deleted_at', null);
 
-      if (docsError) throw docsError;
+        if (docsForCountError) throw docsForCountError;
 
-      // Map department names
-      const docsWithDeptNames: OrgDocument[] = (docs || []).map(doc => ({
-        ...doc,
-        department_name: depts?.find(d => d.id === doc.department_id)?.name || null,
-      }));
-      setDocuments(docsWithDeptNames);
+        const deptsWithCounts: OrgDepartment[] = (depts || []).map((dept) => ({
+          ...dept,
+          documentsCount: docsForCount?.filter((d) => d.department_id === dept.id).length || 0,
+        }));
+        setDepartments(deptsWithCounts);
 
+        // Fetch recent documents (limit 50)
+        const { data: docs, error: docsError } = await supabase
+          .from('documents')
+          .select('id, title, document_type, confidentiality_level, created_at, department_id')
+          .eq('client_id', id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (docsError) throw docsError;
+
+        // Map department names
+        const docsWithDeptNames: OrgDocument[] = (docs || []).map((doc) => ({
+          ...doc,
+          department_name: depts?.find((d) => d.id === doc.department_id)?.name || null,
+        }));
+        setDocuments(docsWithDeptNames);
+      } else {
+        // Ultra Admin: can see org-level stats, but not document lists/counts per department
+        const deptsWithoutCounts: OrgDepartment[] = (depts || []).map((dept) => ({
+          ...dept,
+          documentsCount: 0,
+        }));
+        setDepartments(deptsWithoutCounts);
+        setDocuments([]);
+      }
     } catch (error) {
       console.error('Error fetching organization data:', error);
       toast({
