@@ -343,7 +343,7 @@ export default function OrganizationDetail() {
               <FileText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-semibold">{documents.length}</p>
+              <p className="text-2xl font-semibold">{documentsCount}</p>
               <p className="text-sm text-muted-foreground">{t('clients.documentsCount')}</p>
             </div>
           </CardContent>
