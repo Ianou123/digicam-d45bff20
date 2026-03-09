@@ -423,11 +423,11 @@ export default function AdminPulse() {
                     <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor"
                       className={healthColor}
                       strokeWidth="8" strokeLinecap="round"
-                      strokeDasharray={`${metrics.healthScore * 2.51} 251`}
+                      strokeDasharray={`${noHealthData ? 0 : metrics.healthScore * 2.51} 251`}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-xl font-bold ${healthColor}`}>{metrics.healthScore}</span>
+                    <span className={`text-xl font-bold ${healthColor}`}>{noHealthData ? '—' : metrics.healthScore}</span>
                   </div>
                 </div>
                 <div>
