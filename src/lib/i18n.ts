@@ -40,6 +40,17 @@ export const translations = {
       emailInUse: 'Cette adresse e-mail est déjà utilisée',
       passwordMismatch: 'Les mots de passe ne correspondent pas',
       inviteCode: 'Code d\'invitation',
+      signInSubtitle: 'Connectez-vous pour accéder à vos documents',
+      signUpSubtitle: 'Créez votre compte pour commencer',
+      adminHint: 'Laissez vide si vous êtes administrateur DigiCam',
+      carousel: {
+        ocrTitle: 'Recherche OCR intelligente',
+        ocrDesc: 'Retrouvez n\'importe quel document en quelques secondes grâce à notre moteur de recherche par contenu.',
+        archiveTitle: 'Archives organisées',
+        archiveDesc: 'Classez, versionnez et partagez vos documents dans une structure claire et intuitive.',
+        auditTitle: 'Audit & traçabilité',
+        auditDesc: 'Suivez chaque action, chaque consultation, chaque modification avec un historique complet et infalsifiable.',
+      },
     },
     // Documents
     documents: {
