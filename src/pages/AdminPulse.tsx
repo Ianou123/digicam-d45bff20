@@ -276,20 +276,25 @@ export default function AdminPulse() {
       const { data: healthSearchLogs } = await searchQuery;
       const healthTotalSearches = healthSearchLogs?.length || 0;
       const healthSuccessful = healthSearchLogs?.filter(s => s.result_count > 0).length || 0;
-      const searchSuccessRate = healthTotalSearches > 0 ? (healthSuccessful / healthTotalSearches) * 100 : 100;
+      const searchSuccessRate = healthTotalSearches > 0 ? (healthSuccessful / healthTotalSearches) * 100 : 0;
 
-      // Health score calculation
-      const storageScore = 80; // placeholder
-      const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
-      const archiveCoverage = searchSuccessRate;
-      const healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
+      // Health score calculation — show -1 (no data) when platform is empty
+      const hasData = (totalDocs || 0) > 0 || healthTotalSearches > 0 || activeUserIds.size > 0;
+      let healthScore = -1;
+      if (hasData) {
+        const storageScore = Math.min(100, ((totalDocs || 0) / 50) * 100);
+        const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
+        const archiveCoverage = searchSuccessRate;
+        healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
+        healthScore = Math.min(100, Math.max(0, healthScore));
+      }
 
       setMetrics(prev => ({
         ...prev,
         totalDocuments: totalDocs || 0,
         totalUsers,
         activeUsers: activeUserIds.size,
-        healthScore: Math.min(100, Math.max(0, healthScore)),
+        healthScore,
       }));
     } catch (error) {
       console.error('Error fetching health metrics:', error);
