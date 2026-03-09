@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Search, FolderOpen, Shield } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-const slides = [
-  {
-    icon: Search,
-    title: 'Recherche OCR intelligente',
-    description: 'Retrouvez n\'importe quel document en quelques secondes grâce à notre moteur de recherche par contenu.',
-  },
-  {
-    icon: FolderOpen,
-    title: 'Archives organisées',
-    description: 'Classez, versionnez et partagez vos documents dans une structure claire et intuitive.',
-  },
-  {
-    icon: Shield,
-    title: 'Audit & traçabilité',
-    description: 'Suivez chaque action, chaque consultation, chaque modification avec un historique complet et infalsifiable.',
-  },
-];
+const icons = [Search, FolderOpen, Shield];
 
 export default function AuthCarousel() {
   const [current, setCurrent] = useState(0);
+  const { t } = useLanguage();
+
+  const slides = [
+    {
+      icon: icons[0],
+      title: t('auth.carousel.ocrTitle'),
+      description: t('auth.carousel.ocrDesc'),
+    },
+    {
+      icon: icons[1],
+      title: t('auth.carousel.archiveTitle'),
+      description: t('auth.carousel.archiveDesc'),
+    },
+    {
+      icon: icons[2],
+      title: t('auth.carousel.auditTitle'),
+      description: t('auth.carousel.auditDesc'),
+    },
+  ];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -40,18 +44,15 @@ export default function AuthCarousel() {
       <div className="absolute top-1/3 left-10 w-24 h-24 rounded-full bg-white/5" />
 
       <div className="relative z-10 max-w-md text-center space-y-8">
-        {/* Icon */}
         <div key={current} className="mx-auto w-20 h-20 rounded-2xl bg-white/15 flex items-center justify-center animate-fade-in">
           <Icon className="h-10 w-10" />
         </div>
 
-        {/* Text */}
         <div key={`text-${current}`} className="space-y-4 animate-fade-in">
           <h2 className="text-3xl font-serif font-bold">{slide.title}</h2>
           <p className="text-lg text-primary-foreground/80 leading-relaxed">{slide.description}</p>
         </div>
 
-        {/* Dots */}
         <div className="flex items-center justify-center gap-3 pt-4">
           {slides.map((_, i) => (
             <button

@@ -323,6 +323,17 @@ export const translations = {
       emailInUse: 'This email is already in use',
       passwordMismatch: 'Passwords do not match',
       inviteCode: 'Invite code',
+      signInSubtitle: 'Sign in to access your documents',
+      signUpSubtitle: 'Create your account to get started',
+      adminHint: 'Leave empty if you are a DigiCam administrator',
+      carousel: {
+        ocrTitle: 'Smart OCR Search',
+        ocrDesc: 'Find any document in seconds with our content-based search engine.',
+        archiveTitle: 'Organized Archives',
+        archiveDesc: 'Classify, version and share your documents in a clear and intuitive structure.',
+        auditTitle: 'Audit & Traceability',
+        auditDesc: 'Track every action, every view, every change with a complete and tamper-proof history.',
+      },
     },
     // Documents
     documents: {

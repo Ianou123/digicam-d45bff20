@@ -237,9 +237,7 @@ export default function Auth() {
                     className="font-mono uppercase"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {language === 'fr' 
-                      ? 'Laissez vide si vous êtes administrateur DigiCam'
-                      : 'Leave empty if you are a DigiCam administrator'}
+                    {t('auth.adminHint')}
                   </p>
                 </div>
               )}
