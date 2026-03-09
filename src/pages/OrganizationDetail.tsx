@@ -277,7 +277,7 @@ export default function OrganizationDetail() {
     return email.slice(0, 2).toUpperCase();
   };
 
-  if (!isSuperAdmin) {
+  if (!isSuperAdmin && !isUltraAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
