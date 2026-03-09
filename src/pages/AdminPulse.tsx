@@ -276,20 +276,25 @@ export default function AdminPulse() {
       const { data: healthSearchLogs } = await searchQuery;
       const healthTotalSearches = healthSearchLogs?.length || 0;
       const healthSuccessful = healthSearchLogs?.filter(s => s.result_count > 0).length || 0;
-      const searchSuccessRate = healthTotalSearches > 0 ? (healthSuccessful / healthTotalSearches) * 100 : 100;
+      const searchSuccessRate = healthTotalSearches > 0 ? (healthSuccessful / healthTotalSearches) * 100 : 0;
 
-      // Health score calculation
-      const storageScore = 80; // placeholder
-      const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
-      const archiveCoverage = searchSuccessRate;
-      const healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
+      // Health score calculation — show -1 (no data) when platform is empty
+      const hasData = (totalDocs || 0) > 0 || healthTotalSearches > 0 || activeUserIds.size > 0;
+      let healthScore = -1;
+      if (hasData) {
+        const storageScore = Math.min(100, ((totalDocs || 0) / 50) * 100);
+        const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
+        const archiveCoverage = searchSuccessRate;
+        healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
+        healthScore = Math.min(100, Math.max(0, healthScore));
+      }
 
       setMetrics(prev => ({
         ...prev,
         totalDocuments: totalDocs || 0,
         totalUsers,
         activeUsers: activeUserIds.size,
-        healthScore: Math.min(100, Math.max(0, healthScore)),
+        healthScore,
       }));
     } catch (error) {
       console.error('Error fetching health metrics:', error);
@@ -307,13 +312,16 @@ export default function AdminPulse() {
 
   const maxActivity = Math.max(...departmentActivity.map(d => d.total_views + d.total_downloads), 1);
   const timeSavedHours = Math.round(metrics.timeSavedMinutes / 60);
-  const healthColor = metrics.healthScore >= 80 ? 'text-green-600' : metrics.healthScore >= 60 ? 'text-amber-600' : 'text-destructive';
-  const healthLabel = metrics.healthScore >= 80
-    ? (language === 'fr' ? 'Excellent' : 'Excellent')
-    : metrics.healthScore >= 60
-      ? (language === 'fr' ? 'À améliorer' : 'Needs improvement')
-      : (language === 'fr' ? 'Action requise' : 'Action required');
-  const healthBg = metrics.healthScore >= 80 ? 'bg-green-500' : metrics.healthScore >= 60 ? 'bg-amber-500' : 'bg-destructive';
+  const noHealthData = metrics.healthScore === -1;
+  const healthColor = noHealthData ? 'text-muted-foreground' : metrics.healthScore >= 80 ? 'text-green-600' : metrics.healthScore >= 60 ? 'text-amber-600' : 'text-destructive';
+  const healthLabel = noHealthData
+    ? (language === 'fr' ? 'Aucune donnée' : 'No data')
+    : metrics.healthScore >= 80
+      ? (language === 'fr' ? 'Excellent' : 'Excellent')
+      : metrics.healthScore >= 60
+        ? (language === 'fr' ? 'À améliorer' : 'Needs improvement')
+        : (language === 'fr' ? 'Action requise' : 'Action required');
+  const healthBg = noHealthData ? 'bg-muted' : metrics.healthScore >= 80 ? 'bg-green-500' : metrics.healthScore >= 60 ? 'bg-amber-500' : 'bg-destructive';
 
   const deptChartData = departmentActivity.map(d => ({
     name: d.department_name.length > 12 ? d.department_name.slice(0, 12) + '…' : d.department_name,
@@ -415,11 +423,11 @@ export default function AdminPulse() {
                     <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor"
                       className={healthColor}
                       strokeWidth="8" strokeLinecap="round"
-                      strokeDasharray={`${metrics.healthScore * 2.51} 251`}
+                      strokeDasharray={`${noHealthData ? 0 : metrics.healthScore * 2.51} 251`}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-xl font-bold ${healthColor}`}>{metrics.healthScore}</span>
+                    <span className={`text-xl font-bold ${healthColor}`}>{noHealthData ? '—' : metrics.healthScore}</span>
                   </div>
                 </div>
                 <div>
