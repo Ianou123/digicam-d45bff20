@@ -480,8 +480,8 @@ export default function OrganizationDetail() {
                             {dept.name}
                           </div>
                         </TableCell>
-                        <TableCell>{dept.documentsCount}</TableCell>
-                        <TableCell>{format(new Date(dept.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
+                          {!isUltraAdmin && <TableCell>{dept.documentsCount}</TableCell>}
+                          <TableCell>{format(new Date(dept.created_at), 'PP', { locale: language === 'fr' ? fr : enUS })}</TableCell>
                       </TableRow>
                     ))
                   )}
