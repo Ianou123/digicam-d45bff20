@@ -136,8 +136,8 @@ export default function Auth() {
 
         {/* Form */}
         <main className="flex-1 flex items-center justify-center px-6 py-10">
-          <div className="w-full max-w-md space-y-8 animate-fade-in">
-            <div className="rounded-xl bg-muted/60 border border-border/50 p-6 space-y-2">
+          <div className="w-full max-w-md rounded-xl bg-muted/60 border border-border/50 p-8 space-y-6 animate-fade-in">
+            <div className="space-y-2">
               <h1 className="text-3xl font-serif font-bold text-foreground">
                 {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
               </h1>
