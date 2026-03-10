@@ -242,7 +242,7 @@ export default function Documents() {
   };
 
   const fetchDocuments = async () => {
-    if (!profile?.client_id && !isSuperAdmin) {
+    if (!profile?.client_id) {
       setLoading(false);
       return;
     }
