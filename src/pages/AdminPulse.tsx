@@ -264,7 +264,7 @@ export default function AdminPulse() {
 
       const thirtyDaysAgo = subDays(new Date(), 30);
       let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
-      if (!isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
       const { data: activeData } = await activeQuery;
       const filteredSet = new Set(filteredUserIds);
       const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => filteredSet.has(id)));
