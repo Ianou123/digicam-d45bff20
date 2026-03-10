@@ -82,7 +82,9 @@ export default function Analytics() {
       const searches = activityData?.filter(a => a.action_type === 'search').length || 0;
 
       // Search success rate
-      const { data: searchLogs } = await supabase.from('search_logs').select('result_count');
+      let searchLogQuery = supabase.from('search_logs').select('result_count');
+      if (profile?.client_id) searchLogQuery = searchLogQuery.eq('client_id', profile.client_id);
+      const { data: searchLogs } = await searchLogQuery;
       const totalSearchLogs = searchLogs?.length || 0;
       const successfulSearches = searchLogs?.filter(s => s.result_count > 0).length || 0;
       const searchSuccessRate = totalSearchLogs > 0 ? Math.round((successfulSearches / totalSearchLogs) * 100) : 100;
