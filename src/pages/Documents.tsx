@@ -276,10 +276,8 @@ export default function Documents() {
         query = query.is('deleted_at', null);
       }
 
-      // Apply client filter for Super Admin
-      if (isSuperAdmin && selectedClientId !== 'all') {
-        query = query.eq('client_id', selectedClientId);
-      } else if (!isSuperAdmin && profile?.client_id) {
+      // Apply client filter
+      if (profile?.client_id) {
         query = query.eq('client_id', profile.client_id);
       }
 
