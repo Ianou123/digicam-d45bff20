@@ -63,7 +63,7 @@ export default function Departments() {
     setLoading(true);
     try {
       let query = supabase.from('departments').select('*').order('name');
-      if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+      if (profile?.client_id) query = query.eq('client_id', profile.client_id);
       if (showArchived) query = query.not('archived_at', 'is', null);
       else query = query.is('archived_at', null);
 
