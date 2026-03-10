@@ -158,7 +158,7 @@ export default function AdminPulse() {
       let query = supabase.from('activity_logs').select('document_id, action_type')
         .in('action_type', ['view', 'download']).not('document_id', 'is', null)
         .gte('created_at', startDate);
-      if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+      if (profile?.client_id) query = query.eq('client_id', profile.client_id);
       const { data: logs } = await query;
 
       if (logs && logs.length > 0) {
