@@ -58,7 +58,7 @@ export default function Analytics() {
 
       // Users
       let userQuery = supabase.from('profiles').select('id, updated_at');
-      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: usersData } = await userQuery;
       const fallbackUserId = user?.id || profile?.id;
       const totalUsers = (usersData?.length || 0) > 0 ? (usersData?.length || 0) : fallbackUserId ? 1 : 0;
