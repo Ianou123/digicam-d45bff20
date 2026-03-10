@@ -272,7 +272,7 @@ export default function AdminPulse() {
       // Fetch search metrics fresh for health score (don't rely on stale state)
       const startDate = subDays(new Date(), parseInt(timeRange)).toISOString();
       let searchQuery = supabase.from('search_logs').select('result_count').gte('created_at', startDate);
-      if (!isSuperAdmin && profile?.client_id) searchQuery = searchQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) searchQuery = searchQuery.eq('client_id', profile.client_id);
       const { data: healthSearchLogs } = await searchQuery;
       const healthTotalSearches = healthSearchLogs?.length || 0;
       const healthSuccessful = healthSearchLogs?.filter(s => s.result_count > 0).length || 0;
