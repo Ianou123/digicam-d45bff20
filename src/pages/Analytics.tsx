@@ -52,7 +52,9 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const { count: docsCount } = await supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+      let docsQuery = supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+      if (profile?.client_id) docsQuery = docsQuery.eq('client_id', profile.client_id);
+      const { count: docsCount } = await docsQuery;
 
       // Users
       let userQuery = supabase.from('profiles').select('id, updated_at');
