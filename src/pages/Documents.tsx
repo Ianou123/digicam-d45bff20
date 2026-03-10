@@ -232,20 +232,17 @@ export default function Documents() {
   };
 
   const fetchDepartments = async () => {
-    if (!profile?.client_id && !isSuperAdmin) return;
+    if (!profile?.client_id) return;
 
     let query = supabase.from('departments').select('id, name, archived_at');
-    
-    if (!isSuperAdmin && profile?.client_id) {
-      query = query.eq('client_id', profile.client_id);
-    }
+    query = query.eq('client_id', profile.client_id);
 
     const { data } = await query;
     setDepartments(data || []);
   };
 
   const fetchDocuments = async () => {
-    if (!profile?.client_id && !isSuperAdmin) {
+    if (!profile?.client_id) {
       setLoading(false);
       return;
     }
@@ -279,10 +276,8 @@ export default function Documents() {
         query = query.is('deleted_at', null);
       }
 
-      // Apply client filter for Super Admin
-      if (isSuperAdmin && selectedClientId !== 'all') {
-        query = query.eq('client_id', selectedClientId);
-      } else if (!isSuperAdmin && profile?.client_id) {
+      // Apply client filter
+      if (profile?.client_id) {
         query = query.eq('client_id', profile.client_id);
       }
 

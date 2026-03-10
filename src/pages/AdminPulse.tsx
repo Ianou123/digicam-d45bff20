@@ -205,7 +205,9 @@ export default function AdminPulse() {
           ? await supabase.from('activity_logs').select('action_type, document_id').in('document_id', docIds).gte('created_at', startDate)
           : { data: [] };
 
-        const { data: profiles } = await supabase.from('profiles').select('id, department_id').not('department_id', 'is', null) as any;
+        let profileQuery = supabase.from('profiles').select('id, department_id').not('department_id', 'is', null);
+        if (profile?.client_id) profileQuery = profileQuery.eq('client_id', profile.client_id);
+        const { data: profiles } = await profileQuery as any;
 
         const deptMap: Record<string, DepartmentActivity> = {};
         departments.forEach(dept => {

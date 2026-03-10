@@ -100,23 +100,29 @@ export default function Activity() {
   };
 
   const fetchOrgUsers = async () => {
-    const { data } = await supabase.from('profiles').select('id, full_name, email').order('full_name');
+    let query = supabase.from('profiles').select('id, full_name, email').order('full_name');
+    if (profile?.client_id) query = query.eq('client_id', profile.client_id);
+    const { data } = await query;
     setOrgUsers(data || []);
   };
 
   const fetchDepartments = async () => {
-    const { data } = await supabase.from('departments').select('id, name').is('archived_at', null).order('name');
+    let query = supabase.from('departments').select('id, name').is('archived_at', null).order('name');
+    if (profile?.client_id) query = query.eq('client_id', profile.client_id);
+    const { data } = await query;
     setDepartments(data || []);
   };
 
   const fetchActivityLogs = async () => {
     setLoading(true);
     try {
-      const { data: logsData, error: logsError } = await supabase
+      let logsQuery = supabase
         .from('activity_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(500);
+      if (profile?.client_id) logsQuery = logsQuery.eq('client_id', profile.client_id);
+      const { data: logsData, error: logsError } = await logsQuery;
 
       if (logsError) throw logsError;
 

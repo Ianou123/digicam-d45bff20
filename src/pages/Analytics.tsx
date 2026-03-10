@@ -52,11 +52,13 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const { count: docsCount } = await supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+      let docsQuery = supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
+      if (profile?.client_id) docsQuery = docsQuery.eq('client_id', profile.client_id);
+      const { count: docsCount } = await docsQuery;
 
       // Users
       let userQuery = supabase.from('profiles').select('id, updated_at');
-      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: usersData } = await userQuery;
       const fallbackUserId = user?.id || profile?.id;
       const totalUsers = (usersData?.length || 0) > 0 ? (usersData?.length || 0) : fallbackUserId ? 1 : 0;
@@ -64,21 +66,25 @@ export default function Analytics() {
       // Active users (had activity in last 30 days)
       const thirtyDaysAgo = subDays(new Date(), 30);
       let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
-      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
       const { data: activeData } = await activeQuery;
       // Only count users that belong to the fetched user list
       const userIdSet = new Set(usersData?.map(u => u.id) || []);
       const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => userIdSet.has(id)));
 
       // Activity logs
-      const { data: activityData } = await supabase.from('activity_logs').select('action_type, document_id, client_id, created_at');
+      let activityQuery = supabase.from('activity_logs').select('action_type, document_id, client_id, created_at');
+      if (profile?.client_id) activityQuery = activityQuery.eq('client_id', profile.client_id);
+      const { data: activityData } = await activityQuery;
 
       const views = activityData?.filter(a => a.action_type === 'view').length || 0;
       const downloads = activityData?.filter(a => a.action_type === 'download').length || 0;
       const searches = activityData?.filter(a => a.action_type === 'search').length || 0;
 
       // Search success rate
-      const { data: searchLogs } = await supabase.from('search_logs').select('result_count');
+      let searchLogQuery = supabase.from('search_logs').select('result_count');
+      if (profile?.client_id) searchLogQuery = searchLogQuery.eq('client_id', profile.client_id);
+      const { data: searchLogs } = await searchLogQuery;
       const totalSearchLogs = searchLogs?.length || 0;
       const successfulSearches = searchLogs?.filter(s => s.result_count > 0).length || 0;
       const searchSuccessRate = totalSearchLogs > 0 ? Math.round((successfulSearches / totalSearchLogs) * 100) : 100;
