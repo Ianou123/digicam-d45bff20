@@ -243,7 +243,7 @@ export default function AdminPulse() {
 
       // Total users + active users (logged in last 30 days)
       let userQuery = supabase.from('profiles').select('id, updated_at');
-      if (!isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: users } = await userQuery;
 
       // Only count users that are in the org (exclude ultra_admins)
