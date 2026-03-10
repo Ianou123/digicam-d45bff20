@@ -102,7 +102,7 @@ export default function AdminPulse() {
       const startDate = subDays(new Date(), parseInt(timeRange)).toISOString();
       let query = supabase.from('search_logs').select('query_text, result_count, created_at')
         .gte('created_at', startDate).order('created_at', { ascending: false });
-      if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+      if (profile?.client_id) query = query.eq('client_id', profile.client_id);
       const { data: searchLogs } = await query;
 
       if (searchLogs) {
