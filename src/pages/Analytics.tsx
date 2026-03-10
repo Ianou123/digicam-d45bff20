@@ -66,7 +66,7 @@ export default function Analytics() {
       // Active users (had activity in last 30 days)
       const thirtyDaysAgo = subDays(new Date(), 30);
       let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
-      if (!isUltraAdmin && !isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
       const { data: activeData } = await activeQuery;
       // Only count users that belong to the fetched user list
       const userIdSet = new Set(usersData?.map(u => u.id) || []);
