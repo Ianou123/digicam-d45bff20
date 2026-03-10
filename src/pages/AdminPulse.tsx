@@ -189,7 +189,7 @@ export default function AdminPulse() {
   const fetchDepartmentActivity = async () => {
     try {
       let deptQuery = supabase.from('departments').select('id, name').is('archived_at', null);
-      if (!isSuperAdmin && profile?.client_id) deptQuery = deptQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) deptQuery = deptQuery.eq('client_id', profile.client_id);
       const { data: departments } = await deptQuery;
 
       if (departments && departments.length > 0) {
