@@ -232,13 +232,10 @@ export default function Documents() {
   };
 
   const fetchDepartments = async () => {
-    if (!profile?.client_id && !isSuperAdmin) return;
+    if (!profile?.client_id) return;
 
     let query = supabase.from('departments').select('id, name, archived_at');
-    
-    if (!isSuperAdmin && profile?.client_id) {
-      query = query.eq('client_id', profile.client_id);
-    }
+    query = query.eq('client_id', profile.client_id);
 
     const { data } = await query;
     setDepartments(data || []);
