@@ -238,7 +238,7 @@ export default function AdminPulse() {
     try {
       // Total docs
       let docQuery = supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
-      if (!isSuperAdmin && profile?.client_id) docQuery = docQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) docQuery = docQuery.eq('client_id', profile.client_id);
       const { count: totalDocs } = await docQuery;
 
       // Total users + active users (logged in last 30 days)
