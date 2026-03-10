@@ -73,7 +73,9 @@ export default function Analytics() {
       const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => userIdSet.has(id)));
 
       // Activity logs
-      const { data: activityData } = await supabase.from('activity_logs').select('action_type, document_id, client_id, created_at');
+      let activityQuery = supabase.from('activity_logs').select('action_type, document_id, client_id, created_at');
+      if (profile?.client_id) activityQuery = activityQuery.eq('client_id', profile.client_id);
+      const { data: activityData } = await activityQuery;
 
       const views = activityData?.filter(a => a.action_type === 'view').length || 0;
       const downloads = activityData?.filter(a => a.action_type === 'download').length || 0;
