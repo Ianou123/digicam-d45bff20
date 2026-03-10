@@ -102,7 +102,7 @@ export default function AdminPulse() {
       const startDate = subDays(new Date(), parseInt(timeRange)).toISOString();
       let query = supabase.from('search_logs').select('query_text, result_count, created_at')
         .gte('created_at', startDate).order('created_at', { ascending: false });
-      if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+      if (profile?.client_id) query = query.eq('client_id', profile.client_id);
       const { data: searchLogs } = await query;
 
       if (searchLogs) {
@@ -158,7 +158,7 @@ export default function AdminPulse() {
       let query = supabase.from('activity_logs').select('document_id, action_type')
         .in('action_type', ['view', 'download']).not('document_id', 'is', null)
         .gte('created_at', startDate);
-      if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+      if (profile?.client_id) query = query.eq('client_id', profile.client_id);
       const { data: logs } = await query;
 
       if (logs && logs.length > 0) {
@@ -189,7 +189,7 @@ export default function AdminPulse() {
   const fetchDepartmentActivity = async () => {
     try {
       let deptQuery = supabase.from('departments').select('id, name').is('archived_at', null);
-      if (!isSuperAdmin && profile?.client_id) deptQuery = deptQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) deptQuery = deptQuery.eq('client_id', profile.client_id);
       const { data: departments } = await deptQuery;
 
       if (departments && departments.length > 0) {
@@ -238,12 +238,12 @@ export default function AdminPulse() {
     try {
       // Total docs
       let docQuery = supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
-      if (!isSuperAdmin && profile?.client_id) docQuery = docQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) docQuery = docQuery.eq('client_id', profile.client_id);
       const { count: totalDocs } = await docQuery;
 
       // Total users + active users (logged in last 30 days)
       let userQuery = supabase.from('profiles').select('id, updated_at');
-      if (!isSuperAdmin && profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) userQuery = userQuery.eq('client_id', profile.client_id);
       const { data: users } = await userQuery;
 
       // Only count users that are in the org (exclude ultra_admins)
@@ -264,7 +264,7 @@ export default function AdminPulse() {
 
       const thirtyDaysAgo = subDays(new Date(), 30);
       let activeQuery = supabase.from('activity_logs').select('user_id').gte('created_at', thirtyDaysAgo.toISOString());
-      if (!isSuperAdmin && profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) activeQuery = activeQuery.eq('client_id', profile.client_id);
       const { data: activeData } = await activeQuery;
       const filteredSet = new Set(filteredUserIds);
       const activeUserIds = new Set((activeData?.map(a => a.user_id) || []).filter(id => filteredSet.has(id)));
@@ -272,7 +272,7 @@ export default function AdminPulse() {
       // Fetch search metrics fresh for health score (don't rely on stale state)
       const startDate = subDays(new Date(), parseInt(timeRange)).toISOString();
       let searchQuery = supabase.from('search_logs').select('result_count').gte('created_at', startDate);
-      if (!isSuperAdmin && profile?.client_id) searchQuery = searchQuery.eq('client_id', profile.client_id);
+      if (profile?.client_id) searchQuery = searchQuery.eq('client_id', profile.client_id);
       const { data: healthSearchLogs } = await searchQuery;
       const healthTotalSearches = healthSearchLogs?.length || 0;
       const healthSuccessful = healthSearchLogs?.filter(s => s.result_count > 0).length || 0;
