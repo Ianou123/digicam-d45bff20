@@ -1,58 +1,42 @@
 
-# DigiCam Archive - Plan
 
-## Architecture: 2 Modules
+## Problem
 
-DigiCam supports **two modules** chosen at organization creation:
+Every query in `AdminPulse.tsx` uses this pattern:
 
-### Module 1: Core
-- **Roles**: Admin (Super Admin), Utilisateur (Staff)
-- **Description**: GED moderne pour PME, cabinets, freelances
-- Admin gère tout : upload, users, départements, logs
-- Utilisateur : consultation, recherche, téléchargement, envoi
-- Départements optionnels
+```typescript
+if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+```
 
-### Module 2: Administratif (admin_publique)
-- **Roles**: Super Admin, Admin IT (client_admin), Utilisateur (Staff)
-- **Description**: Pour institutions et grandes entreprises
-- **Principe clé** : Séparation des tâches
-  - Super Admin : gestion users, départements, analytics, audit logs — **NE PEUT PAS uploader**
-  - Admin IT : upload documents uniquement — **NE PEUT PAS voir les documents/logs**
-  - Utilisateur : consultation en lecture seule
-- Départements obligatoires
-- Journalisation obligatoire
+This means when the user **is** a Super Admin, **no `client_id` filter is applied**. But Super Admins are org-scoped — they should only see their own organization's data. Only Ultra Admins should see cross-org data.
 
-### Ultra Admin (DigiCam Staff)
-- Pas lié à une organisation
-- Crée/gère les organisations
-- Voit les logs d'audit globaux (pas le contenu des documents)
-- Peut changer le module d'une organisation
+This causes:
+- **Wrong user count**: Super Admin sees users from ALL organizations
+- **Ghost departments**: Super Admin sees departments from other organizations
 
-## Changement de module
-Le changement de module n'est PAS en libre-service. Contacter DigiCam.
+This pattern appears ~8 times across all fetch functions.
 
-## Rôles dans la base de données
-- `ultra_admin` : Staff DigiCam
-- `super_admin` : Responsable d'organisation
-- `client_admin` : Admin IT (module Administratif uniquement)
-- `staff` : Utilisateur standard
+## Fix
 
-## Permissions (Résumé)
+**File: `src/pages/AdminPulse.tsx`**
 
-| Permission | Core Admin | Core User | Admin Super | Admin IT | Admin User | Ultra |
-|---|---|---|---|---|---|---|
-| Upload | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Search & Download | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Send Docs | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Manage Depts | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Manage Users | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| View Analytics | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| View Audit Logs | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Admin Pages | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+Replace every instance of:
+```typescript
+if (!isSuperAdmin && profile?.client_id) query = query.eq('client_id', profile.client_id);
+```
 
-## Key Technical Details
-- Module enum: `client_module` = `'core' | 'admin_publique'`
-- Role enum: `app_role` = `'ultra_admin' | 'super_admin' | 'client_admin' | 'staff'`
-- DB function `can_user_upload()` enforces separation of concerns
-- DB function `is_restricted_module()` checks `admin_publique` only
-- `can_delete_in_module()` always returns true (no WORM)
+With:
+```typescript
+if (profile?.client_id) query = query.eq('client_id', profile.client_id);
+```
+
+This applies the `client_id` filter for **all org-scoped users** (Super Admin, Client Admin, Staff). The filter is simply skipped when `profile.client_id` is null (which only happens for Ultra Admins — who legitimately see everything).
+
+Affected queries (~8 locations):
+1. `fetchFailedSearches` — search_logs
+2. `fetchPopularDocuments` — activity_logs
+3. `fetchDepartmentActivity` — departments
+4. `fetchHealthMetrics` — documents, profiles, activity_logs, search_logs
+
+No database changes needed — this is purely a frontend filtering bug.
+
