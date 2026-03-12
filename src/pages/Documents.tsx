@@ -79,7 +79,7 @@ export default function Documents() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName } = useAuth();
   const { t, language } = useLanguage();
-  
+
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -90,21 +90,21 @@ export default function Documents() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  
+
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'trash' | 'restore' | 'delete'>('trash');
-  
+
   // Confidential download modal state
   const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
   const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
-  
+
   // Owner filter from URL
   const ownerIdParam = searchParams.get('owner');
   const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
-  
+
   // Initialize filters from URL params
   const [filters, setFilters] = useState<FilterState>(() => ({
     search: searchParams.get('search') || '',
@@ -216,7 +216,7 @@ export default function Documents() {
   const handleFiltersChange = (newFilters: FilterState) => {
     const previousSearch = filters.search;
     setFilters(newFilters);
-    
+
     // Defer search logging to after documents have loaded
     if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
       const timeoutId = setTimeout(() => {
@@ -316,7 +316,7 @@ export default function Documents() {
       const { data, error } = await query;
 
       if (error) throw error;
-      
+
       // Apply STRICT client-side validation for search results
       // This ensures no false positives - search term MUST actually exist in the document
       let filteredData = (data || []) as unknown as Document[];
@@ -326,14 +326,14 @@ export default function Documents() {
           // Strictly validate that the search term exists in title, OCR, or tags
           const titleMatch = doc.title?.toLowerCase().includes(searchLower);
           const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
-          const tagMatch = doc.tags?.some(tag => 
+          const tagMatch = doc.tags?.some(tag =>
             tag.toLowerCase().includes(searchLower)
           );
           // Document MUST have an actual match - no fuzzy false positives
           return titleMatch || ocrMatch || tagMatch;
         });
       }
-      
+
       setDocuments(filteredData);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -382,11 +382,11 @@ export default function Documents() {
 
     const filename = `${doc.title}.${doc.document_type}`;
     const success = await downloadDocument(doc.file_url, filename);
-    
+
     if (!success) {
       toast.error(t('common.error'));
     }
-    
+
     // Reset modal state
     setPendingDownloadDoc(null);
     setConfidentialModalOpen(false);
@@ -472,7 +472,7 @@ export default function Documents() {
 
   const handleBulkDownload = async () => {
     const selectedDocs = documents.filter(d => selectedDocuments.has(d.id));
-    
+
     for (const doc of selectedDocs) {
       if (user && profile?.client_id) {
         await supabase.from('activity_logs').insert({
@@ -482,11 +482,11 @@ export default function Documents() {
           document_id: doc.id,
         });
       }
-      
+
       const filename = `${doc.title}.${doc.document_type}`;
       await downloadDocument(doc.file_url, filename);
     }
-    
+
     setSelectedDocuments(new Set());
   };
 
@@ -498,7 +498,7 @@ export default function Documents() {
   const executeBulkAction = async () => {
     const ids = Array.from(selectedDocuments);
     setBulkActionDialogOpen(false);
-    
+
     switch (bulkActionType) {
       case 'trash':
         await handleMoveToTrash(ids);
@@ -629,20 +629,7 @@ export default function Documents() {
             </Tabs>
           )}
 
-          {/* Organization Filter for Super Admin */}
-          {isSuperAdmin && (
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder={language === 'fr' ? 'Toutes les organisations' : 'All organizations'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{language === 'fr' ? 'Toutes les organisations' : 'All organizations'}</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+
           <div className="flex items-center border border-border rounded-md">
             <Button
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
@@ -745,7 +732,7 @@ export default function Documents() {
         filters.search && filters.search.length >= 2 ? (
           <div className="space-y-3">
             {documents.map((doc) => {
-              const matchedInContent = doc.ocr_text 
+              const matchedInContent = doc.ocr_text
                 ? doc.ocr_text.toLowerCase().includes(filters.search.toLowerCase())
                 : false;
               return (
@@ -768,8 +755,8 @@ export default function Documents() {
             })}
           </div>
         ) : (
-          <div className={viewMode === 'grid' 
-            ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' 
+          <div className={viewMode === 'grid'
+            ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
             : 'space-y-3'
           }>
             {documents.map((doc) => (
@@ -796,20 +783,20 @@ export default function Documents() {
         showTrash ? (
           <EmptyState type="emptyTrash" />
         ) : ownerIdParam && ownerProfile ? (
-          <EmptyState 
-            type="noResults" 
-            searchQuery={language === 'fr' 
-              ? `documents de ${ownerDisplayName}` 
-              : `documents by ${ownerDisplayName}`} 
+          <EmptyState
+            type="noResults"
+            searchQuery={language === 'fr'
+              ? `documents de ${ownerDisplayName}`
+              : `documents by ${ownerDisplayName}`}
           />
         ) : filters.search ? (
-          <EmptyState 
-            type="noResults" 
-            searchQuery={filters.search} 
+          <EmptyState
+            type="noResults"
+            searchQuery={filters.search}
           />
         ) : (
-          <EmptyState 
-            type="noDocuments" 
+          <EmptyState
+            type="noDocuments"
             organizationName={clientName || undefined}
             canUpload={canManageDocuments && !isSuperAdmin && !isClientSuspended}
             onUpload={() => setUploadModalOpen(true)}

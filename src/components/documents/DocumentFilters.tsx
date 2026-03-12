@@ -159,21 +159,7 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
           </SelectContent>
         </Select>
 
-        <Select
-          value={filters.status || 'all'}
-          onValueChange={(v) => updateFilter('status', v === 'all' ? '' : v)}
-        >
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder={language === 'fr' ? 'Statut' : 'Status'} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{language === 'fr' ? 'Tous les statuts' : 'All statuses'}</SelectItem>
-            <SelectItem value="ready">{language === 'fr' ? 'Prêt' : 'Ready'}</SelectItem>
-            <SelectItem value="pending_validation">{language === 'fr' ? 'À valider' : 'Pending Validation'}</SelectItem>
-            <SelectItem value="rejected">{language === 'fr' ? 'Rejeté' : 'Rejected'}</SelectItem>
-            <SelectItem value="archived">{language === 'fr' ? 'Archivé' : 'Archived'}</SelectItem>
-          </SelectContent>
-        </Select>
+
 
         {activeFilterCount > 0 && (
           <Button
