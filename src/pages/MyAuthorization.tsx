@@ -9,10 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  PERMISSION_LABELS, 
+import {
+  PERMISSION_LABELS,
   getRestrictionReason,
-  ModulePermissions 
+  ModulePermissions
 } from '@/types/modules';
 
 interface Department {
@@ -41,15 +41,15 @@ export default function MyAuthorization() {
   const { profile, user, isUltraAdmin, isClientAdmin } = useAuth();
   const { language } = useLanguage();
   const { toast } = useToast();
-  const { 
-    module, 
-    role, 
-    permissions, 
-    moduleInfo, 
+  const {
+    module,
+    role,
+    permissions,
+    moduleInfo,
     roleInfo,
-    isRestrictedModule 
+    isRestrictedModule
   } = useModulePermissions();
-  
+
   const [userDepartments, setUserDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
@@ -62,20 +62,32 @@ export default function MyAuthorization() {
       }
 
       if (isRestrictedModule) {
+        // First check user_departments table (many-to-many)
         const { data } = await supabase
           .from('user_departments')
           .select('department_id, departments(id, name)')
           .eq('user_id', user.id);
-        
-        if (data) {
+
+        if (data && data.length > 0) {
           setUserDepartments(
             data
               .filter(d => d.departments)
-              .map(d => ({ 
-                id: (d.departments as any).id, 
-                name: (d.departments as any).name 
+              .map(d => ({
+                id: (d.departments as any).id,
+                name: (d.departments as any).name
               }))
           );
+        } else if (profile.department_id) {
+          // Fallback: check profile.department_id (single department assignment)
+          const { data: deptData } = await supabase
+            .from('departments')
+            .select('id, name')
+            .eq('id', profile.department_id)
+            .single();
+
+          if (deptData) {
+            setUserDepartments([deptData]);
+          }
         }
       } else if (profile.department_id) {
         const { data } = await supabase
@@ -83,12 +95,12 @@ export default function MyAuthorization() {
           .select('id, name')
           .eq('id', profile.department_id)
           .single();
-        
+
         if (data) {
           setUserDepartments([data]);
         }
       }
-      
+
       setLoading(false);
     };
 
@@ -113,7 +125,7 @@ export default function MyAuthorization() {
           user_id: admin.user_id,
           client_id: profile.client_id!,
           type: 'authorization_report',
-          title: language === 'fr' 
+          title: language === 'fr'
             ? 'Signalement d\'incohérence de droits'
             : 'Authorization Inconsistency Report',
           message: language === 'fr'
@@ -131,7 +143,7 @@ export default function MyAuthorization() {
 
         toast({
           title: language === 'fr' ? 'Signalement envoyé' : 'Report sent',
-          description: language === 'fr' 
+          description: language === 'fr'
             ? 'Un administrateur examinera votre demande.'
             : 'An administrator will review your request.',
         });
@@ -141,7 +153,7 @@ export default function MyAuthorization() {
       toast({
         variant: 'destructive',
         title: language === 'fr' ? 'Erreur' : 'Error',
-        description: language === 'fr' 
+        description: language === 'fr'
           ? 'Impossible d\'envoyer le signalement.'
           : 'Unable to send report.',
       });
@@ -189,7 +201,7 @@ export default function MyAuthorization() {
             {language === 'fr' ? 'Mon Habilitation' : 'My Authorization'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {language === 'fr' 
+            {language === 'fr'
               ? 'Consultez vos droits et responsabilités dans DigiCam'
               : 'View your rights and responsibilities in DigiCam'}
           </p>
@@ -210,7 +222,7 @@ export default function MyAuthorization() {
                   Ultra Admin
                 </Badge>
                 <p className="text-sm text-muted-foreground">
-                  {language === 'fr' 
+                  {language === 'fr'
                     ? 'Personnel DigiCam - Gestion de la plateforme et des organisations'
                     : 'DigiCam Staff - Platform and organization management'}
                 </p>
@@ -233,7 +245,7 @@ export default function MyAuthorization() {
                   {language === 'fr' ? 'Plateforme' : 'Platform'}
                 </Badge>
                 <p className="text-sm text-muted-foreground">
-                  {language === 'fr' 
+                  {language === 'fr'
                     ? 'Accès administrateur à l\'ensemble de la plateforme DigiCam. Vous pouvez gérer les organisations, consulter les logs et voir les statistiques globales.'
                     : 'Administrator access to the entire DigiCam platform. You can manage organizations, view logs and see global statistics.'}
                 </p>
@@ -249,7 +261,7 @@ export default function MyAuthorization() {
               {language === 'fr' ? 'Matrice des Permissions' : 'Permissions Matrix'}
             </CardTitle>
             <CardDescription>
-              {language === 'fr' 
+              {language === 'fr'
                 ? 'Ce que vous pouvez et ne pouvez pas faire'
                 : 'What you can and cannot do'}
             </CardDescription>
@@ -263,8 +275,8 @@ export default function MyAuthorization() {
               </h3>
               <div className="space-y-2">
                 {ULTRA_ADMIN_PERMISSIONS.allowed.map((p, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className="flex items-center gap-2 text-sm p-2 rounded bg-green-50 dark:bg-green-950/30"
                   >
                     <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -284,8 +296,8 @@ export default function MyAuthorization() {
               </h3>
               <div className="space-y-2">
                 {ULTRA_ADMIN_PERMISSIONS.denied.map((p, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className="flex items-start gap-2 text-sm p-2 rounded bg-red-50 dark:bg-red-950/30"
                   >
                     <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
@@ -404,7 +416,7 @@ export default function MyAuthorization() {
           {language === 'fr' ? 'Mon Habilitation' : 'My Authorization'}
         </h1>
         <p className="text-muted-foreground mt-1">
-          {language === 'fr' 
+          {language === 'fr'
             ? 'Consultez vos droits et responsabilités dans DigiCam'
             : 'View your rights and responsibilities in DigiCam'}
         </p>
@@ -461,13 +473,13 @@ export default function MyAuthorization() {
               {language === 'fr' ? 'Mes Départements' : 'My Departments'}
             </CardTitle>
             <CardDescription>
-              {isRestrictedModule 
-                ? (language === 'fr' 
-                    ? 'Vous avez accès aux documents de ces départements'
-                    : 'You have access to documents from these departments')
+              {isRestrictedModule
+                ? (language === 'fr'
+                  ? 'Vous avez accès aux documents de ces départements'
+                  : 'You have access to documents from these departments')
                 : (language === 'fr'
-                    ? 'Votre département actuel'
-                    : 'Your current department')}
+                  ? 'Votre département actuel'
+                  : 'Your current department')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -489,7 +501,7 @@ export default function MyAuthorization() {
             {language === 'fr' ? 'Matrice des Permissions' : 'Permissions Matrix'}
           </CardTitle>
           <CardDescription>
-            {language === 'fr' 
+            {language === 'fr'
               ? 'Ce que vous pouvez et ne pouvez pas faire'
               : 'What you can and cannot do'}
           </CardDescription>
@@ -502,8 +514,8 @@ export default function MyAuthorization() {
             </h3>
             <div className="space-y-2">
               {allowedPermissions.map(p => (
-                <div 
-                  key={p.key} 
+                <div
+                  key={p.key}
                   className="flex items-center gap-2 text-sm p-2 rounded bg-green-50 dark:bg-green-950/30"
                 >
                   <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -524,8 +536,8 @@ export default function MyAuthorization() {
               {deniedPermissions.map(p => {
                 const reason = getRestrictionReason(p.key as keyof ModulePermissions, role, module, language);
                 return (
-                  <div 
-                    key={p.key} 
+                  <div
+                    key={p.key}
                     className="flex items-start gap-2 text-sm p-2 rounded bg-red-50 dark:bg-red-950/30"
                   >
                     <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
@@ -551,7 +563,7 @@ export default function MyAuthorization() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">
-                {language === 'fr' 
+                {language === 'fr'
                   ? 'Signaler une incohérence de droits'
                   : 'Report authorization inconsistency'}
               </h3>
