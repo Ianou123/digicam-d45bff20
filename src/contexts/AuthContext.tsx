@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (rolesData) {
         const userRoles = rolesData.map(r => r.role as AppRole);
         setRoles(userRoles);
-        
+
         // Check if role acknowledgment is required for restricted modules
         // Ultra admins don't need acknowledgment - they're DigiCam staff
         if (profileData?.client_id && !userRoles.includes('ultra_admin')) {
@@ -142,15 +142,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select('module')
             .eq('id', profileData.client_id)
             .maybeSingle();
-          
+
           const module = clientData?.module as ClientModule;
           if (module && module === 'admin_publique') {
-            const currentRole = userRoles.includes('super_admin') 
-              ? 'super_admin' 
-              : userRoles.includes('client_admin') 
-                ? 'client_admin' 
+            const currentRole = userRoles.includes('super_admin')
+              ? 'super_admin'
+              : userRoles.includes('client_admin')
+                ? 'client_admin'
                 : 'staff';
-            
+
             // Check if user has acknowledged this role+module combination
             const { data: ackData } = await supabase
               .from('role_acknowledgments')
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq('role', currentRole)
               .eq('module', module)
               .maybeSingle();
-            
+
             setRequiresRoleAcknowledgment(!ackData);
           } else {
             setRequiresRoleAcknowledgment(false);
@@ -204,11 +204,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchProfile(session.user.id);
       }
-      
+
       setLoading(false);
     });
 
@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string, inviteCode?: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -264,15 +264,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const acknowledgeRole = async () => {
     if (!user || !clientModule) return;
-    
+
     const currentRole = isUltraAdmin
       ? 'ultra_admin'
-      : isSuperAdmin 
-        ? 'super_admin' 
-        : isClientAdmin 
-          ? 'client_admin' 
+      : isSuperAdmin
+        ? 'super_admin'
+        : isClientAdmin
+          ? 'client_admin'
           : 'staff';
-    
+
     try {
       await supabase
         .from('role_acknowledgments')
@@ -281,7 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: currentRole,
           module: clientModule,
         }, { onConflict: 'user_id,role,module' });
-      
+
       setRequiresRoleAcknowledgment(false);
     } catch (error) {
       console.error('Error acknowledging role:', error);
@@ -296,8 +296,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isClientAdmin = roles.includes('client_admin');
   // staff is regular user
   const isStaff = roles.includes('staff') || (!isUltraAdmin && !isSuperAdmin && !isClientAdmin && roles.length === 0);
-  // Can manage documents: Ultra Admin, Super Admin, or Client Admin
-  const canManageDocuments = isUltraAdmin || isSuperAdmin || isClientAdmin;
+  // Can manage documents depends on module:
+  // - Core module: Ultra Admin, Super Admin, or Client Admin can manage docs
+  // - Administrative module (admin_publique): ONLY Ultra Admin or Client Admin (IT Admin) can manage docs
+  //   Super Admin in administrative module manages users/depts but does NOT upload
+  const canManageDocuments = isUltraAdmin || isClientAdmin || (isSuperAdmin && clientModule !== 'admin_publique');
   const isClientSuspended = clientStatus === 'suspended';
   const isUserDeactivated = profile?.status === 'deactivated';
 
