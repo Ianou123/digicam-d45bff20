@@ -83,7 +83,7 @@ export const translations = {
       public: 'Public',
       internal: 'Interne',
       confidential: 'Confidentiel',
-      unassigned: 'Non assigné',
+      unassigned: 'Général — Tous les départements',
       versions: 'Historique des versions',
       changeNotes: 'Notes de modification',
       ocrText: 'Texte OCR',
@@ -366,7 +366,7 @@ export const translations = {
       public: 'Public',
       internal: 'Internal',
       confidential: 'Confidential',
-      unassigned: 'Unassigned',
+      unassigned: 'General — All departments',
       versions: 'Version history',
       changeNotes: 'Change notes',
       ocrText: 'OCR Text',
@@ -576,7 +576,7 @@ export type TranslationKeys = typeof translations.fr;
 export function t(lang: Language, path: string): string {
   const keys = path.split('.');
   let value: any = translations[lang];
-  
+
   for (const key of keys) {
     if (value && typeof value === 'object' && key in value) {
       value = value[key];
@@ -584,6 +584,6 @@ export function t(lang: Language, path: string): string {
       return path; // Return path if translation not found
     }
   }
-  
+
   return typeof value === 'string' ? value : path;
 }

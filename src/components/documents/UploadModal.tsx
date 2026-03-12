@@ -51,17 +51,17 @@ type UploadStep = 'form' | 'uploading' | 'processing' | 'complete';
 
 export function UploadModal({ open, onOpenChange, departments, onSuccess }: UploadModalProps) {
   const { t, language } = useLanguage();
-  const { user, profile } = useAuth();
+  const { user, profile, isClientAdmin } = useAuth();
   const navigate = useNavigate();
-  
+
   const [step, setStep] = useState<UploadStep>('form');
   const [progress, setProgress] = useState(0);
   const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
-  
+
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     departmentId: '',
@@ -85,7 +85,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -98,7 +98,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
       return;
     }
     setFile(selectedFile);
-    
+
     // Create preview for images
     if (['image/jpeg', 'image/png'].includes(selectedFile.type)) {
       const url = URL.createObjectURL(selectedFile);
@@ -106,7 +106,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
     } else {
       setPreviewUrl(null);
     }
-    
+
     if (!formData.title) {
       setFormData(prev => ({ ...prev, title: selectedFile.name.replace(/\.[^/.]+$/, '') }));
     }
@@ -116,7 +116,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
     // Simulate OCR processing with progress
     setStep('processing');
     setProgress(0);
-    
+
     // Simulate progress
     const progressInterval = setInterval(() => {
       setProgress(prev => {
@@ -130,7 +130,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
 
     // Simulate OCR delay (2-4 seconds)
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-    
+
     clearInterval(progressInterval);
     setProgress(100);
 
@@ -152,7 +152,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
 
     setStep('uploading');
     setProgress(0);
-    
+
     try {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
@@ -161,15 +161,15 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 50);
       const filePath = `${profile.client_id}/${Date.now()}_${sanitizedName}.${fileExt}`;
-      
+
       setProgress(20);
-      
+
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
-      
+
       setProgress(50);
 
       // Store the file path (not public URL) since bucket is private
@@ -200,7 +200,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
         .single();
 
       if (insertError) throw insertError;
-      
+
       setProgress(70);
       setUploadedDocId(insertedDoc.id);
 
@@ -215,7 +215,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
 
       // Simulate OCR processing
       await simulateOcrProcessing(insertedDoc.id);
-      
+
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(language === 'fr' ? 'Erreur lors du téléversement' : 'Upload error');
@@ -228,9 +228,16 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
       onOpenChange(false);
       resetForm();
       onSuccess?.();
-      // Navigate to the document detail page
-      navigate(`/documents/${uploadedDocId}`);
+      // IT Admin cannot view documents — don't navigate
+      if (!isClientAdmin) {
+        navigate(`/documents/${uploadedDocId}`);
+      }
     }
+  };
+
+  const handleUploadAnother = () => {
+    onSuccess?.();
+    resetForm();
   };
 
   const handleClose = () => {
@@ -276,7 +283,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
             <p className="text-xs text-muted-foreground">{Math.round(progress)}%</p>
           </div>
         );
-      
+
       case 'processing':
         return (
           <div className="py-12 text-center space-y-4">
@@ -288,7 +295,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
                 {language === 'fr' ? 'Traitement OCR en cours...' : 'Processing OCR...'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {language === 'fr' 
+                {language === 'fr'
                   ? 'Extraction du texte et indexation'
                   : 'Extracting text and indexing'}
               </p>
@@ -297,7 +304,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
             <p className="text-xs text-muted-foreground">{Math.round(progress)}%</p>
           </div>
         );
-      
+
       case 'complete':
         return (
           <div className="py-12 text-center space-y-4">
@@ -312,13 +319,25 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
                 {formData.title}
               </p>
             </div>
-            <Button onClick={handleComplete} className="btn-institutional">
-              <Eye className="h-4 w-4 mr-2" />
-              {language === 'fr' ? 'Voir le document' : 'View Document'}
-            </Button>
+            {isClientAdmin ? (
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" onClick={handleComplete}>
+                  {language === 'fr' ? 'Fermer' : 'Close'}
+                </Button>
+                <Button onClick={handleUploadAnother} className="btn-institutional">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {language === 'fr' ? 'Importer un autre' : 'Upload Another'}
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleComplete} className="btn-institutional">
+                <Eye className="h-4 w-4 mr-2" />
+                {language === 'fr' ? 'Voir le document' : 'View Document'}
+              </Button>
+            )}
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -357,7 +376,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
               />
-              
+
               {file ? (
                 <div className="flex items-center gap-4">
                   {previewUrl ? (
@@ -442,7 +461,7 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
                 <Label>{t('documents.confidentiality')} *</Label>
                 <Select
                   value={formData.confidentiality}
-                  onValueChange={(v: ConfidentialityLevel) => 
+                  onValueChange={(v: ConfidentialityLevel) =>
                     setFormData(prev => ({ ...prev, confidentiality: v }))
                   }
                 >

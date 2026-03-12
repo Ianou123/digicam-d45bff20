@@ -99,7 +99,7 @@ export default function MyDocuments() {
           created_at: doc.created_at,
           status: doc.status,
           file_size: doc.file_size,
-          department_name: doc.departments?.name || (language === 'fr' ? 'Non assigné' : 'Unassigned'),
+          department_name: doc.departments?.name || (language === 'fr' ? 'Général' : 'General'),
           department_id: doc.department_id,
         })),
       );
@@ -184,7 +184,7 @@ export default function MyDocuments() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'fr' ? 'Tous les départements' : 'All departments'}</SelectItem>
-              <SelectItem value="none">{language === 'fr' ? 'Non assigné' : 'Unassigned'}</SelectItem>
+              <SelectItem value="none">{language === 'fr' ? 'Général' : 'General'}</SelectItem>
               {departments.map((dept) => (
                 <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
               ))}

@@ -100,7 +100,7 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('documents.allDepartments')}</SelectItem>
-            <SelectItem value="unassigned">{t('documents.unassigned') || 'Non assigné'}</SelectItem>
+            <SelectItem value="general">{language === 'fr' ? 'Général' : 'General'}</SelectItem>
             {/* Show all departments in filters (including archived) so users can filter existing docs */}
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>

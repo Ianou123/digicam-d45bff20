@@ -287,10 +287,12 @@ export default function Documents() {
       }
 
       // Apply filters
-      if (filters.department === 'unassigned') {
+      if (filters.department === 'general') {
+        // Show only "Général" documents (no department assigned = shared with all)
         query = query.is('department_id', null);
       } else if (filters.department) {
-        query = query.eq('department_id', filters.department);
+        // When filtering by a specific department, also include "Général" docs (null department)
+        query = query.or(`department_id.eq.${filters.department},department_id.is.null`);
       }
       if (filters.type) {
         query = query.eq('document_type', filters.type as any);

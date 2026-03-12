@@ -96,10 +96,10 @@ export function ITAdminDashboard() {
           : Promise.resolve({ data: null } as any),
         deptId
           ? supabase
-              .from('documents')
-              .select('id', { count: 'exact', head: true })
-              .eq('department_id', deptId)
-              .is('deleted_at', null)
+            .from('documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('department_id', deptId)
+            .is('deleted_at', null)
           : Promise.resolve({ count: 0 } as any),
         supabase
           .from('departments')
@@ -123,7 +123,7 @@ export function ITAdminDashboard() {
           document_type: doc.document_type,
           created_at: doc.created_at,
           status: doc.status,
-          department_name: doc.departments?.name || (language === 'fr' ? 'Non assigné' : 'Unassigned'),
+          department_name: doc.departments?.name || (language === 'fr' ? 'Général' : 'General'),
         })),
       );
 
@@ -266,6 +266,16 @@ export function ITAdminDashboard() {
         open={uploadOpen}
         onOpenChange={setUploadOpen}
         departments={departments}
+        onSuccess={() => {
+          // Refresh dashboard data after upload
+          if (user && profile?.client_id) {
+            // Re-trigger the data load by setting loading
+            setLoading(true);
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
+          }
+        }}
       />
     </div>
   );

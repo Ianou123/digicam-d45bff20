@@ -98,7 +98,7 @@ export default function Users() {
       console.error('Error logging admin action:', error);
     }
   };
-  
+
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -113,7 +113,7 @@ export default function Users() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
-  
+
   // Form state
   const [formEmail, setFormEmail] = useState('');
   const [formFullName, setFormFullName] = useState('');
@@ -180,7 +180,7 @@ export default function Users() {
       // Fetch document counts per user
       const userIds = (profiles || []).map(p => p.id);
       const documentCounts = new Map<string, number>();
-      
+
       if (userIds.length > 0) {
         const { data: docsData } = await supabase
           .from('documents')
@@ -241,7 +241,7 @@ export default function Users() {
           .substring(0, 16) + '!A1';
       };
       const tempPassword = generateSecurePassword();
-      
+
       // Create user via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formEmail,
@@ -259,9 +259,9 @@ export default function Users() {
         if (profile?.client_id) {
           await supabase
             .from('profiles')
-            .update({ 
+            .update({
               client_id: profile.client_id,
-              full_name: formFullName 
+              full_name: formFullName
             })
             .eq('id', authData.user.id);
         }
@@ -274,8 +274,8 @@ export default function Users() {
 
       toast({
         title: t('common.success'),
-        description: language === 'fr' 
-          ? 'Invitation envoyée par email' 
+        description: language === 'fr'
+          ? 'Invitation envoyée par email'
           : 'Invitation sent by email',
       });
 
@@ -294,9 +294,9 @@ export default function Users() {
 
   // Helper function to count Client Admins in the organization
   const countClientAdmins = () => {
-    return users.filter(u => 
-      u.role === 'client_admin' && 
-      u.status === 'active' && 
+    return users.filter(u =>
+      u.role === 'client_admin' &&
+      u.status === 'active' &&
       u.client_id === profile?.client_id
     ).length;
   };
@@ -308,7 +308,7 @@ export default function Users() {
       // Check if demoting the last Client Admin
       if (
         !isSuperAdmin &&
-        selectedUser.role === 'client_admin' && 
+        selectedUser.role === 'client_admin' &&
         formRole === 'staff'
       ) {
         const adminCount = countClientAdmins();
@@ -316,7 +316,7 @@ export default function Users() {
           toast({
             variant: 'destructive',
             title: t('common.error'),
-            description: language === 'fr' 
+            description: language === 'fr'
               ? 'Votre organisation doit toujours avoir au moins un administrateur client.'
               : 'Your organization must always have at least one Client Admin.',
           });
@@ -327,7 +327,7 @@ export default function Users() {
       // Update profile (including department)
       await supabase
         .from('profiles')
-        .update({ 
+        .update({
           full_name: formFullName,
           department_id: formDepartmentId || null
         })
@@ -376,7 +376,7 @@ export default function Users() {
           toast({
             variant: 'destructive',
             title: t('common.error'),
-            description: language === 'fr' 
+            description: language === 'fr'
               ? 'Votre organisation doit toujours avoir au moins un administrateur client.'
               : 'Your organization must always have at least one Client Admin.',
           });
@@ -403,7 +403,7 @@ export default function Users() {
         'user',
         selectedUser.id,
         selectedUser.full_name || selectedUser.email,
-        { 
+        {
           email: selectedUser.email,
           previous_role: selectedUser.role,
         }
@@ -443,7 +443,7 @@ export default function Users() {
         'user',
         selectedUser.id,
         selectedUser.full_name || selectedUser.email,
-        { 
+        {
           email: selectedUser.email,
           transferred_to: newOwnerId,
         }
@@ -520,7 +520,7 @@ export default function Users() {
         'user',
         selectedUser.id,
         selectedUser.full_name || selectedUser.email,
-        { 
+        {
           email: selectedUser.email,
           new_role: formRole,
         }
@@ -586,7 +586,7 @@ export default function Users() {
         </Badge>
       );
     }
-    
+
     switch (user.role) {
       case 'ultra_admin':
         return (
@@ -630,18 +630,18 @@ export default function Users() {
   const filteredUsers = users.filter(user => {
     // Hide Ultra Admins from non-Ultra Admin users
     if (!isUltraAdmin && user.role === 'ultra_admin') return false;
-    
+
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       user.email.toLowerCase().includes(searchLower) ||
       (user.full_name?.toLowerCase().includes(searchLower) ?? false);
     const matchesClient = clientFilter === 'all' || user.client_id === clientFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter || (roleFilter === 'none' && !user.role);
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    const matchesDepartment = departmentFilter === 'all' || 
-      user.department_id === departmentFilter || 
+    const matchesDepartment = departmentFilter === 'all' ||
+      user.department_id === departmentFilter ||
       (departmentFilter === 'none' && !user.department_id);
-    
+
     return matchesSearch && matchesClient && matchesRole && matchesStatus && matchesDepartment;
   });
 
@@ -658,7 +658,7 @@ export default function Users() {
             {language === 'fr' ? 'Utilisateurs' : 'Users'}
           </h2>
           <p className="text-muted-foreground">
-            {isUltraAdmin 
+            {isUltraAdmin
               ? (language === 'fr' ? 'Tous les utilisateurs de la plateforme DigiCam' : 'All users on the DigiCam platform')
               : (language === 'fr' ? 'Gérez les utilisateurs de votre organisation' : 'Manage users in your organization')}
           </p>
@@ -775,7 +775,7 @@ export default function Users() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <Link 
+                          <Link
                             to={`/documents?owner=${user.id}`}
                             className="font-medium hover:underline hover:text-primary transition-colors"
                           >
@@ -787,14 +787,14 @@ export default function Users() {
                     </TableCell>
                     <TableCell>{getRoleBadge(user)}</TableCell>
                     <TableCell>
-                      <Link 
+                      <Link
                         to={`/documents?owner=${user.id}`}
-                        title={language === 'fr' 
-                          ? `Voir les ${user.document_count} documents de ${user.full_name || user.email}` 
+                        title={language === 'fr'
+                          ? `Voir les ${user.document_count} documents de ${user.full_name || user.email}`
                           : `View ${user.document_count} documents by ${user.full_name || user.email}`}
                       >
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="cursor-pointer hover:bg-secondary/80 transition-colors gap-1"
                         >
                           <FileText className="h-3 w-3" />
@@ -816,7 +816,7 @@ export default function Users() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {user.status === 'deactivated' ? (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => openReactivateModal(user)}
                               className="text-green-600 focus:text-green-600"
                             >
@@ -830,7 +830,7 @@ export default function Users() {
                                 {language === 'fr' ? 'Modifier le rôle' : 'Change Role'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => openDeactivateModal(user)}
                                 className="text-destructive focus:text-destructive"
                               >
@@ -856,7 +856,7 @@ export default function Users() {
           <DialogHeader>
             <DialogTitle>{language === 'fr' ? 'Inviter un utilisateur' : 'Invite User'}</DialogTitle>
             <DialogDescription>
-              {language === 'fr' 
+              {language === 'fr'
                 ? 'Envoyez une invitation par email pour rejoindre l\'organisation'
                 : 'Send an email invitation to join the organization'}
             </DialogDescription>
@@ -945,8 +945,8 @@ export default function Users() {
             {(isClientAdmin || isSuperAdmin) && departments.length > 0 && (
               <div className="space-y-2">
                 <Label>{t('documents.department')}</Label>
-                <Select 
-                  value={formDepartmentId || 'none'} 
+                <Select
+                  value={formDepartmentId || 'none'}
                   onValueChange={(v) => setFormDepartmentId(v === 'none' ? '' : v)}
                 >
                   <SelectTrigger>
@@ -954,7 +954,7 @@ export default function Users() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">
-                      {language === 'fr' ? 'Non assigné' : 'Unassigned'}
+                      {language === 'fr' ? 'Général' : 'General'}
                     </SelectItem>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.id}>
@@ -985,8 +985,8 @@ export default function Users() {
         onDeactivate={handleDeactivateUser}
         onTransferOwnership={handleTransferOwnership}
         onPermanentDelete={isSuperAdmin ? handlePermanentDelete : undefined}
-        availableUsers={users.filter(u => 
-          u.status === 'active' && 
+        availableUsers={users.filter(u =>
+          u.status === 'active' &&
           (u.role === 'client_admin' || u.role === 'staff') &&
           u.client_id === selectedUser?.client_id
         )}
@@ -1001,7 +1001,7 @@ export default function Users() {
               {t('deactivation.reactivate')} {selectedUser?.full_name || selectedUser?.email}
             </DialogTitle>
             <DialogDescription>
-              {language === 'fr' 
+              {language === 'fr'
                 ? 'Sélectionnez un rôle pour réactiver cet utilisateur.'
                 : 'Select a role to reactivate this user.'}
             </DialogDescription>
