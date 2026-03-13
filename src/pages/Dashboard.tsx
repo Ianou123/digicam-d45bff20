@@ -182,7 +182,7 @@ export default function Dashboard() {
         from += pageSize;
       }
 
-      setTotalStorageMb(Math.round(totalFileSize / (1024 * 1024)));
+      setTotalStorageMb(Number((totalFileSize / (1024 * 1024)).toFixed(1)));
 
       // Count shared documents (last 7 days)
       const sevenDaysAgo = startOfDay(subDays(new Date(), 7));
