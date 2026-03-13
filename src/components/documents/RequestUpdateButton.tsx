@@ -34,7 +34,7 @@ export function RequestUpdateButton({
   variant = 'outline',
   size = 'sm',
 }: RequestUpdateButtonProps) {
-  const { user, profile, isClientAdmin, isSuperAdmin } = useAuth();
+  const { user, profile, isClientAdmin, isSuperAdmin, isUltraAdmin, clientModule } = useAuth();
   const { language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -49,6 +49,11 @@ export function RequestUpdateButton({
 
   // Don't show for admins (they can update directly) unless it's someone else's document
   if ((isClientAdmin || isSuperAdmin) && documentOwnerId === user?.id) {
+    return null;
+  }
+
+  // In administrative module, users are passive — no update requests allowed
+  if (clientModule === 'admin_publique' && !isSuperAdmin && !isClientAdmin && !isUltraAdmin) {
     return null;
   }
 

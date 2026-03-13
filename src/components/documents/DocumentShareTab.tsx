@@ -49,7 +49,7 @@ interface OrgUser {
 }
 
 export function DocumentShareTab({ documentId }: DocumentShareTabProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, clientModule } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -122,7 +122,22 @@ export function DocumentShareTab({ documentId }: DocumentShareTabProps) {
         .neq('id', user?.id || '');
 
       if (error) throw error;
-      setOrgUsers(data || []);
+
+      let filteredUsers = data || [];
+
+      // In administrative module, exclude IT admins (client_admin) from recipients
+      // since they cannot access/view documents
+      if (clientModule === 'admin_publique') {
+        const { data: itAdminRoles } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'client_admin');
+
+        const itAdminIds = new Set(itAdminRoles?.map(r => r.user_id) || []);
+        filteredUsers = filteredUsers.filter(u => !itAdminIds.has(u.id));
+      }
+
+      setOrgUsers(filteredUsers);
     } catch (error) {
       console.error('Error fetching org users:', error);
     }
