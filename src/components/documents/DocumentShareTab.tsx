@@ -49,7 +49,7 @@ interface OrgUser {
 }
 
 export function DocumentShareTab({ documentId }: DocumentShareTabProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, clientModule } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
