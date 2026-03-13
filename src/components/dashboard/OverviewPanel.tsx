@@ -28,6 +28,10 @@ export function OverviewPanel({
   const navigate = useNavigate();
 
   const hasAlerts = failedSearchesThisWeek > 0 || storagePercent > 80;
+  const formattedStorageUsed =
+    storageUsedMb >= 1024 ? `${(storageUsedMb / 1024).toFixed(1)} Go` : `${storageUsedMb} Mo`;
+  const formattedStorageLimit =
+    storageLimitMb >= 1024 ? `${(storageLimitMb / 1024).toFixed(0)} Go` : `${storageLimitMb} Mo`;
 
   return (
     <div className="space-y-6">
@@ -60,7 +64,7 @@ export function OverviewPanel({
                 <span>{language === 'fr' ? 'Stockage utilisé' : 'Storage used'}</span>
               </div>
               <span className="font-semibold text-sm">
-                {(storageUsedMb / 1024).toFixed(1)} Go / {(storageLimitMb / 1024).toFixed(0)} Go
+                {formattedStorageUsed} / {formattedStorageLimit}
               </span>
             </div>
             <Progress value={storagePercent} className="h-2" />

@@ -84,7 +84,7 @@ interface MostViewedDoc {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended, clientName } = useAuth();
+  const { user, profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended, clientName } = useAuth();
   const { isRestrictedModule } = useModulePermissions();
   const { t, language } = useLanguage();
   
@@ -118,7 +118,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [profile?.client_id, isRestrictedITAdmin]);
+  }, [profile?.client_id, user?.id, isRestrictedITAdmin, isSuperAdmin, isUltraAdmin, isClientAdmin]);
 
   const fetchDashboardData = async () => {
     if (isRestrictedITAdmin) {
@@ -133,18 +133,18 @@ export default function Dashboard() {
 
     try {
       // Fetch documents count (exclude trashed)
-      let documentsQuery = supabase
+      let documentsCountQuery = supabase
         .from('documents')
-        .select('id, status, confidentiality_level, file_size', { count: 'exact' })
+        .select('id', { count: 'exact', head: true })
         .is('deleted_at', null);
-      
-      if (!isUltraAdmin && profile?.client_id) {
-        documentsQuery = documentsQuery.eq('client_id', profile.client_id);
-      }
-      
-      const { data: documentsData, count: docsCount } = await documentsQuery;
 
-      // Calculate status stats from documents data
+      if (!isUltraAdmin && profile?.client_id) {
+        documentsCountQuery = documentsCountQuery.eq('client_id', profile.client_id);
+      }
+
+      const { count: docsCount } = await documentsCountQuery;
+
+      // Calculate status stats + storage using pagination (avoids 1000-row query cap)
       const statusCounts: StatusStats = {
         pendingValidation: 0,
         archived: docsCount || 0,
@@ -154,14 +154,35 @@ export default function Dashboard() {
         searchSuccessRate: 0,
       };
 
+      const pageSize = 1000;
+      let from = 0;
       let totalFileSize = 0;
-      if (documentsData) {
-        documentsData.forEach((doc: any) => {
+
+      while (true) {
+        let documentsPageQuery = supabase
+          .from('documents')
+          .select('confidentiality_level, file_size')
+          .is('deleted_at', null)
+          .range(from, from + pageSize - 1);
+
+        if (!isUltraAdmin && profile?.client_id) {
+          documentsPageQuery = documentsPageQuery.eq('client_id', profile.client_id);
+        }
+
+        const { data: documentsPage, error: documentsPageError } = await documentsPageQuery;
+        if (documentsPageError) throw documentsPageError;
+        if (!documentsPage || documentsPage.length === 0) break;
+
+        documentsPage.forEach((doc) => {
           if (doc.confidentiality_level === 'confidential') statusCounts.confidential++;
           if (doc.file_size) totalFileSize += Number(doc.file_size);
         });
+
+        if (documentsPage.length < pageSize) break;
+        from += pageSize;
       }
-      setTotalStorageMb(Math.round(totalFileSize / (1024 * 1024)));
+
+      setTotalStorageMb(Number((totalFileSize / (1024 * 1024)).toFixed(1)));
 
       // Count shared documents (last 7 days)
       const sevenDaysAgo = startOfDay(subDays(new Date(), 7));
@@ -350,8 +371,9 @@ export default function Dashboard() {
           usersCount = count || 0;
           const { count: cCount } = await supabase.from('clients').select('id', { count: 'exact', head: true });
           clientsCount = cCount || 0;
-        } else if (profile?.client_id) {
-          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('client_id', profile.client_id);
+        } else {
+          // RLS already scopes non-ultra admins to their own organization
+          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
           usersCount = count || 0;
         }
       }
