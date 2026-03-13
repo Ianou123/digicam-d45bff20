@@ -118,7 +118,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [profile?.client_id, isRestrictedITAdmin]);
+  }, [profile?.client_id, user?.id, isRestrictedITAdmin, isSuperAdmin, isUltraAdmin, isClientAdmin]);
 
   const fetchDashboardData = async () => {
     if (isRestrictedITAdmin) {
