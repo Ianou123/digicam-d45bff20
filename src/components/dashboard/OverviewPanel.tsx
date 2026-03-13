@@ -28,6 +28,10 @@ export function OverviewPanel({
   const navigate = useNavigate();
 
   const hasAlerts = failedSearchesThisWeek > 0 || storagePercent > 80;
+  const formattedStorageUsed =
+    storageUsedMb >= 1024 ? `${(storageUsedMb / 1024).toFixed(1)} Go` : `${storageUsedMb} Mo`;
+  const formattedStorageLimit =
+    storageLimitMb >= 1024 ? `${(storageLimitMb / 1024).toFixed(0)} Go` : `${storageLimitMb} Mo`;
 
   return (
     <div className="space-y-6">
