@@ -78,7 +78,7 @@ export default function MyDocuments() {
       const [{ data: docs }, { data: deps }] = await Promise.all([
         supabase
           .from('documents')
-          .select('id, title, document_type, created_at, status, file_size, department_id, departments(name)')
+          .select('id, title, document_type, created_at, status, file_size, department_id, departments!documents_department_id_fkey(name)')
           .eq('uploaded_by', user.id)
           .is('deleted_at', null)
           .order('created_at', { ascending: false })

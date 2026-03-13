@@ -86,7 +86,7 @@ export function ITAdminDashboard() {
           .in('status', ['processing', 'ocr_processing', 'pending_ocr']),
         supabase
           .from('documents')
-          .select('id, title, document_type, created_at, status, departments(name)')
+          .select('id, title, document_type, created_at, status, departments!documents_department_id_fkey(name)')
           .eq('uploaded_by', user.id)
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
