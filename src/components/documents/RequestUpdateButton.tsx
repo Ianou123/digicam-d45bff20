@@ -34,7 +34,7 @@ export function RequestUpdateButton({
   variant = 'outline',
   size = 'sm',
 }: RequestUpdateButtonProps) {
-  const { user, profile, isClientAdmin, isSuperAdmin } = useAuth();
+  const { user, profile, isClientAdmin, isSuperAdmin, isUltraAdmin, clientModule } = useAuth();
   const { language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
