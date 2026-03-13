@@ -371,8 +371,9 @@ export default function Dashboard() {
           usersCount = count || 0;
           const { count: cCount } = await supabase.from('clients').select('id', { count: 'exact', head: true });
           clientsCount = cCount || 0;
-        } else if (profile?.client_id) {
-          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('client_id', profile.client_id);
+        } else {
+          // RLS already scopes non-ultra admins to their own organization
+          const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
           usersCount = count || 0;
         }
       }

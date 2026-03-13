@@ -64,7 +64,7 @@ export function OverviewPanel({
                 <span>{language === 'fr' ? 'Stockage utilisé' : 'Storage used'}</span>
               </div>
               <span className="font-semibold text-sm">
-                {(storageUsedMb / 1024).toFixed(1)} Go / {(storageLimitMb / 1024).toFixed(0)} Go
+                {formattedStorageUsed} / {formattedStorageLimit}
               </span>
             </div>
             <Progress value={storagePercent} className="h-2" />
