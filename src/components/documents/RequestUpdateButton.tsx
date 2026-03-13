@@ -52,6 +52,11 @@ export function RequestUpdateButton({
     return null;
   }
 
+  // In administrative module, users are passive — no update requests allowed
+  if (clientModule === 'admin_publique' && !isSuperAdmin && !isClientAdmin && !isUltraAdmin) {
+    return null;
+  }
+
   const handleSubmit = async () => {
     if (!user || !profile?.client_id) return;
 
