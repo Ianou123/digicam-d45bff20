@@ -24,6 +24,7 @@ import AdminPulse from "./pages/AdminPulse";
 import SharedWithMe from "./pages/SharedWithMe";
 import MyAuthorization from "./pages/MyAuthorization";
 import MyDocuments from "./pages/MyDocuments";
+import NotificationsPage from "./pages/Notifications";
 
 import ModuleSetup from "./pages/ModuleSetup";
 import Guide from "./pages/Guide";
@@ -62,6 +63,7 @@ const App = () => (
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<OrganizationDetail />} />
                 <Route path="/activity" element={<Activity />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/admin-pulse" element={<AdminPulse />} />

@@ -286,8 +286,12 @@ export default function AdminPulse() {
       if (hasData) {
         const storageScore = Math.min(100, ((totalDocs || 0) / 50) * 100);
         const adoptionRate = totalUsers > 0 ? (activeUserIds.size / totalUsers) * 100 : 0;
-        const archiveCoverage = searchSuccessRate;
-        healthScore = Math.round((storageScore * 0.2) + (searchSuccessRate * 0.3) + (adoptionRate * 0.25) + (archiveCoverage * 0.25));
+        // Health score combines: volume of documents, user adoption, and search success
+        healthScore = Math.round(
+          storageScore * 0.2 +
+          searchSuccessRate * 0.5 +
+          adoptionRate * 0.3
+        );
         healthScore = Math.min(100, Math.max(0, healthScore));
       }
 
@@ -437,8 +441,25 @@ export default function AdminPulse() {
                   <p className={`text-sm font-medium ${healthColor}`}>{healthLabel}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {language === 'fr'
-                      ? 'Basé sur le stockage, le taux de succès des recherches, l\'adoption utilisateur et la couverture archive'
-                      : 'Based on storage, search success rate, user adoption and archive coverage'}
+                      ? 'Basé sur le volume de documents, le taux de succès des recherches et l\'adoption utilisateur.'
+                      : 'Based on document volume, search success rate, and user adoption.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {noHealthData
+                      ? (language === 'fr'
+                        ? 'Commencez par importer des documents et encourager les premières recherches pour générer un score.'
+                        : 'Start by importing documents and encouraging first searches to generate a score.')
+                      : metrics.healthScore >= 80
+                        ? (language === 'fr'
+                          ? 'Conservez ce niveau en continuant à alimenter l’archive et à former les équipes.'
+                          : 'Maintain this level by continuing to feed the archive and train teams.')
+                        : metrics.healthScore >= 60
+                          ? (language === 'fr'
+                            ? 'Pour améliorer le score : importez les documents manquants (recherches échouées) et augmentez l’usage dans les départements peu actifs.'
+                            : 'To improve: import missing documents (failed searches) and increase usage in low-activity departments.')
+                          : (language === 'fr'
+                            ? 'Priorité : combler les recherches sans résultat et accompagner les utilisateurs pour qu’ils se connectent et consultent plus souvent.'
+                            : 'Priority: fix failed searches and support users so they log in and consult documents more often.')}
                   </p>
                 </div>
               </div>

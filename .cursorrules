@@ -1,0 +1,4 @@
+Always refer to @DIGICAM_CONTEXT.md for project architecture, roles, security constraints, and goals before suggesting changes or implementing new features.
+
+On every commit or push, check whether `DIGICAM_CONTEXT.md` should be updated with new information (roles, flows, RLS, OCR/infrastructure decisions, or other architectural context). If yes, update it in the same branch.
+

@@ -65,8 +65,18 @@ export default function AuthCarousel() {
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-2 pt-6 text-primary-foreground/70 text-xl">
-          <span className="font-serif font-bold">DigiCam</span>
+        <div className="flex flex-col items-center justify-center gap-1 pt-6 text-primary-foreground/80">
+          <span className="font-serif font-bold text-2xl">DigiCam</span>
+          <span className="text-sm">
+            {t('language') === 'fr'
+              ? 'Pensé pour les entreprises et administrations africaines'
+              : 'Built for African businesses and administrations'}
+          </span>
+          <span className="text-sm font-medium">
+            {language === 'fr'
+              ? 'Digitalisez, recherchez et sécurisez vos documents'
+              : 'Digitalize, search and secure your documents'}
+          </span>
         </div>
       </div>
     </div>
