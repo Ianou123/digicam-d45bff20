@@ -73,7 +73,7 @@ export default function AuthCarousel() {
               : 'Built for African businesses and administrations'}
           </span>
           <span className="text-sm font-medium">
-            {language === 'fr'
+            {t('language') === 'fr'
               ? 'Digitalisez, recherchez et sécurisez vos documents'
               : 'Digitalize, search and secure your documents'}
           </span>
