@@ -82,6 +82,7 @@ export function DocumentCard({
   onSelect,
   onView,
   onDownload,
+  onShare,
   onEdit,
   onDelete,
   onRestore,
