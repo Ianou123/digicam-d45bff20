@@ -610,12 +610,16 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Re-soumettre' : 'Resubmit'}
                 </Button>
               )}
-              {isStaff && !isClientSuspended && document.status === 'ready' && (
+              {isStaff && !isClientSuspended && clientModule !== 'admin_publique' && document.status === 'ready' && (
                 <Button size="sm" variant="default" onClick={() => setShowProposeModal(true)}>
                   <Send className="h-4 w-4 mr-1" />
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => setShowShareModal(true)}>
+                <Share2 className="h-4 w-4 mr-1" />
+                {language === 'fr' ? 'Partager' : 'Share'}
+              </Button>
               {canManageDocuments && !isClientSuspended && document.status !== 'archived' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('archived')}>
                   <Archive className="h-4 w-4 mr-1" />
