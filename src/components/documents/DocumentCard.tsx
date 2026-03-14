@@ -183,6 +183,17 @@ export function DocumentCard({
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {onShare && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => { e.stopPropagation(); onShare(document.id); }}
+                        title={language === 'fr' ? 'Partager' : 'Share'}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

@@ -1002,6 +1002,21 @@ export default function DocumentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Partager le document' : 'Share Document'}
+            </DialogTitle>
+            <DialogDescription>
+              {document.title}
+            </DialogDescription>
+          </DialogHeader>
+          <DocumentShareTab documentId={document.id} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
