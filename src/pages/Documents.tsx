@@ -788,6 +788,7 @@ export default function Documents() {
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}
+                onShare={!showTrash ? handleShare : undefined}
                 onEdit={!isSuperAdmin && !isClientSuspended && !showTrash ? handleEdit : undefined}
                 onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
                 onRestore={showTrash && !isSuperAdmin && !isClientSuspended ? handleRestoreSingle : undefined}
