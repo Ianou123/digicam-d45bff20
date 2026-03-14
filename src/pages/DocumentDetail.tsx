@@ -826,11 +826,6 @@ export default function DocumentDetailPage() {
                   )}
                 </TabsContent>
 
-                {/* Share Tab */}
-                <TabsContent value="share" className="mt-0 space-y-4">
-                  <DocumentShareTab documentId={document.id} />
-                </TabsContent>
-
                 {/* Audit Tab */}
                 <TabsContent value="audit" className="mt-0 space-y-4">
                   {auditEvents.length > 0 ? (
