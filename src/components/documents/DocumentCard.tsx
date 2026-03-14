@@ -51,6 +51,7 @@ interface DocumentCardProps {
   onSelect?: () => void;
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
+  onShare?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
