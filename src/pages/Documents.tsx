@@ -411,6 +411,13 @@ export default function Documents() {
     navigate(`/documents/${id}/edit`);
   };
 
+  const handleShare = (id: string) => {
+    const doc = documents.find(d => d.id === id);
+    setShareDocumentId(id);
+    setShareDocumentTitle(doc?.title || '');
+    setShareModalOpen(true);
+  };
+
   // Soft delete - move to trash
   const handleMoveToTrash = async (ids: string[]) => {
     try {
