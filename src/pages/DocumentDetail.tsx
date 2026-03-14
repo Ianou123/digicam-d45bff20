@@ -148,6 +148,7 @@ export default function DocumentDetailPage() {
   const [proposeComment, setProposeComment] = useState('');
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (id) {
