@@ -647,7 +647,7 @@ export default function DocumentDetailPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100%-60px)]">
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 m-4 mb-0">
+              <TabsList className="grid grid-cols-3 lg:grid-cols-5 m-4 mb-0">
                 <TabsTrigger value="summary" className="text-xs">
                   {language === 'fr' ? 'Résumé' : 'Summary'}
                 </TabsTrigger>
@@ -657,9 +657,6 @@ export default function DocumentDetailPage() {
                 <TabsTrigger value="ocr" className="text-xs">OCR</TabsTrigger>
                 <TabsTrigger value="versions" className="text-xs">
                   {language === 'fr' ? 'Versions' : 'Versions'} ({versions.length})
-                </TabsTrigger>
-                <TabsTrigger value="share" className="text-xs">
-                  {language === 'fr' ? 'Partage' : 'Share'}
                 </TabsTrigger>
                 <TabsTrigger value="audit" className="text-xs">
                   Audit ({auditEvents.length})
