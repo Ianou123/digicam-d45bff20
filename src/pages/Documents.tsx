@@ -858,6 +858,21 @@ export default function Documents() {
         onConfirm={handleConfidentialDownloadConfirm}
         documentTitle={pendingDownloadDoc?.title || ''}
       />
+
+      {/* Share Modal */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Partager le document' : 'Share Document'}
+            </DialogTitle>
+            <DialogDescription>
+              {shareDocumentTitle}
+            </DialogDescription>
+          </DialogHeader>
+          {shareDocumentId && <DocumentShareTab documentId={shareDocumentId} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
