@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
@@ -10,6 +10,8 @@ import { SearchResultCard } from '@/components/documents/SearchResultCard';
 import { WatchSearchButton } from '@/components/documents/WatchSearchButton';
 import { WatchedSearchesList } from '@/components/documents/WatchedSearchesList';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
+import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,6 +102,11 @@ export default function Documents() {
   // Confidential download modal state
   const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
   const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
+
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareDocumentId, setShareDocumentId] = useState<string | null>(null);
+  const [shareDocumentTitle, setShareDocumentTitle] = useState<string>('');
 
   // Owner filter from URL
   const ownerIdParam = searchParams.get('owner');
@@ -402,6 +409,13 @@ export default function Documents() {
 
   const handleEdit = (id: string) => {
     navigate(`/documents/${id}/edit`);
+  };
+
+  const handleShare = (id: string) => {
+    const doc = documents.find(d => d.id === id);
+    setShareDocumentId(id);
+    setShareDocumentTitle(doc?.title || '');
+    setShareModalOpen(true);
   };
 
   // Soft delete - move to trash
@@ -774,6 +788,7 @@ export default function Documents() {
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}
+                onShare={!showTrash ? handleShare : undefined}
                 onEdit={!isSuperAdmin && !isClientSuspended && !showTrash ? handleEdit : undefined}
                 onDelete={!isSuperAdmin && !isClientSuspended ? confirmDelete : undefined}
                 onRestore={showTrash && !isSuperAdmin && !isClientSuspended ? handleRestoreSingle : undefined}
@@ -843,6 +858,21 @@ export default function Documents() {
         onConfirm={handleConfidentialDownloadConfirm}
         documentTitle={pendingDownloadDoc?.title || ''}
       />
+
+      {/* Share Modal */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Partager le document' : 'Share Document'}
+            </DialogTitle>
+            <DialogDescription>
+              {shareDocumentTitle}
+            </DialogDescription>
+          </DialogHeader>
+          {shareDocumentId && <DocumentShareTab documentId={shareDocumentId} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

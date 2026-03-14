@@ -1,41 +1,58 @@
 
+# DigiCam Archive - Plan
 
-## Changes Summary
+## Architecture: 2 Modules
 
-Three changes to make:
+DigiCam supports **two modules** chosen at organization creation:
 
-### 1. Hide "Proposer des modifications" button for administrative module users
-In `DocumentDetail.tsx` (line 612-617), the button currently shows for `isStaff`. Add a check for `clientModule !== 'admin_publique'` so it's hidden in administrative orgs.
+### Module 1: Core
+- **Roles**: Admin (Super Admin), Utilisateur (Staff)
+- **Description**: GED moderne pour PME, cabinets, freelances
+- Admin gère tout : upload, users, départements, logs
+- Utilisateur : consultation, recherche, téléchargement, envoi
+- Départements optionnels
 
-### 2. Replace the "Partage" tab with a Share button in the quick actions bar + remove tab
-- Remove the "Partage" (`share`) TabsTrigger from the tabs list (line 656-658)
-- Remove the `share` TabsContent (line 827-830)
-- Change the grid from `grid-cols-6` to `grid-cols-5` (line 645)
-- Add a Share button in the quick actions bar (around line 632) that opens a dialog with the `DocumentShareTab` component
-- Add state for `showShareModal`
+### Module 2: Administratif (admin_publique)
+- **Roles**: Super Admin, Admin IT (client_admin), Utilisateur (Staff)
+- **Description**: Pour institutions et grandes entreprises
+- **Principe clé** : Séparation des tâches
+  - Super Admin : gestion users, départements, analytics, audit logs — **NE PEUT PAS uploader**
+  - Admin IT : upload documents uniquement — **NE PEUT PAS voir les documents/logs**
+  - Utilisateur : consultation en lecture seule
+- Départements obligatoires
+- Journalisation obligatoire
 
-### 3. Add a Share button on DocumentCard in the /documents list
-- Add `onShare` callback prop to `DocumentCardProps`
-- Add a Share2 icon button between the Eye and Download buttons
-- In `Documents.tsx`, pass an `onShare` handler that navigates to the document detail or opens a share dialog
-- Use the existing `DocumentShareTab` component in a dialog triggered from the card
+### Ultra Admin (DigiCam Staff)
+- Pas lié à une organisation
+- Crée/gère les organisations
+- Voit les logs d'audit globaux (pas le contenu des documents)
+- Peut changer le module d'une organisation
 
-### Technical Details
+## Changement de module
+Le changement de module n'est PAS en libre-service. Contacter DigiCam.
 
-**DocumentDetail.tsx:**
-- Import `clientModule` from `useAuth()`
-- Add `showShareModal` state
-- Hide "Proposer des modifications" when `clientModule === 'admin_publique'`
-- Add Share button in quick actions that opens a Dialog with `DocumentShareTab`
-- Remove "Partage" tab trigger and content, reduce grid cols from 6 to 5
+## Rôles dans la base de données
+- `ultra_admin` : Staff DigiCam
+- `super_admin` : Responsable d'organisation
+- `client_admin` : Admin IT (module Administratif uniquement)
+- `staff` : Utilisateur standard
 
-**DocumentCard.tsx:**
-- Add `onShare?: (id: string) => void` prop
-- Add Share2 icon import
-- Add share button between view and download buttons (only shown when `onShare` is provided)
+## Permissions (Résumé)
 
-**Documents.tsx:**
-- Add share dialog state and selected document tracking
-- Pass `onShare` to `DocumentCard`
-- Render a Dialog with `DocumentShareTab` for the selected document
+| Permission | Core Admin | Core User | Admin Super | Admin IT | Admin User | Ultra |
+|---|---|---|---|---|---|---|
+| Upload | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Search & Download | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Send Docs | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Manage Depts | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Manage Users | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| View Analytics | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| View Audit Logs | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Admin Pages | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
 
+## Key Technical Details
+- Module enum: `client_module` = `'core' | 'admin_publique'`
+- Role enum: `app_role` = `'ultra_admin' | 'super_admin' | 'client_admin' | 'staff'`
+- DB function `can_user_upload()` enforces separation of concerns
+- DB function `is_restricted_module()` checks `admin_publique` only
+- `can_delete_in_module()` always returns true (no WORM)

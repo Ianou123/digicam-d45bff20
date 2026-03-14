@@ -12,7 +12,8 @@ import {
   RotateCcw,
   Trash2,
   Search,
-  FileSearch
+  FileSearch,
+  Share2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ interface DocumentCardProps {
   onSelect?: () => void;
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
+  onShare?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
@@ -80,6 +82,7 @@ export function DocumentCard({
   onSelect,
   onView,
   onDownload,
+  onShare,
   onEdit,
   onDelete,
   onRestore,
@@ -180,6 +183,17 @@ export function DocumentCard({
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {onShare && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => { e.stopPropagation(); onShare(document.id); }}
+                        title={language === 'fr' ? 'Partager' : 'Share'}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

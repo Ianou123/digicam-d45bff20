@@ -132,7 +132,7 @@ const statusConfig: Record<string, { label: { fr: string; en: string }; classNam
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -148,6 +148,7 @@ export default function DocumentDetailPage() {
   const [proposeComment, setProposeComment] = useState('');
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -609,12 +610,16 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Re-soumettre' : 'Resubmit'}
                 </Button>
               )}
-              {isStaff && !isClientSuspended && document.status === 'ready' && (
+              {isStaff && !isClientSuspended && clientModule !== 'admin_publique' && document.status === 'ready' && (
                 <Button size="sm" variant="default" onClick={() => setShowProposeModal(true)}>
                   <Send className="h-4 w-4 mr-1" />
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => setShowShareModal(true)}>
+                <Share2 className="h-4 w-4 mr-1" />
+                {language === 'fr' ? 'Partager' : 'Share'}
+              </Button>
               {canManageDocuments && !isClientSuspended && document.status !== 'archived' && (
                 <Button size="sm" variant="outline" onClick={() => handleStatusChange('archived')}>
                   <Archive className="h-4 w-4 mr-1" />
@@ -642,7 +647,7 @@ export default function DocumentDetailPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100%-60px)]">
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 m-4 mb-0">
+              <TabsList className="grid grid-cols-3 lg:grid-cols-5 m-4 mb-0">
                 <TabsTrigger value="summary" className="text-xs">
                   {language === 'fr' ? 'Résumé' : 'Summary'}
                 </TabsTrigger>
@@ -652,9 +657,6 @@ export default function DocumentDetailPage() {
                 <TabsTrigger value="ocr" className="text-xs">OCR</TabsTrigger>
                 <TabsTrigger value="versions" className="text-xs">
                   {language === 'fr' ? 'Versions' : 'Versions'} ({versions.length})
-                </TabsTrigger>
-                <TabsTrigger value="share" className="text-xs">
-                  {language === 'fr' ? 'Partage' : 'Share'}
                 </TabsTrigger>
                 <TabsTrigger value="audit" className="text-xs">
                   Audit ({auditEvents.length})
@@ -822,11 +824,6 @@ export default function DocumentDetailPage() {
                       </p>
                     </div>
                   )}
-                </TabsContent>
-
-                {/* Share Tab */}
-                <TabsContent value="share" className="mt-0 space-y-4">
-                  <DocumentShareTab documentId={document.id} />
                 </TabsContent>
 
                 {/* Audit Tab */}
@@ -1003,6 +1000,21 @@ export default function DocumentDetailPage() {
               {language === 'fr' ? 'Soumettre pour validation' : 'Submit for Validation'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'fr' ? 'Partager le document' : 'Share Document'}
+            </DialogTitle>
+            <DialogDescription>
+              {document.title}
+            </DialogDescription>
+          </DialogHeader>
+          <DocumentShareTab documentId={document.id} />
         </DialogContent>
       </Dialog>
     </div>
