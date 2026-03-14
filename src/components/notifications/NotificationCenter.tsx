@@ -258,7 +258,7 @@ export function NotificationCenter() {
               size="sm" 
               className="w-full"
               onClick={() => {
-                navigate('/notifications');
+                navigate('/activity');
                 setIsOpen(false);
               }}
             >
