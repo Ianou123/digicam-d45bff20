@@ -132,7 +132,7 @@ const statusConfig: Record<string, { label: { fr: string; en: string }; classNam
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
