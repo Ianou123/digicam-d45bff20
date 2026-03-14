@@ -54,7 +54,7 @@ const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
 };
 
 export default function MyDocuments() {
-  const { user, profile } = useAuth();
+  const { user, profile, isUltraAdmin } = useAuth();
   const { language } = useLanguage();
 
   const [rows, setRows] = useState<UploadRow[]>([]);
@@ -68,6 +68,11 @@ export default function MyDocuments() {
 
   useEffect(() => {
     const fetchUploads = async () => {
+      if (isUltraAdmin) {
+        setLoading(false);
+        return;
+      }
+
       if (!user || !profile?.client_id) {
         setLoading(false);
         return;
@@ -108,7 +113,7 @@ export default function MyDocuments() {
     };
 
     fetchUploads();
-  }, [user, profile?.client_id, language]);
+  }, [user, profile?.client_id, language, isUltraAdmin]);
 
   const filteredRows = useMemo(() => {
     const now = new Date();

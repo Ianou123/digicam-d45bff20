@@ -89,12 +89,15 @@ export function UserDashboard() {
         .is('deleted_at', null);
 
       // Viewed this month (personal)
-      const { count: viewedCount } = await supabase
+      const { data: viewedLogs, error: viewedError } = await supabase
         .from('activity_logs')
-        .select('id', { count: 'exact', head: true })
+        .select('document_id')
         .eq('user_id', user.id)
         .eq('action_type', 'view')
+        .not('document_id', 'is', null)
         .gte('created_at', monthStart);
+      if (viewedError) throw viewedError;
+      const viewedUniqueCount = new Set((viewedLogs || []).map(v => v.document_id)).size;
 
       // Shares received
       const { data: sharesData } = await supabase
@@ -114,7 +117,7 @@ export function UserDashboard() {
 
       setStats({
         accessibleDocs: accessibleCount || 0,
-        viewedThisMonth: viewedCount || 0,
+        viewedThisMonth: viewedUniqueCount,
         receivedShares,
         unreadShares: 0,
         searchesThisMonth: searchCount,

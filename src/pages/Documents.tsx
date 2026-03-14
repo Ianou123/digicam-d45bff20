@@ -79,7 +79,7 @@ interface OwnerProfile {
 export default function Documents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
 
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -124,6 +124,11 @@ export default function Documents() {
 
   // Fetch owner profile if filtering by owner
   useEffect(() => {
+    if (isUltraAdmin) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
     const fetchOwnerProfile = async () => {
       if (!ownerIdParam) {
         setOwnerProfile(null);
@@ -142,7 +147,7 @@ export default function Documents() {
     };
 
     fetchOwnerProfile();
-  }, [ownerIdParam]);
+  }, [ownerIdParam, isUltraAdmin, navigate]);
 
   useEffect(() => {
     fetchDocuments();

@@ -132,7 +132,7 @@ const statusConfig: Record<string, { label: { fr: string; en: string }; classNam
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff, clientModule } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientAdmin, isClientSuspended, isStaff, clientModule, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -151,12 +151,17 @@ export default function DocumentDetailPage() {
   const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
+    if (isUltraAdmin) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
     if (id) {
       fetchDocument();
       fetchVersions();
       fetchAuditEvents();
     }
-  }, [id]);
+  }, [id, isUltraAdmin, navigate]);
 
   const fetchDocument = async () => {
     try {

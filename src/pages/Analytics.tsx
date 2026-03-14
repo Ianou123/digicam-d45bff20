@@ -52,9 +52,17 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      let docsQuery = supabase.from('documents').select('*', { count: 'exact', head: true }).is('deleted_at', null);
-      if (profile?.client_id) docsQuery = docsQuery.eq('client_id', profile.client_id);
-      const { count: docsCount } = await docsQuery;
+      // Documents count (non-ultra admins only)
+      let docsCount = 0;
+      if (!isUltraAdmin) {
+        let docsQuery = supabase
+          .from('documents')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null);
+        if (profile?.client_id) docsQuery = docsQuery.eq('client_id', profile.client_id);
+        const { count } = await docsQuery;
+        docsCount = count || 0;
+      }
 
       // Users
       let userQuery = supabase.from('profiles').select('id, updated_at');
@@ -91,7 +99,8 @@ export default function Analytics() {
       const timeSavedHours = Math.round((successfulSearches * 28) / 60);
 
       setStats({
-        totalDocuments: docsCount || 0,
+        // Ultra Admin must never access document titles/content; keep doc-derived stats disabled.
+        totalDocuments: isUltraAdmin ? 0 : docsCount,
         totalUsers,
         activeUsers: activeUserIds.size,
         totalViews: views,
@@ -129,55 +138,66 @@ export default function Analytics() {
       ]);
 
       // Top documents
-      const documentViews: Record<string, number> = {};
-      activityData?.filter(a => a.action_type === 'view' && a.document_id).forEach(a => {
-        documentViews[a.document_id!] = (documentViews[a.document_id!] || 0) + 1;
-      });
-      const topDocIds = Object.entries(documentViews).sort(([, a], [, b]) => b - a).slice(0, 5).map(([id]) => id);
-      if (topDocIds.length > 0) {
-        const { data: docs } = await supabase.from('documents').select('id, title').in('id', topDocIds);
-        setTopDocuments(topDocIds.map(id => ({
-          title: docs?.find(d => d.id === id)?.title || 'Unknown',
-          views: documentViews[id],
-        })));
+      if (!isUltraAdmin) {
+        const documentViews: Record<string, number> = {};
+        activityData?.filter(a => a.action_type === 'view' && a.document_id).forEach(a => {
+          documentViews[a.document_id!] = (documentViews[a.document_id!] || 0) + 1;
+        });
+        const topDocIds = Object.entries(documentViews).sort(([, a], [, b]) => b - a).slice(0, 5).map(([id]) => id);
+        if (topDocIds.length > 0) {
+          const { data: docs } = await supabase.from('documents').select('id, title').in('id', topDocIds);
+          setTopDocuments(topDocIds.map(id => ({
+            title: docs?.find(d => d.id === id)?.title || 'Unknown',
+            views: documentViews[id],
+          })));
+        }
+      } else {
+        setTopDocuments([]);
       }
 
       // Department activity
-      const { data: departments } = await supabase.from('departments').select('id, name').is('archived_at', null);
-      if (departments && departments.length > 0) {
-        const { data: docs } = await supabase.from('documents').select('id, department_id').in('department_id', departments.map(d => d.id)).is('deleted_at', null);
-        const docToDept: Record<string, string> = {};
-        docs?.forEach(d => { if (d.department_id) docToDept[d.id] = d.department_id; });
-        
-        const deptCounts: Record<string, number> = {};
-        departments.forEach(d => { deptCounts[d.id] = 0; });
-        activityData?.forEach(a => {
-          if (a.document_id && docToDept[a.document_id]) {
-            deptCounts[docToDept[a.document_id]]++;
-          }
-        });
-        setDepartmentActivity(departments.map(d => ({
-          name: d.name.length > 10 ? d.name.slice(0, 10) + '…' : d.name,
-          activity: deptCounts[d.id] || 0,
-        })).sort((a, b) => b.activity - a.activity));
+      if (!isUltraAdmin) {
+        const { data: departments } = await supabase.from('departments').select('id, name').is('archived_at', null);
+        if (departments && departments.length > 0) {
+          const { data: docs } = await supabase.from('documents').select('id, department_id').in('department_id', departments.map(d => d.id)).is('deleted_at', null);
+          const docToDept: Record<string, string> = {};
+          docs?.forEach(d => { if (d.department_id) docToDept[d.id] = d.department_id; });
+          
+          const deptCounts: Record<string, number> = {};
+          departments.forEach(d => { deptCounts[d.id] = 0; });
+          activityData?.forEach(a => {
+            if (a.document_id && docToDept[a.document_id]) {
+              deptCounts[docToDept[a.document_id]]++;
+            }
+          });
+          setDepartmentActivity(departments.map(d => ({
+            name: d.name.length > 10 ? d.name.slice(0, 10) + '…' : d.name,
+            activity: deptCounts[d.id] || 0,
+          })).sort((a, b) => b.activity - a.activity));
+        }
+      } else {
+        setDepartmentActivity([]);
       }
 
       // Document evolution (last 6 months cumulative)
-      const { data: allDocs } = await supabase.from('documents').select('created_at').is('deleted_at', null).order('created_at');
-      if (allDocs && allDocs.length > 0) {
-        const months: { month: string; total: number }[] = [];
-        for (let i = 5; i >= 0; i--) {
-          const monthStart = startOfMonth(subMonths(new Date(), i));
-          const count = allDocs.filter(d => new Date(d.created_at) <= endOfDay(subDays(startOfMonth(subMonths(new Date(), i - 1)), -1))).length;
-          // Actually count cumulative up to end of that month
-          const endOfThisMonth = i === 0 ? new Date() : startOfMonth(subMonths(new Date(), i - 1));
-          const cumulative = allDocs.filter(d => new Date(d.created_at) <= endOfThisMonth).length;
-          months.push({
-            month: format(monthStart, 'MMM', { locale: language === 'fr' ? fr : enUS }),
-            total: cumulative,
-          });
+      if (!isUltraAdmin) {
+        const { data: allDocs } = await supabase.from('documents').select('created_at').is('deleted_at', null).order('created_at');
+        if (allDocs && allDocs.length > 0) {
+          const months: { month: string; total: number }[] = [];
+          for (let i = 5; i >= 0; i--) {
+            const monthStart = startOfMonth(subMonths(new Date(), i));
+            // Actually count cumulative up to end of that month
+            const endOfThisMonth = i === 0 ? new Date() : startOfMonth(subMonths(new Date(), i - 1));
+            const cumulative = allDocs.filter(d => new Date(d.created_at) <= endOfThisMonth).length;
+            months.push({
+              month: format(monthStart, 'MMM', { locale: language === 'fr' ? fr : enUS }),
+              total: cumulative,
+            });
+          }
+          setDocumentEvolution(months);
         }
-        setDocumentEvolution(months);
+      } else {
+        setDocumentEvolution([]);
       }
 
       // Top clients (Ultra Admin only)

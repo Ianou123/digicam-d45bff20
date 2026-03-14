@@ -272,7 +272,9 @@ export default function Activity() {
         <div>
           <h2 className="text-2xl font-serif font-semibold">{t('nav.activity')}</h2>
           <p className="text-muted-foreground">
-            {language === 'fr' ? 'Historique des activités des utilisateurs' : 'User activity history'}
+            {language === 'fr'
+              ? 'Historique des activités des utilisateurs — pensé pour les administrations et entreprises africaines'
+              : 'User activity history — designed for African administrations and enterprises'}
           </p>
         </div>
         <Button onClick={exportToCSV} variant="outline">

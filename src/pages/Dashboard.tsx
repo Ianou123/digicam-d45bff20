@@ -132,6 +132,109 @@ export default function Dashboard() {
     }
 
     try {
+      // ==================== ULTRA ADMIN (NO DOCUMENT ACCESS) ====================
+      // Ultra Admin is DigiCam staff and must never access client document content or titles.
+      if (isUltraAdmin) {
+        const { count: usersCount } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true });
+
+        const { data: clientsData, count: clientsCount } = await supabase
+          .from('clients')
+          .select('id, name, status, last_activity_at', { count: 'exact' });
+
+        // Client status breakdown + attention list
+        const cStatus: ClientStatus = { active: 0, inactive: 0, suspended: 0 };
+        (clientsData || []).forEach((c: any) => {
+          const status = c.status as 'active' | 'inactive' | 'suspended';
+          if (cStatus[status] !== undefined) cStatus[status]++;
+        });
+        setClientStatus(cStatus);
+
+        const thirtyDaysAgo = subDays(new Date(), 30);
+        const attentionClients = (clientsData || [])
+          .filter((c: any) =>
+            c.status === 'suspended' ||
+            c.status === 'inactive' ||
+            (c.last_activity_at && new Date(c.last_activity_at) < thirtyDaysAgo)
+          )
+          .slice(0, 5);
+        setClientsNeedingAttention(attentionClients as ClientAttention[]);
+
+        const { data: deactivatedUsersData } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, client_id, clients(name)')
+          .eq('status', 'deactivated')
+          .limit(5);
+        setDeactivatedUsers((deactivatedUsersData || []) as unknown as DeactivatedUser[]);
+
+        // Activity trend (platform-level)
+        const now = new Date();
+        const sevenDaysAgo = startOfDay(subDays(now, 7));
+        const fourteenDaysAgo = startOfDay(subDays(now, 14));
+        const { count: currentWeekCount } = await supabase
+          .from('activity_logs')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', sevenDaysAgo.toISOString());
+        const { count: previousWeekCount } = await supabase
+          .from('activity_logs')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', fourteenDaysAgo.toISOString())
+          .lt('created_at', sevenDaysAgo.toISOString());
+        const current = currentWeekCount || 0;
+        const previous = previousWeekCount || 0;
+        const percentChange =
+          previous > 0 ? Math.round(((current - previous) / previous) * 100) : current > 0 ? 100 : 0;
+        setActivityTrend({ current, previous, percentChange });
+
+        // Recent activity WITHOUT document join/titles
+        const { data: activityData } = await supabase
+          .from('activity_logs')
+          .select('id, action_type, created_at, search_query, user_id')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (activityData && activityData.length > 0) {
+          const activityUserIds = [...new Set(activityData.map((a: any) => a.user_id))];
+          const { data: activityProfiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', activityUserIds);
+
+          const profileMap = new Map(activityProfiles?.map(p => [p.id, p]) || []);
+          const enrichedActivity = activityData.map((a: any) => ({
+            ...a,
+            documents: null,
+            profiles: profileMap.get(a.user_id) || null,
+          }));
+          setRecentActivity(enrichedActivity as any);
+        } else {
+          setRecentActivity([]);
+        }
+
+        // Zero-out any doc-derived stats for Ultra Admin
+        setStatusStats({
+          pendingValidation: 0,
+          archived: 0,
+          confidential: 0,
+          shared: 0,
+          searchesThisMonth: 0,
+          searchSuccessRate: 0,
+        });
+        setRecentDocuments([]);
+        setMostViewedDocs([]);
+        setTotalStorageMb(0);
+        setFailedSearchesThisWeek(0);
+
+        setStats({
+          totalDocuments: 0,
+          totalUsers: usersCount || 0,
+          totalClients: clientsCount || 0,
+        });
+
+        return;
+      }
+
       // Fetch documents count (exclude trashed)
       let documentsCountQuery = supabase
         .from('documents')
@@ -221,54 +324,6 @@ export default function Dashboard() {
 
       setStatusStats(statusCounts);
 
-      // Ultra Admin specific data (platform-level)
-      if (isUltraAdmin) {
-        const { data: clientsData } = await supabase
-          .from('clients')
-          .select('id, name, status, last_activity_at');
-
-        if (clientsData) {
-          const cStatus: ClientStatus = { active: 0, inactive: 0, suspended: 0 };
-          clientsData.forEach(c => {
-            const status = c.status as 'active' | 'inactive' | 'suspended';
-            if (cStatus[status] !== undefined) cStatus[status]++;
-          });
-          setClientStatus(cStatus);
-
-          const thirtyDaysAgo = subDays(new Date(), 30);
-          const attentionClients = clientsData
-            .filter(c => c.status === 'suspended' || c.status === 'inactive' ||
-              (c.last_activity_at && new Date(c.last_activity_at) < thirtyDaysAgo))
-            .slice(0, 5);
-          setClientsNeedingAttention(attentionClients);
-        }
-
-        const { data: deactivatedUsersData } = await supabase
-          .from('profiles')
-          .select('id, email, full_name, client_id, clients(name)')
-          .eq('status', 'deactivated')
-          .limit(5);
-        setDeactivatedUsers((deactivatedUsersData || []) as unknown as DeactivatedUser[]);
-
-        const now = new Date();
-        const fourteenDaysAgo = startOfDay(subDays(now, 14));
-        const { count: currentWeekCount } = await supabase
-          .from('activity_logs')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', sevenDaysAgo.toISOString());
-        const { count: previousWeekCount } = await supabase
-          .from('activity_logs')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', fourteenDaysAgo.toISOString())
-          .lt('created_at', sevenDaysAgo.toISOString());
-        const current = currentWeekCount || 0;
-        const previous = previousWeekCount || 0;
-        const percentChange = previous > 0 
-          ? Math.round(((current - previous) / previous) * 100)
-          : current > 0 ? 100 : 0;
-        setActivityTrend({ current, previous, percentChange });
-      }
-      
       // Fetch recent documents
       const userDeptId = profile?.department_id;
       let recentDocsQuery = supabase

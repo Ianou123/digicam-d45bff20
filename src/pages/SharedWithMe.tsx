@@ -45,7 +45,7 @@ interface SharedDocument {
 
 export default function SharedWithMe() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isUltraAdmin } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
   
@@ -54,10 +54,15 @@ export default function SharedWithMe() {
   const [activeTab, setActiveTab] = useState<'active' | 'expired'>('active');
 
   useEffect(() => {
+    if (isUltraAdmin) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
     if (user) {
       fetchSharedDocuments();
     }
-  }, [user]);
+  }, [user, isUltraAdmin, navigate]);
 
   const fetchSharedDocuments = async () => {
     if (!user) return;

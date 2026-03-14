@@ -31,15 +31,15 @@ export default function Upload() {
       return;
     }
 
-    // Redirect Ultra Admin (no client) to Clients page
-    if (isSuperAdmin && !profile?.client_id && isUltraAdmin) {
-      toast.info(
-        language === 'fr' 
-          ? 'Veuillez sélectionner une organisation pour téléverser des documents'
-          : 'Please select an organization to upload documents',
+    // Ultra Admin (DigiCam staff) must never upload client documents
+    if (isUltraAdmin) {
+      toast.error(
+        language === 'fr'
+          ? 'Accès refusé : le personnel DigiCam ne peut pas téléverser de documents clients'
+          : 'Access denied: DigiCam staff cannot upload client documents',
         { duration: 4000 }
       );
-      navigate('/clients', { replace: true });
+      navigate('/dashboard', { replace: true });
       return;
     }
 
@@ -58,7 +58,7 @@ export default function Upload() {
     if (profile?.client_id) {
       fetchDepartments();
     }
-  }, [profile?.client_id, isAdminSuperAdmin, isUltraAdmin, isSuperAdmin, isClientSuspended, navigate, language]);
+  }, [profile?.client_id, isAdminSuperAdmin, isUltraAdmin, isClientSuspended, navigate, language]);
 
   const fetchDepartments = async () => {
     if (!profile?.client_id) return;

@@ -77,7 +77,7 @@ const fileTypeMap: Record<string, DocumentType> = {
 export default function DocumentEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended } = useAuth();
+  const { user, profile, canManageDocuments, isClientSuspended, isUltraAdmin, isSuperAdmin, isClientAdmin, clientModule } = useAuth();
   const { t, language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
 
@@ -103,12 +103,17 @@ export default function DocumentEdit() {
   });
 
   useEffect(() => {
+    if (isUltraAdmin) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
     if (id) {
       fetchDocument();
       fetchDepartments();
       fetchVersions();
     }
-  }, [id]);
+  }, [id, isUltraAdmin, navigate]);
 
   const fetchDocument = async () => {
     try {
@@ -294,7 +299,15 @@ export default function DocumentEdit() {
   };
 
   // Access control
-  if (!canManageDocuments || isSuperAdmin || isClientSuspended) {
+  // - Ultra Admin: never
+  // - Suspended client: never
+  // - Admin IT in Administrative module: upload-only (no document viewing/editing)
+  if (
+    isUltraAdmin ||
+    !canManageDocuments ||
+    isClientSuspended ||
+    (isClientAdmin && clientModule === 'admin_publique')
+  ) {
     return <Navigate to="/documents" replace />;
   }
 

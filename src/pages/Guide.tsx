@@ -125,6 +125,46 @@ export default function Guide() {
         </p>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            {language === 'fr' ? 'Sécurité & conformité' : 'Security & compliance'}
+          </CardTitle>
+          <CardDescription>
+            {language === 'fr'
+              ? 'Pensé pour les administrations et entreprises africaines — avec des contrôles clairs et auditables.'
+              : 'Designed for African administrations and enterprises — with clear, auditable controls.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div>
+            <span className="font-medium text-foreground">{language === 'fr' ? 'Confidentialité' : 'Confidentiality'}:</span>{' '}
+            {language === 'fr'
+              ? 'le personnel DigiCam (Ultra Admin) ne peut pas accéder au contenu des documents clients.'
+              : 'DigiCam staff (Ultra Admin) cannot access client document content.'}
+          </div>
+          <div>
+            <span className="font-medium text-foreground">{language === 'fr' ? 'Traçabilité' : 'Audit trail'}:</span>{' '}
+            {language === 'fr'
+              ? 'les actions importantes (consultation, téléchargement, partage, validation/rejet) sont historisées.'
+              : 'Key actions (view, download, share, validate/reject) are logged.'}
+          </div>
+          <div>
+            <span className="font-medium text-foreground">{language === 'fr' ? 'Souveraineté des données' : 'Data sovereignty'}:</span>{' '}
+            {language === 'fr'
+              ? 'selon le type de client, le stockage et/ou l’OCR peuvent être hébergés dans le cloud ou sur des serveurs dédiés (ex: datacenter local / on‑prem), afin de répondre aux contraintes institutionnelles.'
+              : 'Depending on the client, storage and/or OCR can be cloud-hosted or deployed on dedicated servers (e.g., local datacenter / on‑prem) to meet institutional constraints.'}
+          </div>
+          <div>
+            <span className="font-medium text-foreground">{language === 'fr' ? 'Rétention' : 'Retention'}:</span>{' '}
+            {language === 'fr'
+              ? 'les règles de conservation des documents et des journaux peuvent être adaptées selon l’organisation et le module.'
+              : 'Document and log retention rules can be adapted per organization and module.'}
+          </div>
+        </CardContent>
+      </Card>
+
       {categories.map(category => {
         const entries = GLOSSARY.filter(e => e.category === category);
         const Icon = categoryIcons[category];

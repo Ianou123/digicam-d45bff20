@@ -115,7 +115,8 @@ export function getPermissionsForRoleAndModule(
   // Ultra Admin (DigiCam staff) - platform management only
   if (role === 'ultra_admin') {
     return {
-      canViewDocuments: true,
+      // Confidentiality: DigiCam staff must never access client documents
+      canViewDocuments: false,
       canUploadDocuments: false,
       canEditDocuments: false,
       canDeleteDocuments: false,

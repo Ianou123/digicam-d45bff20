@@ -297,10 +297,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // staff is regular user
   const isStaff = roles.includes('staff') || (!isUltraAdmin && !isSuperAdmin && !isClientAdmin && roles.length === 0);
   // Can manage documents depends on module:
-  // - Core module: Ultra Admin, Super Admin, or Client Admin can manage docs
-  // - Administrative module (admin_publique): ONLY Ultra Admin or Client Admin (IT Admin) can manage docs
+  // - Core module: Super Admin or Client Admin can manage docs
+  // - Administrative module (admin_publique): ONLY Client Admin (IT Admin) can manage docs
   //   Super Admin in administrative module manages users/depts but does NOT upload
-  const canManageDocuments = isUltraAdmin || isClientAdmin || (isSuperAdmin && clientModule !== 'admin_publique');
+  // Ultra Admin is DigiCam staff and must not access client documents.
+  const canManageDocuments = isClientAdmin || (isSuperAdmin && clientModule !== 'admin_publique');
   const isClientSuspended = clientStatus === 'suspended';
   const isUserDeactivated = profile?.status === 'deactivated';
 
