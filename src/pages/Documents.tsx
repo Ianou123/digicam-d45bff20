@@ -10,6 +10,8 @@ import { SearchResultCard } from '@/components/documents/SearchResultCard';
 import { WatchSearchButton } from '@/components/documents/WatchSearchButton';
 import { WatchedSearchesList } from '@/components/documents/WatchedSearchesList';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
+import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
