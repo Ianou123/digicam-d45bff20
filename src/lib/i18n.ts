@@ -50,6 +50,8 @@ export const translations = {
         archiveDesc: 'Classez, versionnez et partagez vos documents dans une structure claire et intuitive.',
         auditTitle: 'Audit & traçabilité',
         auditDesc: 'Suivez chaque action, chaque consultation, chaque modification avec un historique complet et infalsifiable.',
+        builtForTitle: 'Pensé pour les entreprises',
+        builtForDesc: 'Une solution adaptée à la réalité des entreprises et administrations africaines.',
       },
     },
     // Documents
@@ -333,6 +335,8 @@ export const translations = {
         archiveDesc: 'Classify, version and share your documents in a clear and intuitive structure.',
         auditTitle: 'Audit & Traceability',
         auditDesc: 'Track every action, every view, every change with a complete and tamper-proof history.',
+        builtForTitle: 'Built for businesses',
+        builtForDesc: 'A solution adapted to the reality of African businesses and administrations.',
       },
     },
     // Documents

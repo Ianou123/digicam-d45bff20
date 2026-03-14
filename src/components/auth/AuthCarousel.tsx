@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, FolderOpen, Shield } from 'lucide-react';
+import { Search, FolderOpen, Shield, Globe } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-const icons = [Search, FolderOpen, Shield];
+const icons = [Search, FolderOpen, Shield, Globe];
 
 export default function AuthCarousel() {
   const [current, setCurrent] = useState(0);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const slides = [
     {
@@ -23,6 +23,11 @@ export default function AuthCarousel() {
       icon: icons[2],
       title: t('auth.carousel.auditTitle'),
       description: t('auth.carousel.auditDesc'),
+    },
+    {
+      icon: icons[3],
+      title: t('auth.carousel.builtForTitle'),
+      description: t('auth.carousel.builtForDesc'),
     },
   ];
 
@@ -58,22 +63,16 @@ export default function AuthCarousel() {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`h-2.5 rounded-full transition-all duration-500 ${
-                i === current ? 'w-8 bg-white' : 'w-2.5 bg-white/40 hover:bg-white/60'
-              }`}
+              className={`h-2.5 rounded-full transition-all duration-500 ${i === current ? 'w-8 bg-white' : 'w-2.5 bg-white/40 hover:bg-white/60'
+                }`}
             />
           ))}
         </div>
 
         <div className="flex flex-col items-center justify-center gap-1 pt-6 text-primary-foreground/80">
           <span className="font-serif font-bold text-2xl">DigiCam</span>
-          <span className="text-sm">
-            {t('language') === 'fr'
-              ? 'Pensé pour les entreprises et administrations africaines'
-              : 'Built for African businesses and administrations'}
-          </span>
-          <span className="text-sm font-medium">
-            {t('language') === 'fr'
+          <span className="text-sm font-medium text-center">
+            {language === 'fr'
               ? 'Digitalisez, recherchez et sécurisez vos documents'
               : 'Digitalize, search and secure your documents'}
           </span>
