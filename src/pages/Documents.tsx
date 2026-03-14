@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
