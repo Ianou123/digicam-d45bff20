@@ -103,6 +103,11 @@ export default function Documents() {
   const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
   const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
 
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareDocumentId, setShareDocumentId] = useState<string | null>(null);
+  const [shareDocumentTitle, setShareDocumentTitle] = useState<string>('');
+
   // Owner filter from URL
   const ownerIdParam = searchParams.get('owner');
   const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
