@@ -82,6 +82,8 @@ export function DocumentCard({
   document,
   isInTrash = false,
   selected = false,
+  isFavorite = false,
+  onToggleFavorite,
   onSelect,
   onView,
   onDownload,
