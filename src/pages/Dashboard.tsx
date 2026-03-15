@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ITAdminDashboard } from '@/components/dashboard/ITAdminDashboard';
 import { subDays, startOfDay, startOfMonth } from 'date-fns';
+import { formatDate } from '@/lib/formatters';
 
 interface Document {
   id: string;
@@ -568,7 +569,7 @@ export default function Dashboard() {
                             </span>
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(activity.created_at).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                            {formatDate(activity.created_at, language)} {new Date(activity.created_at).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
@@ -688,7 +689,7 @@ export default function Dashboard() {
         <p className="text-muted-foreground">
           {clientName && <span className="font-medium">{clientName}</span>}
           {clientName && ' — '}
-          {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {formatDate(new Date(), language)}
         </p>
       </div>
 
