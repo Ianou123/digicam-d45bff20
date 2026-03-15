@@ -51,6 +51,7 @@ import { FrequentlyViewedTogether } from '@/components/documents/FrequentlyViewe
 import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
 import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
 import { setPageTitle } from '@/hooks/usePageTitle';
+import { useFavorites } from '@/hooks/useFavorites';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
