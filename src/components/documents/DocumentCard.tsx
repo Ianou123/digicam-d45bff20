@@ -180,6 +180,17 @@ export function DocumentCard({
                 ) : (
                   // Normal view actions
                   <>
+                    {onToggleFavorite && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => { e.stopPropagation(); onToggleFavorite(document.id); }}
+                        title={isFavorite ? (language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites') : (language === 'fr' ? 'Ajouter aux favoris' : 'Add to favorites')}
+                      >
+                        <Star className={cn("h-4 w-4", isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground")} />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

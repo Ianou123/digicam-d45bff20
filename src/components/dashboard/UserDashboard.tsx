@@ -299,24 +299,19 @@ export function UserDashboard() {
         </Card>
 
         <Card 
-          className="border-l-4 border-l-teal-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-          onClick={() => navigate('/documents')}
+          className="border-l-4 border-l-yellow-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+          onClick={() => navigate('/my-documents')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {language === 'fr' ? 'Recherches ce mois' : 'Searches this month'}
+              {language === 'fr' ? 'Documents Favoris' : 'Favorite Documents'}
             </CardTitle>
-            <div className="p-2 rounded-lg bg-teal-500/10">
-              <Search className="h-4 w-4 text-teal-600" />
+            <div className="p-2 rounded-lg bg-yellow-500/10">
+              <Star className="h-4 w-4 text-yellow-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.searchesThisMonth}</div>
-            {stats.searchSuccessRate > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.searchSuccessRate}% {language === 'fr' ? 'taux de succès' : 'success rate'}
-              </p>
-            )}
+            <div className="text-2xl font-bold">{favoriteCount}</div>
           </CardContent>
         </Card>
       </div>

@@ -624,6 +624,14 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => id && toggleFavorite(id)}
+              >
+                <Star className={cn("h-4 w-4 mr-1", id && isFavorite(id) ? "fill-yellow-400 text-yellow-400" : "")} />
+                {id && isFavorite(id) ? (language === 'fr' ? 'Favori' : 'Favorited') : (language === 'fr' ? 'Favori' : 'Favorite')}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setShowShareModal(true)}>
                 <Share2 className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Partager' : 'Share'}
