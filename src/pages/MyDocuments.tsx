@@ -123,6 +123,24 @@ export default function MyDocuments() {
     fetchUploads();
   }, [user, profile?.client_id, language, isUltraAdmin]);
 
+  // Fetch favorite documents
+  useEffect(() => {
+    const fetchFavDocs = async () => {
+      if (!user || favoriteIds.size === 0) {
+        setFavoriteDocs([]);
+        return;
+      }
+      const ids = Array.from(favoriteIds).slice(0, 3);
+      const { data } = await supabase
+        .from('documents')
+        .select('id, title, document_type')
+        .in('id', ids)
+        .is('deleted_at', null);
+      setFavoriteDocs(data || []);
+    };
+    fetchFavDocs();
+  }, [user, favoriteIds]);
+
   const filteredRows = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
