@@ -90,6 +90,20 @@ const GLOSSARY: GlossaryEntry[] = [
     definitionEn: 'Standard user. Read-only access: search, viewing and downloading. No upload or management rights.',
     category: 'role',
   },
+  {
+    termFr: 'Modèle d\'hébergement',
+    termEn: 'Hosting Model',
+    definitionFr: 'Infrastructure sous-jacente du stockage et de l\'OCR pour l\'organisation (ex: Cloud mutualisé, Data Center Local, On-Premise).',
+    definitionEn: 'Underlying storage and OCR infrastructure for the organization (e.g., Shared Cloud, Local Data Center, On-Premise).',
+    category: 'organisation',
+  },
+  {
+    termFr: 'Localisation des données',
+    termEn: 'Data Location',
+    definitionFr: 'Région ou pays géographique où les documents et la base de données de l\'organisation sont physiquement sauvegardés (ex: eu-west, local).',
+    definitionEn: 'Geographic region or country where the organization\'s documents and database are physically backed up (e.g., eu-west, local).',
+    category: 'organisation',
+  },
 ];
 
 const categoryIcons: Record<string, any> = {
