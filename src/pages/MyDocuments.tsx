@@ -61,9 +61,12 @@ const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
 export default function MyDocuments() {
   const { user, profile, isUltraAdmin } = useAuth();
   const { language } = useLanguage();
+  const navigate = useNavigate();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [favoriteDocs, setFavoriteDocs] = useState<Array<{ id: string; title: string; document_type: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   const [filenameQuery, setFilenameQuery] = useState('');
