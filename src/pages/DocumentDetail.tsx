@@ -151,6 +151,7 @@ export default function DocumentDetailPage() {
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
   const [showShareModal, setShowShareModal] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     if (isUltraAdmin) {
