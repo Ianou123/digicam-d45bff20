@@ -82,6 +82,7 @@ export default function Documents() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
