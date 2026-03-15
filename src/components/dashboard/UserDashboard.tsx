@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { startOfMonth } from 'date-fns';
+import { useFavorites } from '@/hooks/useFavorites';
 import { formatDate } from '@/lib/formatters';
 
 interface ViewedDoc {
