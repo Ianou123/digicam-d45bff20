@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { downloadDocument } from '@/lib/storage';
+import { useFavorites } from '@/hooks/useFavorites';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -81,6 +82,7 @@ export default function Documents() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -790,6 +792,8 @@ export default function Documents() {
                 }}
                 isInTrash={showTrash}
                 selected={selectedDocuments.has(doc.id)}
+                isFavorite={isFavorite(doc.id)}
+                onToggleFavorite={!showTrash ? toggleFavorite : undefined}
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}

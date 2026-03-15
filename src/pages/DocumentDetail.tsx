@@ -22,7 +22,8 @@ import {
   RotateCw,
   Upload,
   XCircle,
-  Send
+  Send,
+  Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ import { FrequentlyViewedTogether } from '@/components/documents/FrequentlyViewe
 import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton';
 import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
 import { setPageTitle } from '@/hooks/usePageTitle';
+import { useFavorites } from '@/hooks/useFavorites';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
@@ -149,6 +151,7 @@ export default function DocumentDetailPage() {
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
   const [showShareModal, setShowShareModal] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     if (isUltraAdmin) {
@@ -621,6 +624,14 @@ export default function DocumentDetailPage() {
                   {language === 'fr' ? 'Proposer des modifications' : 'Propose Changes'}
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => id && toggleFavorite(id)}
+              >
+                <Star className={cn("h-4 w-4 mr-1", id && isFavorite(id) ? "fill-yellow-400 text-yellow-400" : "")} />
+                {id && isFavorite(id) ? (language === 'fr' ? 'Favori' : 'Favorited') : (language === 'fr' ? 'Favori' : 'Favorite')}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setShowShareModal(true)}>
                 <Share2 className="h-4 w-4 mr-1" />
                 {language === 'fr' ? 'Partager' : 'Share'}

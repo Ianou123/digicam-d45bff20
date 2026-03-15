@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Calendar, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Calendar, FileText, Star, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/formatters';
+import { useFavorites } from '@/hooks/useFavorites';
+import { cn } from '@/lib/utils';
 
 interface UploadRow {
   id: string;
@@ -57,9 +61,12 @@ const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
 export default function MyDocuments() {
   const { user, profile, isUltraAdmin } = useAuth();
   const { language } = useLanguage();
+  const navigate = useNavigate();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [favoriteDocs, setFavoriteDocs] = useState<Array<{ id: string; title: string; document_type: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   const [filenameQuery, setFilenameQuery] = useState('');
@@ -116,6 +123,24 @@ export default function MyDocuments() {
     fetchUploads();
   }, [user, profile?.client_id, language, isUltraAdmin]);
 
+  // Fetch favorite documents
+  useEffect(() => {
+    const fetchFavDocs = async () => {
+      if (!user || favoriteIds.size === 0) {
+        setFavoriteDocs([]);
+        return;
+      }
+      const ids = Array.from(favoriteIds).slice(0, 3);
+      const { data } = await supabase
+        .from('documents')
+        .select('id, title, document_type')
+        .in('id', ids)
+        .is('deleted_at', null);
+      setFavoriteDocs(data || []);
+    };
+    fetchFavDocs();
+  }, [user, favoriteIds]);
+
   const filteredRows = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -168,6 +193,55 @@ export default function MyDocuments() {
             : 'Complete history of your document uploads'}
         </p>
       </div>
+
+      {/* Favorite Documents Section */}
+      {favoriteDocs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-serif font-semibold flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-400" />
+              {language === 'fr' ? 'Mes Favoris' : 'My Favorites'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/documents')}
+            >
+              {language === 'fr' ? 'Voir tous' : 'View all'}
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {favoriteDocs.map((doc) => (
+              <Card
+                key={doc.id}
+                className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group"
+                onClick={() => navigate(`/documents/${doc.id}`)}
+              >
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-yellow-500/10 flex-shrink-0">
+                    <FileText className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground uppercase">{doc.document_type}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(doc.id); }}
+                    title={language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites'}
+                  >
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
