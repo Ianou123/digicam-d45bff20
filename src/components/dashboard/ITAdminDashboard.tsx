@@ -8,6 +8,7 @@ import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDate } from '@/lib/formatters';
 
 interface RecentUpload {
   id: string;
@@ -244,7 +245,7 @@ export function ITAdminDashboard() {
                       <TableCell>
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5" />
-                          {new Date(doc.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
+                          {formatDate(doc.created_at, language)}
                         </span>
                       </TableCell>
                       <TableCell>
