@@ -792,6 +792,8 @@ export default function Documents() {
                 }}
                 isInTrash={showTrash}
                 selected={selectedDocuments.has(doc.id)}
+                isFavorite={isFavorite(doc.id)}
+                onToggleFavorite={!showTrash ? toggleFavorite : undefined}
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}
