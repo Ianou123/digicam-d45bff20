@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Eye, Mail, TrendingUp, Clock, FileText, 
-  Lightbulb, ArrowRight, FolderOpen, KeyRound, Share2
+  Lightbulb, ArrowRight, FolderOpen, KeyRound, Share2, Star
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
