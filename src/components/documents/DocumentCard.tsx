@@ -49,6 +49,8 @@ interface DocumentCardProps {
   };
   isInTrash?: boolean;
   selected?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
   onSelect?: () => void;
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
