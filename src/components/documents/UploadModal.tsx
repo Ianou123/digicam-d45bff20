@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { requestOcr } from '@/lib/ocr';
 
 interface UploadModalProps {
   open: boolean;
@@ -112,36 +113,6 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
     }
   };
 
-  const simulateOcrProcessing = async (docId: string) => {
-    // Simulate OCR processing with progress
-    setStep('processing');
-    setProgress(0);
-
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 300);
-
-    // Simulate OCR delay (2-4 seconds)
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-
-    clearInterval(progressInterval);
-    setProgress(100);
-
-    // Update document status to 'ready'
-    await supabase
-      .from('documents')
-      .update({ status: 'ready' })
-      .eq('id', docId);
-
-    setStep('complete');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,8 +184,19 @@ export function UploadModal({ open, onOpenChange, departments, onSuccess }: Uplo
         metadata: { title: formData.title, document_type: docType },
       });
 
-      // Simulate OCR processing
-      await simulateOcrProcessing(insertedDoc.id);
+      // Call OCR processing abstraction
+      setStep('processing');
+      setProgress(0);
+      await requestOcr(insertedDoc.id, 'simulated', {
+        onProgress: (val: any) => {
+          if (typeof val === 'function') {
+            setProgress(val);
+          } else {
+            setProgress(val);
+          }
+        }
+      });
+      setStep('complete');
 
     } catch (error) {
       console.error('Upload error:', error);
