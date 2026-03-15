@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/formatters';
 
 interface UploadRow {
   id: string;
@@ -256,7 +257,7 @@ export default function MyDocuments() {
                       <TableCell>
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5" />
-                          {new Date(row.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
+                          {formatDate(row.created_at, language)}
                         </span>
                       </TableCell>
                       <TableCell>
