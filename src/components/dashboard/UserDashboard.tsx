@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { startOfMonth } from 'date-fns';
+import { formatDate } from '@/lib/formatters';
 
 interface ViewedDoc {
   id: string;
@@ -234,7 +235,7 @@ export function UserDashboard() {
         <p className="text-muted-foreground">
           {clientName && <span className="font-medium">{clientName}</span>}
           {clientName && ' — '}
-          {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {formatDate(new Date(), language)}
         </p>
       </div>
 
