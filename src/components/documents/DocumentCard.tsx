@@ -13,7 +13,8 @@ import {
   Trash2,
   Search,
   FileSearch,
-  Share2
+  Share2,
+  Star
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
