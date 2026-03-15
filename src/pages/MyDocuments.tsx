@@ -194,6 +194,55 @@ export default function MyDocuments() {
         </p>
       </div>
 
+      {/* Favorite Documents Section */}
+      {favoriteDocs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-serif font-semibold flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-400" />
+              {language === 'fr' ? 'Mes Favoris' : 'My Favorites'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/documents')}
+            >
+              {language === 'fr' ? 'Voir tous' : 'View all'}
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {favoriteDocs.map((doc) => (
+              <Card
+                key={doc.id}
+                className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group"
+                onClick={() => navigate(`/documents/${doc.id}`)}
+              >
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-yellow-500/10 flex-shrink-0">
+                    <FileText className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground uppercase">{doc.document_type}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(doc.id); }}
+                    title={language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites'}
+                  >
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{language === 'fr' ? 'Filtres' : 'Filters'}</CardTitle>
