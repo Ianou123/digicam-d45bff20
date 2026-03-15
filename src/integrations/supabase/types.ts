@@ -122,8 +122,6 @@ export type Database = {
           slug: string
           status: string
           updated_at: string
-          hosting_model: string | null
-          data_location: string | null
         }
         Insert: {
           created_at?: string
@@ -137,8 +135,6 @@ export type Database = {
           slug: string
           status?: string
           updated_at?: string
-          hosting_model?: string | null
-          data_location?: string | null
         }
         Update: {
           created_at?: string
@@ -152,8 +148,6 @@ export type Database = {
           slug?: string
           status?: string
           updated_at?: string
-          hosting_model?: string | null
-          data_location?: string | null
         }
         Relationships: []
       }
