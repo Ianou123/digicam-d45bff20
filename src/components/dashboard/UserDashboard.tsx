@@ -57,6 +57,7 @@ export function UserDashboard() {
   const { user, profile, clientName } = useAuth();
   const { language } = useLanguage();
   const dateLocale = language === 'fr' ? fr : enUS;
+  const { favoriteCount } = useFavorites();
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
