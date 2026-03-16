@@ -301,7 +301,7 @@ export function UserDashboard() {
 
         <Card 
           className="border-l-4 border-l-yellow-500 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-          onClick={() => navigate('/my-documents')}
+          onClick={() => navigate('/my-favorites')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">

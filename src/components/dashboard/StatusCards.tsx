@@ -2,7 +2,7 @@ import {
   FileText, 
   Lock, 
   Share2,
-  Search
+  Star
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -13,8 +13,7 @@ interface StatusStats {
   archived: number;
   confidential: number;
   shared: number;
-  searchesThisMonth?: number;
-  searchSuccessRate?: number;
+  favorites?: number;
 }
 
 interface StatusCardsProps {
@@ -54,16 +53,13 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
       borderColor: 'border-l-blue-500',
     },
     {
-      key: 'searches',
-      label: language === 'fr' ? 'Recherches ce mois' : 'Searches this month',
-      value: stats.searchesThisMonth ?? 0,
-      subtitle: stats.searchSuccessRate !== undefined 
-        ? `${stats.searchSuccessRate}% ${language === 'fr' ? 'taux de succès' : 'success rate'}`
-        : undefined,
-      icon: Search,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-      borderColor: 'border-l-primary',
+      key: 'favorites',
+      label: language === 'fr' ? 'Documents Favoris' : 'Favorite Documents',
+      value: stats.favorites ?? 0,
+      icon: Star,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-500/10',
+      borderColor: 'border-l-yellow-500',
     },
   ];
 
@@ -86,9 +82,6 @@ export function StatusCards({ stats, onCardClick }: StatusCardsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>
-            {'subtitle' in card && card.subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
-            )}
           </CardContent>
         </Card>
       ))}

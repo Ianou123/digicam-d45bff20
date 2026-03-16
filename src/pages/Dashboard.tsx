@@ -15,6 +15,7 @@ import { UploadModal } from '@/components/documents/UploadModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
+import { useFavorites } from '@/hooks/useFavorites';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -71,8 +72,7 @@ interface StatusStats {
   archived: number;
   confidential: number;
   shared: number;
-  searchesThisMonth: number;
-  searchSuccessRate: number;
+  favorites: number;
 }
 
 interface MostViewedDoc {
@@ -88,6 +88,7 @@ export default function Dashboard() {
   const { user, profile, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, isClientSuspended, clientName } = useAuth();
   const { isRestrictedModule } = useModulePermissions();
   const { t, language } = useLanguage();
+  const { favoriteCount } = useFavorites();
   
   const [stats, setStats] = useState({
     totalDocuments: 0,
@@ -99,8 +100,7 @@ export default function Dashboard() {
     archived: 0,
     confidential: 0,
     shared: 0,
-    searchesThisMonth: 0,
-    searchSuccessRate: 0,
+    favorites: 0,
   });
   const [clientStatus, setClientStatus] = useState<ClientStatus>({ active: 0, inactive: 0, suspended: 0 });
   const [activityTrend, setActivityTrend] = useState({ current: 0, previous: 0, percentChange: 0 });
@@ -219,8 +219,7 @@ export default function Dashboard() {
           archived: 0,
           confidential: 0,
           shared: 0,
-          searchesThisMonth: 0,
-          searchSuccessRate: 0,
+          favorites: 0,
         });
         setRecentDocuments([]);
         setMostViewedDocs([]);
@@ -254,8 +253,7 @@ export default function Dashboard() {
         archived: docsCount || 0,
         confidential: 0,
         shared: 0,
-        searchesThisMonth: 0,
-        searchSuccessRate: 0,
+        favorites: 0,
       };
 
       const pageSize = 1000;
@@ -299,20 +297,6 @@ export default function Dashboard() {
       // Searches this month
       const monthStart = startOfMonth(new Date()).toISOString();
       if (profile?.client_id) {
-        const { data: searchLogs } = await supabase
-          .from('search_logs')
-          .select('result_count')
-          .eq('client_id', profile.client_id)
-          .gte('created_at', monthStart);
-
-        if (searchLogs) {
-          statusCounts.searchesThisMonth = searchLogs.length;
-          const successfulSearches = searchLogs.filter(s => s.result_count > 0).length;
-          statusCounts.searchSuccessRate = searchLogs.length > 0 
-            ? Math.round((successfulSearches / searchLogs.length) * 100) 
-            : 100;
-        }
-
         // Failed searches this week
         const { data: failedSearchLogs } = await supabase
           .from('search_logs')
@@ -322,6 +306,8 @@ export default function Dashboard() {
           .gte('created_at', sevenDaysAgo.toISOString());
         setFailedSearchesThisWeek(failedSearchLogs?.length || 0);
       }
+      
+      statusCounts.favorites = favoriteCount;
 
       setStatusStats(statusCounts);
 
@@ -447,10 +433,9 @@ export default function Dashboard() {
       archived: '',
       confidential: 'confidentiality=confidential',
       shared: 'shared=recent',
-      searches: '',
     };
-    if (status === 'searches') {
-      navigate('/admin-pulse');
+    if (status === 'favorites') {
+      navigate('/my-favorites');
     } else {
       navigate(`/documents?${filterMap[status] || ''}`);
     }

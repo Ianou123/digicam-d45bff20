@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2 } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
@@ -82,7 +82,7 @@ export default function Documents() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
   const { t, language } = useLanguage();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -94,6 +94,7 @@ export default function Documents() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [favoriteDocs, setFavoriteDocs] = useState<any[]>([]);
 
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
@@ -164,6 +165,24 @@ export default function Documents() {
     fetchDocuments();
     setSelectedDocuments(new Set()); // Clear selection when view changes
   }, [filters, selectedClientId, showTrash, ownerIdParam]);
+
+  // Fetch top 3 favorite documents
+  useEffect(() => {
+    const fetchFavDocs = async () => {
+      if (!user || isUltraAdmin || favoriteIds.size === 0) {
+        setFavoriteDocs([]);
+        return;
+      }
+      const ids = Array.from(favoriteIds).slice(0, 3);
+      const { data } = await supabase
+        .from('documents')
+        .select('id, title, document_type')
+        .in('id', ids)
+        .is('deleted_at', null);
+      setFavoriteDocs(data || []);
+    };
+    fetchFavDocs();
+  }, [user, favoriteIds, isUltraAdmin]);
 
   const fetchClients = async () => {
     const { data } = await supabase
@@ -731,6 +750,52 @@ export default function Documents() {
 
       {/* Watched Searches */}
       <WatchedSearchesList />
+
+      {/* Top Favorites Section */}
+      {!showTrash && favoriteDocs.length > 0 && !filters.search && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-serif font-semibold flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-400" />
+              {language === 'fr' ? 'Mes Favoris Récents' : 'Recent Favorites'}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/my-favorites')}
+            >
+              {language === 'fr' ? 'Gérer les favoris' : 'Manage favorites'}
+            </Button>
+          </div>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {favoriteDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group rounded-lg border bg-card text-card-foreground shadow-sm flex items-center p-4 gap-3"
+                onClick={() => navigate(`/documents/${doc.id}`)}
+              >
+                <div className="p-2 rounded-lg bg-yellow-500/10 flex-shrink-0">
+                  <FileText className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate">{doc.title}</p>
+                  <p className="text-xs text-muted-foreground uppercase">{doc.document_type}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(doc.id); }}
+                  title={language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites'}
+                >
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Select All Header */}
       {documents.length > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (

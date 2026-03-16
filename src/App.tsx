@@ -24,6 +24,7 @@ import AdminPulse from "./pages/AdminPulse";
 import SharedWithMe from "./pages/SharedWithMe";
 import MyAuthorization from "./pages/MyAuthorization";
 import MyDocuments from "./pages/MyDocuments";
+import MyFavorites from "./pages/MyFavorites";
 import NotificationsPage from "./pages/Notifications";
 
 import ModuleSetup from "./pages/ModuleSetup";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/shared-with-me" element={<SharedWithMe />} />
                 <Route path="/my-authorization" element={<MyAuthorization />} />
                 <Route path="/my-documents" element={<MyDocuments />} />
+                <Route path="/my-favorites" element={<MyFavorites />} />
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/users" element={<Users />} />
