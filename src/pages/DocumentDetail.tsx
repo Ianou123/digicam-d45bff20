@@ -294,17 +294,9 @@ export default function DocumentDetailPage() {
   const executeDownload = async () => {
     if (!document) return;
 
-    if (user && profile?.client_id) {
-      await supabase.from('activity_logs').insert({
-        user_id: user.id,
-        client_id: profile.client_id,
-        action_type: 'download' as const,
-        document_id: document.id,
-      });
-    }
-
+    // Activity log is now written server-side by the get-signed-url Edge Function
     const filename = `${document.title}.${document.document_type}`;
-    const success = await downloadDocument(document.file_url, filename);
+    const success = await downloadDocument(document.file_url, filename, document.id);
     
     if (!success) {
       toast.error(language === 'fr' ? 'Erreur de téléchargement' : 'Download error');
@@ -313,155 +305,62 @@ export default function DocumentDetailPage() {
     setShowConfidentialModal(false);
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  /**
+   * Single handler for all document workflow actions.
+   * All permission checks, DB writes, and activity log inserts
+   * are performed atomically server-side by the validate-document Edge Function.
+   */
+  const callValidateDocument = async (
+    action: 'validate' | 'reject' | 'resubmit' | 'propose_modification' | 'archive',
+    opts?: { reason?: string; comment?: string }
+  ) => {
     if (!document || !canManageDocuments) return;
 
     try {
-      const { error } = await supabase
-        .from('documents')
-        .update({ status: newStatus })
-        .eq('id', document.id);
+      const { data, error } = await supabase.functions.invoke('validate-document', {
+        body: {
+          documentId: document.id,
+          action,
+          reason: opts?.reason ?? null,
+          comment: opts?.comment ?? null,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
+      const newStatus = data?.newStatus as string;
       setDocument({ ...document, status: newStatus });
-      toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de la mise à jour' : 'Error updating');
-    }
-  };
 
-  const handleValidateDocument = async () => {
-    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({ status: 'ready', updated_at: new Date().toISOString() })
-        .eq('id', document.id);
-
-      if (error) throw error;
-
-      // Log the validation action
-      await supabase.from('activity_logs').insert({
-        user_id: user.id,
-        client_id: profile.client_id,
-        action_type: 'update' as const,
-        document_id: document.id,
-        details: { action: 'validate', previous_status: 'pending_validation', new_status: 'ready' }
-      });
-
-      setDocument({ ...document, status: 'ready' });
-      toast.success(language === 'fr' ? 'Document validé avec succès' : 'Document validated successfully');
-    } catch (error) {
-      console.error('Error validating document:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de la validation' : 'Validation error');
-    }
-  };
-
-  const handleRejectDocument = async () => {
-    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', document.id);
-
-      if (error) throw error;
-
-      // Log the rejection action with reason
-      await supabase.from('activity_logs').insert({
-        user_id: user.id,
-        client_id: profile.client_id,
-        action_type: 'update' as const,
-        document_id: document.id,
-        metadata: { 
-          action: 'reject', 
-          previous_status: 'pending_validation', 
-          new_status: 'rejected',
-          rejection_reason: rejectReason.trim() || null
-        }
-      });
-
-      setDocument({ ...document, status: 'rejected' });
+      // Close any open modals
       setShowRejectModal(false);
-      setRejectReason('');
-      toast.success(language === 'fr' ? 'Document rejeté' : 'Document rejected');
-    } catch (error) {
-      console.error('Error rejecting document:', error);
-      toast.error(language === 'fr' ? 'Erreur lors du rejet' : 'Rejection error');
-    }
-  };
-
-  const handleResubmitDocument = async () => {
-    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({ status: 'pending_validation', updated_at: new Date().toISOString() })
-        .eq('id', document.id);
-
-      if (error) throw error;
-
-      // Log the resubmission action
-      await supabase.from('activity_logs').insert({
-        user_id: user.id,
-        client_id: profile.client_id,
-        action_type: 'update' as const,
-        document_id: document.id,
-        metadata: { 
-          action: 'resubmit', 
-          previous_status: 'rejected', 
-          new_status: 'pending_validation'
-        }
-      });
-
-      setDocument({ ...document, status: 'pending_validation' });
-      toast.success(language === 'fr' ? 'Document re-soumis pour validation' : 'Document resubmitted for validation');
-    } catch (error) {
-      console.error('Error resubmitting document:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de la re-soumission' : 'Resubmission error');
-    }
-  };
-
-  const handleProposeModification = async () => {
-    if (!document || !canManageDocuments || !user || !profile?.client_id) return;
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({ status: 'pending_validation', updated_at: new Date().toISOString() })
-        .eq('id', document.id);
-
-      if (error) throw error;
-
-      // Log the propose modification action with comment
-      await supabase.from('activity_logs').insert({
-        user_id: user.id,
-        client_id: profile.client_id,
-        action_type: 'update' as const,
-        document_id: document.id,
-        metadata: { 
-          action: 'propose_modification', 
-          previous_status: document.status, 
-          new_status: 'pending_validation',
-          comment: proposeComment.trim() || null
-        }
-      });
-
-      setDocument({ ...document, status: 'pending_validation' });
       setShowProposeModal(false);
+      setRejectReason('');
       setProposeComment('');
-      // Refresh audit events to show the new log
-      fetchAuditEvents();
-      toast.success(language === 'fr' ? 'Document soumis pour validation' : 'Document submitted for validation');
+
+      if (action === 'propose_modification') fetchAuditEvents();
+
+      const successMessages: Record<string, { fr: string; en: string }> = {
+        validate:             { fr: 'Document validé avec succès',          en: 'Document validated successfully' },
+        reject:               { fr: 'Document rejeté',                       en: 'Document rejected' },
+        resubmit:             { fr: 'Document re-soumis pour validation',    en: 'Document resubmitted for validation' },
+        propose_modification: { fr: 'Document soumis pour validation',       en: 'Document submitted for validation' },
+        archive:              { fr: 'Document archivé',                      en: 'Document archived' },
+      };
+      toast.success(successMessages[action][language]);
     } catch (error) {
-      console.error('Error proposing modification:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de la soumission' : 'Submission error');
+      console.error(`Error performing action "${action}":`, error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'action' : 'Action failed');
     }
+  };
+
+  // Convenience aliases kept for readability at call sites
+  const handleValidateDocument    = () => callValidateDocument('validate');
+  const handleRejectDocument      = () => callValidateDocument('reject',               { reason: rejectReason.trim() || undefined });
+  const handleResubmitDocument    = () => callValidateDocument('resubmit');
+  const handleProposeModification = () => callValidateDocument('propose_modification', { comment: proposeComment.trim() || undefined });
+  const handleStatusChange        = (newStatus: string) => {
+    if (newStatus === 'archived') callValidateDocument('archive');
   };
 
   const copyOcrText = () => {

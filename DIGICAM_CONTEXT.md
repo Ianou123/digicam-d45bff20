@@ -135,6 +135,56 @@
     - 60–79: Needs improvement – import missing docs for failed searches, increase usage in low-activity departments.
     - < 60: Action required – fix failed searches and support users so they log in and consult more.
 
+### Security Architecture
+
+> Validated 2026-03-22 following feedback from Cédric Pidjou (Dunia, RCA).
+
+#### Short-Term — Implemented
+
+The following hardening measures were implemented to reduce the trust placed in the frontend and the exposure of the Supabase PostgREST surface:
+
+**1. Edge Functions as API proxy for sensitive actions**
+- **`get-signed-url`**: replaces direct `supabase.storage.createSignedUrl()` from the frontend.
+  - Verifies JWT, resolves caller's `client_id`, validates document ownership server-side.
+  - Generates the signed URL using the service role key (anon key never touches storage directly).
+  - Atomically writes a `download` entry to `activity_logs`.
+  - Rate limit: 30 requests/min per user (in-memory).
+- **`validate-document`**: replaces direct PostgREST `UPDATE documents SET status = ...` from the frontend for all workflow actions: `validate`, `reject`, `resubmit`, `propose_modification`, `archive`.
+  - Verifies JWT, checks caller has `client_admin` or `super_admin` role via RPC.
+  - Executes DB update + `activity_logs` insert atomically using the service role.
+  - Rate limit: 20 requests/min per user.
+- All Edge Functions use the dual-client pattern: `supabaseUser` (caller JWT) for permission checks, `supabaseAdmin` (service role) for writes.
+
+**2. Field-level encryption for `ocr_text`**
+- `pgcrypto` extension enabled.
+- `documents.ocr_text_encrypted BYTEA` column added alongside the existing `ocr_text` plaintext column.
+- A `BEFORE INSERT OR UPDATE` trigger encrypts `ocr_text` → `ocr_text_encrypted` using `pgp_sym_encrypt` with key `app.ocr_key` (a per-deployment Postgres setting).
+- The `ocr_text` plaintext column is **kept for backward compatibility** with Lovable-generated queries. A future migration can null-out plaintext once all deployments support key management.
+
+**3. Rate limiting**
+- Implemented inside Edge Functions via in-memory per-user request counters (per Deno isolate). Sufficient for current scale; can be promoted to a Redis/DB-backed counter in the medium term.
+
+#### Medium-Term — Roadmap (Not Yet Implemented)
+
+The following measures are planned for government/on-prem deployments and should not break Lovable-based frontend development:
+
+**4. API Gateway for on-prem/local DC**
+- For clients deploying on their own infrastructure, a Kong or Nginx gateway is placed in front of Supabase.
+- The frontend only changes an env var (base URL); all Lovable-generated code continues to work.
+- The gateway enforces: mTLS between services, deep rate limiting, IP allowlisting for government networks.
+
+**5. mTLS for inter-service communication**
+- For on-prem deployments: mutual TLS between the API Gateway, Supabase PostgREST, Storage, and any OCR worker.
+- Certificates managed per-deployment; no impact on frontend code.
+
+**6. End-to-end encryption for `confidential` documents**
+- For the highest-sensitivity documents: client-side encryption before upload; the decryption key is held only by the owning organisation.
+- Even DigiCam's service role cannot read the file content.
+- Reserved for `confidentiality_level = 'confidential'`; requires a key management UX to be designed.
+- Implementation note: keep E2E encryption behind a feature flag (`client.e2e_encryption_enabled`) so it is opt-in per organisation and does not affect standard deployments.
+
+---
+
 ### Notifications
 - Realtime and historical notifications exist via a `notifications` table and:
   - **Bell popover** (`NotificationCenter`): shows latest notifications and unread counter.
@@ -153,6 +203,58 @@
     - Client admins / super admins (org overview).
     - Staff users (personal dashboard).
   - **AdminPulse**: “Rapport Santé” and usage intelligence for admins.
+
+### Multi-Organisation Hierarchy (Roadmap)
+
+#### Context & Problem
+In African public administrations a Ministry often has multiple sub-directions (e.g. Ministère des Finances → DGI + DGT + DGDDI). DigiCam needs to allow an organisation to start as a standalone tenant and later be attached as a sub-organisation of a parent, without migrating data and without breaking existing isolation between silos.
+
+#### Planned Schema Change
+Add `parent_client_id` to the `clients` table:
+```sql
+ALTER TABLE public.clients
+  ADD COLUMN parent_client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL;
+```
+- `parent_client_id = null` → root / standalone organisation (Ministère or SMB).
+- `parent_client_id = <uuid>` → sub-organisation (Direction).
+- Departments remain scoped to their own `client_id` — each direction keeps its own departments.
+- Progressive deployment: a Direction starts as a root client; when the Ministry onboards, a parent client is created and the Direction is re-attached by setting its `parent_client_id`. No document migration required.
+
+#### Visibility Model (using existing `confidentiality_level`)
+
+| Level | Who sees the document |
+|---|---|
+| `internal` | Only the org that owns it (same `client_id`) |
+| `public` | The owning org **and** its parent org (one level up) |
+| `confidential` | Restricted subset within the owning org (no change) |
+
+This reuses the existing confidentiality axis — no new field needed, no department-level complexity added.
+
+**Open question (to resolve before implementation):** When a document is `public` and the parent org gains visibility, which of the parent's users/departments can see it? Options:
+- All Super Admin + IT Admins of the parent → simplest, most auditable.
+- Only a dedicated "Consolidation" department on the parent side → more granular but more complex.
+- Controlled by a per-document cross-org ACL entry → most flexible, most complex.
+_Decision pending. Lean toward option 1 (parent admins only) for the first iteration._
+
+#### Cross-Direction Sharing (inter-org)
+- A direction can **explicitly share** a specific document with a sibling direction (same parent).
+- Tracked in `activity_logs` with a dedicated `action_type` (e.g. `cross_org_share`).
+- The target direction's admins receive a notification.
+- Visibility is intentional — no automatic lateral access between sibling orgs.
+
+#### Group Admin Role (Ministère level)
+- A **Group Super Admin** scoped to the parent client can:
+  - View consolidated AdminPulse / health stats across all child orgs.
+  - Manage users and departments across child orgs.
+  - **Cannot** access document content directly (same principle as Ultra Admin confidentiality constraint).
+- Requires a new permission scope: `is_group_admin(_user_id, _parent_client_id)`.
+
+#### RLS Impact (future migration)
+- `documents` SELECT policy must be extended: `client_id = get_user_client_id(uid) OR (confidentiality_level = 'public' AND client_id IN (SELECT id FROM clients WHERE parent_client_id = get_user_client_id(uid)))`.
+- All other policies (INSERT, UPDATE, DELETE, storage) remain scoped to the owning `client_id` only.
+- The existing `is_ultra_admin` confidentiality block is unaffected and takes precedence.
+
+---
 
 ### Maintenance Guidelines for This File
 - **When to update**:
