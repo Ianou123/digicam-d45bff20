@@ -565,6 +565,35 @@ export type Database = {
           },
         ]
       }
+      pinned_documents: {
+        Row: {
+          document_id: string
+          id: string
+          pinned_at: string
+          user_id: string
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          pinned_at?: string
+          user_id: string
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          pinned_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
