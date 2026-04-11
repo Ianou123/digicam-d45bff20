@@ -15,6 +15,7 @@ import {
   KeyRound,
   HelpCircle,
   Lightbulb,
+  Pin,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -123,6 +124,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           <NavItem href="/analytics" icon={BarChart3} label={language === 'fr' ? 'Statistiques' : 'Statistics'} />
           <SectionLabel label={language === 'fr' ? 'Mon Compte' : 'My Account'} />
           <NavItem href="/my-authorization" icon={KeyRound} label={language === 'fr' ? 'Mon Habilitation' : 'My Authorization'} />
+          <NavItem href="/offline" icon={Pin} label={language === 'fr' ? 'Hors-ligne' : 'Offline'} />
           <NavItem href="/settings" icon={Settings} label={language === 'fr' ? 'Paramètres' : 'Settings'} />
           <NavItem href="/guide" icon={HelpCircle} label={language === 'fr' ? 'Guide' : 'Guide'} />
         </nav>
@@ -179,6 +181,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const accountNavItems = [
     { href: '/my-authorization', icon: KeyRound, label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization', show: true },
+    { href: '/offline', icon: Pin, label: language === 'fr' ? 'Hors-ligne' : 'Offline', show: true },
     { href: '/guide', icon: HelpCircle, label: language === 'fr' ? 'Aide' : 'Help', show: true },
   ];
 
