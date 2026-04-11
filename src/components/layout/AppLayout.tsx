@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { OfflineBanner } from './OfflineBanner';
 import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
@@ -36,7 +37,7 @@ export function AppLayout() {
 
   // IT Admin in Administrative module = restricted to specific routes only
   const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
-  const allowedRoutesForRestrictedITAdmin = ['/dashboard', '/upload', '/my-documents', '/my-authorization', '/guide'];
+  const allowedRoutesForRestrictedITAdmin = ['/dashboard', '/upload', '/my-documents', '/my-authorization', '/guide', '/offline'];
   const isRouteAllowed = !isRestrictedITAdmin || allowedRoutesForRestrictedITAdmin.some(
     route => location.pathname === route || location.pathname.startsWith(route + '/')
   );
@@ -101,6 +102,7 @@ export function AppLayout() {
 
       {/* Main content - offset by sidebar width on xl+ */}
       <div className="xl:pl-64">
+        <OfflineBanner />
         {/* Show suspended banner if client is suspended and user is not super admin */}
         {isClientSuspended && !isSuperAdmin && <SuspendedBanner />}
         

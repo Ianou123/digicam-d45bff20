@@ -29,6 +29,7 @@ import NotificationsPage from "./pages/Notifications";
 
 import ModuleSetup from "./pages/ModuleSetup";
 import Guide from "./pages/Guide";
+import Offline from "./pages/Offline";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/admin-pulse" element={<AdminPulse />} />
                 <Route path="/guide" element={<Guide />} />
+                <Route path="/offline" element={<Offline />} />
               </Route>
               
               {/* Catch-all */}
