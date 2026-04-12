@@ -114,8 +114,6 @@ export type Database = {
           created_at: string
           id: string
           invite_code: string | null
-          invite_code_expires_at: string | null
-          invite_code_used_at: string | null
           last_activity_at: string | null
           logo_url: string | null
           module: Database["public"]["Enums"]["client_module"]
@@ -129,8 +127,6 @@ export type Database = {
           created_at?: string
           id?: string
           invite_code?: string | null
-          invite_code_expires_at?: string | null
-          invite_code_used_at?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
@@ -144,8 +140,6 @@ export type Database = {
           created_at?: string
           id?: string
           invite_code?: string | null
-          invite_code_expires_at?: string | null
-          invite_code_used_at?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
@@ -931,7 +925,6 @@ export type Database = {
       escape_ilike_pattern: { Args: { pattern: string }; Returns: string }
       get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
-      validate_invite_for_signup: { Args: { _code: string }; Returns: string }
       get_user_module: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["client_module"]
@@ -966,8 +959,6 @@ export type Database = {
         | "upload"
         | "update"
         | "delete"
-        | "pin_offline"
-        | "unpin_offline"
       app_role: "super_admin" | "client_admin" | "staff" | "ultra_admin"
       client_module: "core" | "admin_publique"
       confidentiality_level: "public" | "internal" | "confidential"
@@ -1108,16 +1099,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      action_type: [
-        "search",
-        "view",
-        "download",
-        "upload",
-        "update",
-        "delete",
-        "pin_offline",
-        "unpin_offline",
-      ],
+      action_type: ["search", "view", "download", "upload", "update", "delete"],
       app_role: ["super_admin", "client_admin", "staff", "ultra_admin"],
       client_module: ["core", "admin_publique"],
       confidentiality_level: ["public", "internal", "confidential"],
