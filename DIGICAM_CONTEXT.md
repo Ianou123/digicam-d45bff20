@@ -175,25 +175,33 @@ The following hardening measures were implemented to reduce the trust placed in 
 - `pgcrypto` extension enabled.
 - `documents.ocr_text_encrypted BYTEA` column added alongside the existing `ocr_text` plaintext column.
 - A `BEFORE INSERT OR UPDATE` trigger encrypts `ocr_text` → `ocr_text_encrypted` using `pgp_sym_encrypt` with key `app.ocr_key` (a per-deployment Postgres setting).
-- The `ocr_text` plaintext column is **kept for backward compatibility** with Lovable-generated queries. A future migration can null-out plaintext once all deployments support key management.
+- The `ocr_text` plaintext column is **kept for backward compatibility** with Lovable-generated queries. A migration nulls plaintext rows where `ocr_text_encrypted` is already populated (deployments with `app.ocr_key` set continue to decrypt via the encrypted column path as implemented).
 
 **3. Rate limiting**
 - Implemented inside Edge Functions via in-memory per-user request counters (per Deno isolate). Sufficient for current scale; can be promoted to a Redis/DB-backed counter in the medium term.
+
+**4. Additional hardening (2026-04 security audit)**
+- **`delete-user` Edge Function**: `verify_jwt = true` in `supabase/config.toml` so the gateway verifies JWTs; the function still enforces super-admin business rules.
+- **`get-signed-url`**: `expiresIn` from the client body is **capped at 3600 seconds** server-side; signed-URL TTL is never extended beyond one hour regardless of client input. Soft-deleted documents are rejected using `deleted_at`.
+- **`documents` SELECT RLS**: Within an organisation, **`super_admin`** and **`client_admin`** may read all confidentiality levels; **`staff`** (and any non-admin org user) may read only `public` and **`internal`** rows — **`confidential`** is not visible via direct PostgREST `SELECT`, closing the gap where the UI alone hid those documents.
+- **Invite codes (`clients`)**: `invite_code_expires_at` (defaults to **7 days** after code generation / regeneration) and `invite_code_used_at` (**single-use** per code). `validate_invite_for_signup` (callable before `auth.signUp`) and the hardened `handle_new_user` trigger reject expired or consumed codes.
+- **Edge CORS**: `Access-Control-Allow-Origin` uses the **`DIGICAM_ALLOWED_ORIGIN`** environment variable when set, otherwise `*` for local development.
+- **Offline pin**: `pinDocumentOffline` **throws** if `confidentiality_level = 'confidential'` as a last-resort guard. `pin_offline` / `unpin_offline` activity rows store only identifiers and action type (no OCR or file payload).
 
 #### Medium-Term — Roadmap (Not Yet Implemented)
 
 The following measures are planned for government/on-prem deployments and should not break Lovable-based frontend development:
 
-**4. API Gateway for on-prem/local DC**
+**5. API Gateway for on-prem/local DC**
 - For clients deploying on their own infrastructure, a Kong or Nginx gateway is placed in front of Supabase.
 - The frontend only changes an env var (base URL); all Lovable-generated code continues to work.
 - The gateway enforces: mTLS between services, deep rate limiting, IP allowlisting for government networks.
 
-**5. mTLS for inter-service communication**
+**6. mTLS for inter-service communication**
 - For on-prem deployments: mutual TLS between the API Gateway, Supabase PostgREST, Storage, and any OCR worker.
 - Certificates managed per-deployment; no impact on frontend code.
 
-**6. End-to-end encryption for `confidential` documents**
+**7. End-to-end encryption for `confidential` documents**
 - For the highest-sensitivity documents: client-side encryption before upload; the decryption key is held only by the owning organisation.
 - Even DigiCam's service role cannot read the file content.
 - Reserved for `confidentiality_level = 'confidential'`; requires a key management UX to be designed.

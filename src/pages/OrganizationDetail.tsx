@@ -211,7 +211,11 @@ export default function OrganizationDetail() {
     try {
       const { error } = await supabase
         .from('clients')
-        .update({ invite_code: newCode })
+        .update({
+          invite_code: newCode,
+          invite_code_used_at: null,
+          invite_code_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
         .eq('id', id);
 
       if (error) throw error;

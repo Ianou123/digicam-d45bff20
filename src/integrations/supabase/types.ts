@@ -114,6 +114,8 @@ export type Database = {
           created_at: string
           id: string
           invite_code: string | null
+          invite_code_expires_at: string | null
+          invite_code_used_at: string | null
           last_activity_at: string | null
           logo_url: string | null
           module: Database["public"]["Enums"]["client_module"]
@@ -127,6 +129,8 @@ export type Database = {
           created_at?: string
           id?: string
           invite_code?: string | null
+          invite_code_expires_at?: string | null
+          invite_code_used_at?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
@@ -140,6 +144,8 @@ export type Database = {
           created_at?: string
           id?: string
           invite_code?: string | null
+          invite_code_expires_at?: string | null
+          invite_code_used_at?: string | null
           last_activity_at?: string | null
           logo_url?: string | null
           module?: Database["public"]["Enums"]["client_module"]
@@ -925,6 +931,7 @@ export type Database = {
       escape_ilike_pattern: { Args: { pattern: string }; Returns: string }
       get_client_by_invite_code: { Args: { _code: string }; Returns: string }
       get_user_client_id: { Args: { _user_id: string }; Returns: string }
+      validate_invite_for_signup: { Args: { _code: string }; Returns: string }
       get_user_module: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["client_module"]

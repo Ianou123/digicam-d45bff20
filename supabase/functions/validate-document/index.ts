@@ -1,10 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function getCorsHeaders(): Record<string, string> {
+  const origin = Deno.env.get("DIGICAM_ALLOWED_ORIGIN")?.trim() || "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 // In-memory rate limiter
 const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
@@ -34,6 +37,7 @@ const ACTION_STATUS_MAP: Record<Action, string> = {
 };
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders();
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

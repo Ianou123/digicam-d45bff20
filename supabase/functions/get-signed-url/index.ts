@@ -1,10 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const MAX_SIGNED_URL_TTL_SEC = 3600;
+
+function getCorsHeaders(): Record<string, string> {
+  const origin = Deno.env.get("DIGICAM_ALLOWED_ORIGIN")?.trim() || "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 // In-memory rate limiter: { userId -> { count, windowStart } }
 const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
@@ -27,6 +32,7 @@ function checkRateLimit(userId: string): boolean {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders();
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,7 +80,14 @@ serve(async (req) => {
       );
     }
 
-    const { documentId, filePath, expiresIn = 3600 } = await req.json();
+    const body = await req.json();
+    const { documentId, filePath } = body;
+    const rawExpires = body.expiresIn;
+    const parsed = typeof rawExpires === "number" ? rawExpires : parseInt(String(rawExpires ?? "3600"), 10);
+    const expiresIn = Math.min(
+      MAX_SIGNED_URL_TTL_SEC,
+      Math.max(1, Number.isFinite(parsed) ? parsed : 3600),
+    );
 
     if (!documentId || !filePath) {
       return new Response(
@@ -100,7 +113,7 @@ serve(async (req) => {
     // Verify the document belongs to the caller's organisation (server-side ownership check)
     const { data: doc } = await supabaseAdmin
       .from("documents")
-      .select("id, client_id, title, document_type, is_deleted")
+      .select("id, client_id, title, document_type, deleted_at")
       .eq("id", documentId)
       .maybeSingle();
 
@@ -118,7 +131,7 @@ serve(async (req) => {
       );
     }
 
-    if (doc.is_deleted) {
+    if (doc.deleted_at) {
       return new Response(
         JSON.stringify({ error: "Document has been deleted" }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -41,6 +41,9 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 export async function pinDocumentOffline(meta: PinnedDocMeta, blob: Blob): Promise<void> {
+  if (meta.confidentiality_level === 'confidential') {
+    throw new Error('Cannot pin confidential documents');
+  }
   const db = await openDB();
   const tx = db.transaction([DOCS_STORE, BLOBS_STORE], 'readwrite');
   tx.objectStore(DOCS_STORE).put(meta);
