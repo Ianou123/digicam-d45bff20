@@ -96,6 +96,9 @@ export default function Documents() {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [favoriteDocs, setFavoriteDocs] = useState<any[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; title: string; document_type: string }[]>([]);
+  const [watchLoading, setWatchLoading] = useState(false);
+  const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
 
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
