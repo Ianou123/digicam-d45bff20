@@ -18,6 +18,8 @@ export interface PinnedDocMeta {
   confidentiality_level: string;
   pinned_at: string;
   current_version: number;
+  /** Document version at the time the blob was pinned (staleness vs server `current_version`). */
+  pinned_version?: number;
   department_name?: string;
 }
 
@@ -87,6 +89,16 @@ export async function isPinnedOffline(id: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const req = tx.objectStore(DOCS_STORE).get(id);
     req.onsuccess = () => resolve(!!req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getPinnedMeta(id: string): Promise<PinnedDocMeta | undefined> {
+  const db = await openDB();
+  const tx = db.transaction(DOCS_STORE, 'readonly');
+  return new Promise((resolve, reject) => {
+    const req = tx.objectStore(DOCS_STORE).get(id);
+    req.onsuccess = () => resolve(req.result as PinnedDocMeta | undefined);
     req.onerror = () => reject(req.error);
   });
 }

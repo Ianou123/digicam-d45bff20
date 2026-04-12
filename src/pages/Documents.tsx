@@ -51,6 +51,7 @@ interface Document {
   tags: string[];
   current_version: number;
   file_url: string;
+  file_size: number | null;
   deleted_at: string | null;
   ocr_text: string | null;
   departments: { name: string } | null;
@@ -296,6 +297,7 @@ export default function Documents() {
           tags,
           current_version,
           file_url,
+          file_size,
           deleted_at,
           ocr_text,
           status,
@@ -865,7 +867,13 @@ export default function Documents() {
                 isPinning={pinningIds.has(doc.id)}
                 onTogglePin={
                   !showTrash && !isClientAdmin && doc.confidentiality_level !== 'confidential'
-                    ? (d: any) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments })
+                    ? (d: any) =>
+                        togglePin({
+                          ...d,
+                          file_url: doc.file_url,
+                          file_size: doc.file_size,
+                          department: doc.departments,
+                        })
                     : undefined
                 }
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}

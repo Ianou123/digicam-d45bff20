@@ -94,7 +94,14 @@
 - **IT Admin (`client_admin`)**: **Cannot pin** documents for offline (all modules); `usePinnedDocuments` refuses `pinDocument` in addition to UI hiding on Documents, document detail, and My uploads. **Unpin** remains available so legacy or role-changed users can clear local copies.
 - **Confidentiality (`confidential`)**: **No pin control** in the UI (Documents, Document detail, My uploads). **`/offline`**: if a legacy confidential pin exists in IndexedDB, the entry may still appear, but **no unpin control** is shown (user cannot remove it through the app; clearing site data is the escape hatch).
 - **Audit**: Successful pin and unpin write **`activity_logs`** with **`pin_offline`** and **`unpin_offline`** respectively (same insert shape as other client-logged actions: `user_id`, `client_id`, `document_id`). The DB enum **`action_type`** includes these values (migration on deploy).
-- **Scope (v1)**: No automatic pinning, no cross-device blob hydration from `pinned_documents` alone, and no desktop folder sync; future iterations can add staleness/version checks and org policies as needed.
+- **Scope (v1 baseline)**: Device-local IndexedDB + optional `pinned_documents` row; no desktop folder sync. **v2** (below) adds hydration, staleness UI, size confirmation, and suggestions.
+
+#### Offline Pin — v2 enhancements
+
+- **Multi-device hydration**: When the user is logged in and the browser is **online**, `usePinnedDocuments` loads their **`pinned_documents`** rows and, for each `document_id` missing **complete** local metadata + blob in IndexedDB, silently re-fetches the file via **`get-signed-url`** + `fetch` and writes IndexedDB. **No toast** and **no extra `pin_offline`** log (the pin is already recorded server-side).
+- **Staleness**: IndexedDB metadata stores **`pinned_version`** (version at pin time). On **`/offline`** while online, the UI loads server **`current_version`** per pinned id; if server `current_version` is greater than local pinned baseline, an **amber** badge and **“Rafraîchir”** trigger a blob re-download and metadata update (no new `pin_offline`).
+- **Large-file confirm**: Before `GET`, size is taken from **`documents.file_size`** when present, else **`HEAD`** on the signed URL. Above **500KB**, a confirmation dialog (**`PinSizeConfirmProvider`**) asks before download; under 500KB pins immediately.
+- **Auto-suggest**: On **`/offline`**, when **online**, **not `client_admin`**, and the user has **at most two** pins, a dismissible card proposes top **view** counts from **`activity_logs`** (last 7 days), excluding already pinned and confidential docs. Dismiss stores **`offline_suggest_dismissed_at`** in **localStorage** and hides suggestions for **24 hours**.
 
 #### Search & Analytics
 - **Documents search** (`/documents`):
