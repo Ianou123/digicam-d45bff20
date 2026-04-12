@@ -830,63 +830,125 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start">
-        <div className="flex-1">
-          <DocumentFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            departments={departments}
-            searchHistory={searchHistory}
-            onSearchHistoryClick={handleSearchHistoryClick}
-          />
-        </div>
-        {/* Watch Search Button - appears when filters are active */}
-        <WatchSearchButton currentFilters={filters} />
+      {/* Department Folder Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+            !filters.department
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card text-muted-foreground border-border hover:bg-muted'
+          )}
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          {language === 'fr' ? 'Tous les documents' : 'All documents'}
+          {deptDocCounts.all != null && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+            filters.department === 'general'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card text-muted-foreground border-border hover:bg-muted'
+          )}
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          {language === 'fr' ? 'Général' : 'General'}
+          {deptDocCounts.general != null && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
+          )}
+        </button>
+        {departments.filter(d => !d.archived_at).map(dept => (
+          <button
+            key={dept.id}
+            onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+              filters.department === dept.id
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card text-muted-foreground border-border hover:bg-muted'
+            )}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            {dept.name}
+            {deptDocCounts[dept.id] != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Watched Searches */}
-      <WatchedSearchesList />
+      {/* Recently Viewed Strip */}
+      {!filters.search && recentlyViewed.length > 0 && !showTrash && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            {language === 'fr' ? 'Récemment consultés' : 'Recently viewed'}
+          </p>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {recentlyViewed.map(doc => (
+              <button
+                key={doc.id}
+                onClick={() => navigate(`/documents/${doc.id}`)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card hover:bg-muted text-sm whitespace-nowrap transition-colors"
+              >
+                <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="truncate max-w-[160px]">{doc.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Top Favorites Section */}
+      {/* Filters */}
+      <DocumentFilters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        departments={departments}
+        searchHistory={searchHistory}
+        onSearchHistoryClick={handleSearchHistoryClick}
+        onWatchSearch={handleWatchSearch}
+        isWatchLoading={watchLoading}
+      />
+
+      {/* Top Favorites Section — compact row format */}
       {!showTrash && favoriteDocs.length > 0 && !filters.search && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-serif font-semibold flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500 fill-yellow-400" />
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
               {language === 'fr' ? 'Mes Favoris Récents' : 'Recent Favorites'}
-            </h2>
+            </p>
             <Button
-              variant="ghost"
+              variant="link"
               size="sm"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
               onClick={() => navigate('/my-favorites')}
             >
               {language === 'fr' ? 'Gérer les favoris' : 'Manage favorites'}
             </Button>
           </div>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {favoriteDocs.map((doc) => (
+          <div className="space-y-1">
+            {favoriteDocs.slice(0, 3).map((doc) => (
               <div
                 key={doc.id}
-                className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] group rounded-lg border bg-card text-card-foreground shadow-sm flex items-center p-4 gap-3"
+                className="cursor-pointer group flex items-center gap-3 px-3 py-2 rounded-lg border bg-card hover:bg-muted transition-colors"
                 onClick={() => navigate(`/documents/${doc.id}`)}
               >
-                <div className="p-2 rounded-lg bg-yellow-500/10 flex-shrink-0">
-                  <FileText className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{doc.title}</p>
-                  <p className="text-xs text-muted-foreground uppercase">{doc.document_type}</p>
-                </div>
+                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm font-medium truncate flex-1">{doc.title}</span>
+                <span className="text-xs text-muted-foreground uppercase">{doc.document_type}</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(doc.id); }}
-                  title={language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites'}
                 >
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                 </Button>
               </div>
             ))}
