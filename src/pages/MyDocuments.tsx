@@ -1,41 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, FileText, Star, ArrowRight } from 'lucide-react';
+import { Search, FileText, Star, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/formatters';
+import { DocumentCard } from '@/components/documents/DocumentCard';
+import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
 import { useFavorites } from '@/hooks/useFavorites';
-import { cn } from '@/lib/utils';
+import { usePinnedDocuments } from '@/hooks/usePinnedDocuments';
+import { downloadDocument } from '@/lib/storage';
+import { toast } from 'sonner';
 
 interface UploadRow {
   id: string;
   title: string;
   document_type: string;
   created_at: string;
+  updated_at: string;
   status: string | null;
   file_size: number | null;
   department_name: string;
   department_id: string | null;
+  confidentiality_level: string;
+  file_url: string;
+  tags: string[];
+  ocr_text: string | null;
+  current_version: number;
+  departments: { name: string } | null;
 }
-
-const formatBytes = (bytes: number | null, language: 'fr' | 'en') => {
-  if (!bytes) return language === 'fr' ? '—' : '—';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
-};
 
 const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
   if (status && ['error', 'failed', 'ocr_error'].includes(status)) {
@@ -59,10 +56,11 @@ const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
 };
 
 export default function MyDocuments() {
-  const { user, profile, isUltraAdmin } = useAuth();
-  const { language } = useLanguage();
+  const { user, profile, isUltraAdmin, isSuperAdmin, isClientAdmin, isClientSuspended, canManageDocuments } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
-  const { favoriteIds, toggleFavorite } = useFavorites();
+  const { favoriteIds, toggleFavorite, isFavorite } = useFavorites();
+  const { pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
 
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
@@ -73,6 +71,8 @@ export default function MyDocuments() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
+  const [pendingDownloadDoc, setPendingDownloadDoc] = useState<UploadRow | null>(null);
 
   useEffect(() => {
     const fetchUploads = async () => {
@@ -91,7 +91,9 @@ export default function MyDocuments() {
       const [{ data: docs }, { data: deps }] = await Promise.all([
         supabase
           .from('documents')
-          .select('id, title, document_type, created_at, status, file_size, department_id, departments!documents_department_id_fkey(name)')
+          .select(
+            'id, title, document_type, created_at, updated_at, status, file_size, file_url, confidentiality_level, tags, ocr_text, current_version, department_id, departments!documents_department_id_fkey(name)',
+          )
           .eq('uploaded_by', user.id)
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
@@ -110,10 +112,17 @@ export default function MyDocuments() {
           title: doc.title,
           document_type: doc.document_type,
           created_at: doc.created_at,
+          updated_at: doc.updated_at,
           status: doc.status,
           file_size: doc.file_size,
           department_name: doc.departments?.name || (language === 'fr' ? 'Général' : 'General'),
           department_id: doc.department_id,
+          confidentiality_level: doc.confidentiality_level,
+          file_url: doc.file_url,
+          tags: doc.tags || [],
+          ocr_text: doc.ocr_text,
+          current_version: doc.current_version,
+          departments: doc.departments?.name ? { name: doc.departments.name } : null,
         })),
       );
       setDepartments(deps || []);
@@ -172,6 +181,58 @@ export default function MyDocuments() {
       return matchesFilename && matchesDepartment && matchesStatus && matchesDate;
     });
   }, [rows, filenameQuery, departmentFilter, statusFilter, dateFilter, language]);
+
+  const handleView = async (id: string) => {
+    if (user && profile?.client_id) {
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'view' as const,
+        document_id: id,
+      });
+    }
+    navigate(`/documents/${id}`);
+  };
+
+  const handleDownload = async (id: string) => {
+    const doc = rows.find((d) => d.id === id);
+    if (!doc) return;
+
+    if (doc.confidentiality_level === 'confidential') {
+      setPendingDownloadDoc(doc);
+      setConfidentialModalOpen(true);
+      return;
+    }
+
+    await executeDownload(doc);
+  };
+
+  const executeDownload = async (doc: UploadRow) => {
+    if (user && profile?.client_id) {
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        client_id: profile.client_id,
+        action_type: 'download' as const,
+        document_id: doc.id,
+      });
+    }
+
+    const filename = `${doc.title}.${doc.document_type}`;
+    const success = await downloadDocument(doc.file_url, filename, doc.id);
+
+    if (!success) {
+      toast.error(t('common.error'));
+    }
+
+    setPendingDownloadDoc(null);
+    setConfidentialModalOpen(false);
+  };
+
+  const handleConfidentialDownloadConfirm = () => {
+    if (pendingDownloadDoc) {
+      executeDownload(pendingDownloadDoc);
+    }
+  };
 
   if (loading) {
     return (
@@ -262,43 +323,59 @@ export default function MyDocuments() {
               {language === 'fr' ? 'Aucun téléversement trouvé' : 'No uploads found'}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{language === 'fr' ? 'Nom du document' : 'Document name'}</TableHead>
-                  <TableHead>{language === 'fr' ? 'Type' : 'Type'}</TableHead>
-                  <TableHead>{language === 'fr' ? 'Département' : 'Department'}</TableHead>
-                  <TableHead>{language === 'fr' ? 'Date d’import' : 'Upload date'}</TableHead>
-                  <TableHead>{language === 'fr' ? 'Statut OCR' : 'OCR status'}</TableHead>
-                  <TableHead>{language === 'fr' ? 'Taille' : 'Size'}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.map((row) => {
-                  const ocr = getOcrMeta(row.status, language);
-                  return (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.title}</TableCell>
-                      <TableCell className="uppercase text-muted-foreground">{row.document_type}</TableCell>
-                      <TableCell>{row.department_name}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {formatDate(row.created_at, language)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={ocr.className}>{ocr.label}</Badge>
-                      </TableCell>
-                      <TableCell>{formatBytes(row.file_size, language)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredRows.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={{
+                    id: doc.id,
+                    title: doc.title,
+                    document_type: doc.document_type,
+                    confidentiality_level: doc.confidentiality_level,
+                    created_at: doc.created_at,
+                    updated_at: doc.updated_at,
+                    tags: doc.tags,
+                    current_version: doc.current_version,
+                    file_size: doc.file_size,
+                    ocr_text: doc.ocr_text,
+                    department: doc.departments,
+                    profiles: null,
+                  }}
+                  isFavorite={isFavorite(doc.id)}
+                  onToggleFavorite={(id) => toggleFavorite(id)}
+                  isPinned={isPinnedDoc(doc.id)}
+                  isPinning={pinningIds.has(doc.id)}
+                  onTogglePin={
+                    !isClientAdmin && doc.confidentiality_level !== 'confidential'
+                      ? (d) =>
+                          togglePin({
+                            ...d,
+                            file_url: doc.file_url,
+                            file_size: doc.file_size,
+                            department: doc.departments,
+                          })
+                      : undefined
+                  }
+                  onView={handleView}
+                  onDownload={handleDownload}
+                  onEdit={
+                    canManageDocuments && !isSuperAdmin && !isClientSuspended
+                      ? (id) => navigate(`/documents/${id}/edit`)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
+
+      <ConfidentialDownloadModal
+        open={confidentialModalOpen}
+        onOpenChange={setConfidentialModalOpen}
+        onConfirm={handleConfidentialDownloadConfirm}
+        documentTitle={pendingDownloadDoc?.title || ''}
+      />
     </div>
   );
 }

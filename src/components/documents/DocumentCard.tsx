@@ -14,7 +14,9 @@ import {
   Search,
   FileSearch,
   Share2,
-  Star
+  Star,
+  Pin,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +45,7 @@ interface DocumentCardProps {
     updated_at: string;
     tags: string[];
     current_version: number;
+    file_size?: number | null;
     ocr_text?: string | null;
     department?: { name: string } | null;
     profiles?: { full_name: string } | null;
@@ -58,6 +61,9 @@ interface DocumentCardProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
+  isPinned?: boolean;
+  isPinning?: boolean;
+  onTogglePin?: (doc: any) => void;
 }
 
 const documentTypeIcons: Record<string, any> = {
@@ -91,6 +97,9 @@ export function DocumentCard({
   onEdit,
   onDelete,
   onRestore,
+  isPinned = false,
+  isPinning = false,
+  onTogglePin,
 }: DocumentCardProps) {
   const { t, language } = useLanguage();
   const { canManageDocuments } = useAuth();
@@ -189,6 +198,22 @@ export function DocumentCard({
                         title={isFavorite ? (language === 'fr' ? 'Retirer des favoris' : 'Remove from favorites') : (language === 'fr' ? 'Ajouter aux favoris' : 'Add to favorites')}
                       >
                         <Star className={cn("h-4 w-4", isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground")} />
+                      </Button>
+                    )}
+                    {onTogglePin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isPinning}
+                        onClick={(e) => { e.stopPropagation(); onTogglePin(document); }}
+                        title={isPinned ? (language === 'fr' ? 'Désépingler' : 'Unpin') : (language === 'fr' ? 'Épingler hors-ligne' : 'Pin offline')}
+                      >
+                        {isPinning ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Pin className={cn("h-4 w-4", isPinned ? "fill-primary text-primary" : "text-muted-foreground")} />
+                        )}
                       </Button>
                     )}
                     <Button

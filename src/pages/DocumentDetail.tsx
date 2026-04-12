@@ -23,7 +23,9 @@ import {
   Upload,
   XCircle,
   Send,
-  Star
+  Star,
+  Pin,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +54,7 @@ import { RequestUpdateButton } from '@/components/documents/RequestUpdateButton'
 import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
 import { setPageTitle } from '@/hooks/usePageTitle';
 import { useFavorites } from '@/hooks/useFavorites';
+import { usePinnedDocuments } from '@/hooks/usePinnedDocuments';
 import { toast } from 'sonner';
 
 interface DocumentDetail {
@@ -152,6 +155,7 @@ export default function DocumentDetailPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [showShareModal, setShowShareModal] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { togglePin, isPinned: isPinnedDoc, pinningIds } = usePinnedDocuments();
 
   useEffect(() => {
     if (isUltraAdmin) {
@@ -545,6 +549,40 @@ export default function DocumentDetailPage() {
                 <Download className="h-4 w-4 mr-1" />
                 {t('documents.download')}
               </Button>
+              {!isClientAdmin && document.confidentiality_level !== 'confidential' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pinningIds.has(document.id)}
+                  onClick={() =>
+                    togglePin({
+                      id: document.id,
+                      title: document.title,
+                      document_type: document.document_type,
+                      tags: document.tags || [],
+                      ocr_text: document.ocr_text,
+                      confidentiality_level: document.confidentiality_level,
+                      current_version: document.current_version,
+                      file_url: document.file_url,
+                      file_size: document.file_size,
+                      department: document.departments,
+                    })
+                  }
+                >
+                  {pinningIds.has(document.id) ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Pin className={cn('h-4 w-4 mr-1', isPinnedDoc(document.id) ? 'fill-primary text-primary' : '')} />
+                  )}
+                  {isPinnedDoc(document.id)
+                    ? language === 'fr'
+                      ? 'Épinglé hors-ligne'
+                      : 'Pinned offline'
+                    : language === 'fr'
+                      ? 'Épingler hors-ligne'
+                      : 'Pin offline'}
+                </Button>
+              )}
               {canManageDocuments && !isClientSuspended && (
                 <Button size="sm" variant="outline" onClick={() => navigate(`/documents/${id}/edit`)}>
                   <Edit className="h-4 w-4 mr-1" />

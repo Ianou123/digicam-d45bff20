@@ -87,6 +87,22 @@
     - Log version change in `activity_logs`.
   - UI shows current + previous versions with uploader name and notes.
 
+#### Offline Pin Feature — Rules & Policy (v1)
+
+- **Purpose**: Let an authenticated user keep a **local copy** of selected documents (file blob + metadata in **IndexedDB**) so they can open them when the browser is offline. This is **device- and profile-specific**, not a synced “Drive folder” across machines.
+- **Flow**: Pin uses the **`get-signed-url`** Edge Function to fetch the file, stores it in IndexedDB (`digicam-offline`), and optionally records a row in **`pinned_documents`** (Supabase, RLS: users manage only their own pins). The **`/offline`** page lists pins from IndexedDB; online opens the normal document route, offline opens the blob in a new tab.
+- **IT Admin (`client_admin`)**: **Cannot pin** documents for offline (all modules); `usePinnedDocuments` refuses `pinDocument` in addition to UI hiding on Documents, document detail, and My uploads. **Unpin** remains available so legacy or role-changed users can clear local copies.
+- **Confidentiality (`confidential`)**: **No pin control** in the UI (Documents, Document detail, My uploads). **`/offline`**: if a legacy confidential pin exists in IndexedDB, the entry may still appear, but **no unpin control** is shown (user cannot remove it through the app; clearing site data is the escape hatch).
+- **Audit**: Successful pin and unpin write **`activity_logs`** with **`pin_offline`** and **`unpin_offline`** respectively (same insert shape as other client-logged actions: `user_id`, `client_id`, `document_id`). The DB enum **`action_type`** includes these values (migration on deploy).
+- **Scope (v1 baseline)**: Device-local IndexedDB + optional `pinned_documents` row; no desktop folder sync. **v2** (below) adds hydration, staleness UI, size confirmation, and suggestions.
+
+#### Offline Pin — v2 enhancements
+
+- **Multi-device hydration**: When the user is logged in and the browser is **online**, `usePinnedDocuments` loads their **`pinned_documents`** rows and, for each `document_id` missing **complete** local metadata + blob in IndexedDB, silently re-fetches the file via **`get-signed-url`** + `fetch` and writes IndexedDB. **No toast** and **no extra `pin_offline`** log (the pin is already recorded server-side).
+- **Staleness**: IndexedDB metadata stores **`pinned_version`** (version at pin time). On **`/offline`** while online, the UI loads server **`current_version`** per pinned id; if server `current_version` is greater than local pinned baseline, an **amber** badge and **“Rafraîchir”** trigger a blob re-download and metadata update (no new `pin_offline`).
+- **Large-file confirm**: Before `GET`, size is taken from **`documents.file_size`** when present, else **`HEAD`** on the signed URL. Above **500KB**, a confirmation dialog (**`PinSizeConfirmProvider`**) asks before download; under 500KB pins immediately.
+- **Auto-suggest**: On **`/offline`**, when **online**, **not `client_admin`**, and the user has **at most two** pins, a dismissible card proposes top **view** counts from **`activity_logs`** (last 7 days), excluding already pinned and confidential docs. Dismiss stores **`offline_suggest_dismissed_at`** in **localStorage** and hides suggestions for **24 hours**.
+
 #### Search & Analytics
 - **Documents search** (`/documents`):
   - Server-side filter: `title` + `ocr_text` `ilike`, filters by department, year, type, confidentiality, status, owner, trash vs active.
@@ -159,25 +175,33 @@ The following hardening measures were implemented to reduce the trust placed in 
 - `pgcrypto` extension enabled.
 - `documents.ocr_text_encrypted BYTEA` column added alongside the existing `ocr_text` plaintext column.
 - A `BEFORE INSERT OR UPDATE` trigger encrypts `ocr_text` → `ocr_text_encrypted` using `pgp_sym_encrypt` with key `app.ocr_key` (a per-deployment Postgres setting).
-- The `ocr_text` plaintext column is **kept for backward compatibility** with Lovable-generated queries. A future migration can null-out plaintext once all deployments support key management.
+- The `ocr_text` plaintext column is **kept for backward compatibility** with Lovable-generated queries. A migration nulls plaintext rows where `ocr_text_encrypted` is already populated (deployments with `app.ocr_key` set continue to decrypt via the encrypted column path as implemented).
 
 **3. Rate limiting**
 - Implemented inside Edge Functions via in-memory per-user request counters (per Deno isolate). Sufficient for current scale; can be promoted to a Redis/DB-backed counter in the medium term.
+
+**4. Additional hardening (2026-04 security audit)**
+- **`delete-user` Edge Function**: `verify_jwt = true` in `supabase/config.toml` so the gateway verifies JWTs; the function still enforces super-admin business rules.
+- **`get-signed-url`**: `expiresIn` from the client body is **capped at 3600 seconds** server-side; signed-URL TTL is never extended beyond one hour regardless of client input. Soft-deleted documents are rejected using `deleted_at`.
+- **`documents` SELECT RLS**: Within an organisation, **`super_admin`** and **`client_admin`** may read all confidentiality levels; **`staff`** (and any non-admin org user) may read only `public` and **`internal`** rows — **`confidential`** is not visible via direct PostgREST `SELECT`, closing the gap where the UI alone hid those documents.
+- **Invite codes (`clients`)**: `invite_code_expires_at` (defaults to **7 days** after code generation / regeneration) and `invite_code_used_at` (**single-use** per code). `validate_invite_for_signup` (callable before `auth.signUp`) and the hardened `handle_new_user` trigger reject expired or consumed codes.
+- **Edge CORS**: `Access-Control-Allow-Origin` uses the **`DIGICAM_ALLOWED_ORIGIN`** environment variable when set, otherwise `*` for local development.
+- **Offline pin**: `pinDocumentOffline` **throws** if `confidentiality_level = 'confidential'` as a last-resort guard. `pin_offline` / `unpin_offline` activity rows store only identifiers and action type (no OCR or file payload).
 
 #### Medium-Term — Roadmap (Not Yet Implemented)
 
 The following measures are planned for government/on-prem deployments and should not break Lovable-based frontend development:
 
-**4. API Gateway for on-prem/local DC**
+**5. API Gateway for on-prem/local DC**
 - For clients deploying on their own infrastructure, a Kong or Nginx gateway is placed in front of Supabase.
 - The frontend only changes an env var (base URL); all Lovable-generated code continues to work.
 - The gateway enforces: mTLS between services, deep rate limiting, IP allowlisting for government networks.
 
-**5. mTLS for inter-service communication**
+**6. mTLS for inter-service communication**
 - For on-prem deployments: mutual TLS between the API Gateway, Supabase PostgREST, Storage, and any OCR worker.
 - Certificates managed per-deployment; no impact on frontend code.
 
-**6. End-to-end encryption for `confidential` documents**
+**7. End-to-end encryption for `confidential` documents**
 - For the highest-sensitivity documents: client-side encryption before upload; the decryption key is held only by the owning organisation.
 - Even DigiCam's service role cannot read the file content.
 - Reserved for `confidentiality_level = 'confidential'`; requires a key management UX to be designed.

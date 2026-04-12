@@ -17,6 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { downloadDocument } from '@/lib/storage';
+import { usePinnedDocuments } from '@/hooks/usePinnedDocuments';
 import { useFavorites } from '@/hooks/useFavorites';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ interface Document {
   tags: string[];
   current_version: number;
   file_url: string;
+  file_size: number | null;
   deleted_at: string | null;
   ocr_text: string | null;
   departments: { name: string } | null;
@@ -80,9 +82,10 @@ interface OwnerProfile {
 export default function Documents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin, isClientAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
+  const { pinnedIds, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -294,6 +297,7 @@ export default function Documents() {
           tags,
           current_version,
           file_url,
+          file_size,
           deleted_at,
           ocr_text,
           status,
@@ -859,6 +863,19 @@ export default function Documents() {
                 selected={selectedDocuments.has(doc.id)}
                 isFavorite={isFavorite(doc.id)}
                 onToggleFavorite={!showTrash ? toggleFavorite : undefined}
+                isPinned={isPinnedDoc(doc.id)}
+                isPinning={pinningIds.has(doc.id)}
+                onTogglePin={
+                  !showTrash && !isClientAdmin && doc.confidentiality_level !== 'confidential'
+                    ? (d: any) =>
+                        togglePin({
+                          ...d,
+                          file_url: doc.file_url,
+                          file_size: doc.file_size,
+                          department: doc.departments,
+                        })
+                    : undefined
+                }
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}
