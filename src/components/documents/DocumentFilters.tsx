@@ -1,4 +1,4 @@
-import { Search, Filter, X, Clock } from 'lucide-react';
+import { Search, Filter, X, Clock, Bell, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +9,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FilterState {
@@ -26,13 +31,15 @@ interface DocumentFiltersProps {
   departments: { id: string; name: string; archived_at?: string | null }[];
   searchHistory?: string[];
   onSearchHistoryClick?: (query: string) => void;
+  onWatchSearch?: () => void;
+  isWatchLoading?: boolean;
 }
 
 const documentTypes = ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => (currentYear - i).toString());
 
-export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick }: DocumentFiltersProps) {
+export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick, onWatchSearch, isWatchLoading }: DocumentFiltersProps) {
   const { t, language } = useLanguage();
 
   const updateFilter = (key: keyof FilterState, value: string) => {
@@ -51,18 +58,44 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
   };
 
   const activeFilterCount = Object.values(filters).filter(v => v && v !== '').length;
+  const hasActiveSearch = !!(filters.search || filters.department || filters.type || filters.year || filters.confidentiality);
 
   return (
     <div className="space-y-4">
       {/* Prominent Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          placeholder={t('documents.searchPlaceholder')}
-          value={filters.search}
-          onChange={(e) => updateFilter('search', e.target.value)}
-          className="pl-12 h-12 text-base border-2 focus:border-primary shadow-sm"
-        />
+      <div className="relative flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder={t('documents.searchPlaceholder')}
+            value={filters.search}
+            onChange={(e) => updateFilter('search', e.target.value)}
+            className="pl-12 h-12 text-base border-2 focus:border-primary shadow-sm"
+          />
+        </div>
+        {/* Watch search icon — only visible when a search query is active */}
+        {hasActiveSearch && onWatchSearch && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 flex-shrink-0"
+                onClick={onWatchSearch}
+                disabled={isWatchLoading}
+              >
+                {isWatchLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{language === 'fr' ? 'Surveiller cette recherche' : 'Watch this search'}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Search History */}
@@ -101,7 +134,6 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
           <SelectContent>
             <SelectItem value="all">{t('documents.allDepartments')}</SelectItem>
             <SelectItem value="general">{language === 'fr' ? 'Général' : 'General'}</SelectItem>
-            {/* Show all departments in filters (including archived) so users can filter existing docs */}
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>
                 {dept.name} {dept.archived_at ? '(archivé)' : ''}
@@ -158,8 +190,6 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
             <SelectItem value="confidential">{t('documents.confidential')}</SelectItem>
           </SelectContent>
         </Select>
-
-
 
         {activeFilterCount > 0 && (
           <Button
