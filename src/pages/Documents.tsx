@@ -863,7 +863,11 @@ export default function Documents() {
                 onToggleFavorite={!showTrash ? toggleFavorite : undefined}
                 isPinned={isPinnedDoc(doc.id)}
                 isPinning={pinningIds.has(doc.id)}
-                onTogglePin={!showTrash ? (d: any) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments }) : undefined}
+                onTogglePin={
+                  !showTrash && doc.confidentiality_level !== 'confidential'
+                    ? (d: any) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments })
+                    : undefined
+                }
                 onSelect={canManageDocuments && !isSuperAdmin && !isClientSuspended ? () => toggleDocumentSelection(doc.id) : undefined}
                 onView={handleView}
                 onDownload={handleDownload}

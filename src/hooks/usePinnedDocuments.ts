@@ -24,7 +24,7 @@ interface PinTarget {
 }
 
 export function usePinnedDocuments() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [pinningIds, setPinningIds] = useState<Set<string>>(new Set());
   const [pinnedDocs, setPinnedDocs] = useState<PinnedDocMeta[]>([]);
@@ -47,6 +47,7 @@ export function usePinnedDocuments() {
 
   const pinDocument = useCallback(async (doc: PinTarget) => {
     if (!user) return;
+    if (doc.confidentiality_level === 'confidential') return;
 
     setPinningIds(prev => new Set(prev).add(doc.id));
 
@@ -74,6 +75,15 @@ export function usePinnedDocuments() {
 
       await pinDocumentOffline(meta, blob);
 
+      if (profile?.client_id) {
+        await supabase.from('activity_logs').insert({
+          user_id: user.id,
+          client_id: profile.client_id,
+          action_type: 'pin_offline' as const,
+          document_id: doc.id,
+        });
+      }
+
       // 3. Sync to Supabase (non-blocking, silent fail)
       supabase
         .from('pinned_documents')
@@ -92,13 +102,22 @@ export function usePinnedDocuments() {
         return next;
       });
     }
-  }, [user, refreshPinnedDocs]);
+  }, [user, profile?.client_id, refreshPinnedDocs]);
 
-  const unpinDocument = useCallback(async (id: string) => {
-    if (!user) return;
+  const unpinDocument = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) return false;
 
     try {
       await unpinDocumentOffline(id);
+
+      if (profile?.client_id) {
+        await supabase.from('activity_logs').insert({
+          user_id: user.id,
+          client_id: profile.client_id,
+          action_type: 'unpin_offline' as const,
+          document_id: id,
+        });
+      }
 
       // Sync to Supabase (non-blocking)
       supabase
@@ -110,10 +129,12 @@ export function usePinnedDocuments() {
 
       await refreshPinnedDocs();
       toast.success('📌 Désépinglé');
+      return true;
     } catch {
       toast.error('Erreur');
+      return false;
     }
-  }, [user, refreshPinnedDocs]);
+  }, [user, profile?.client_id, refreshPinnedDocs]);
 
   const togglePin = useCallback(async (doc: PinTarget) => {
     const pinned = await isPinnedOffline(doc.id);

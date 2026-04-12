@@ -9,18 +9,16 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   getPinnedDocs,
   getPinnedBlob,
-  unpinDocumentOffline,
   searchPinned,
   type PinnedDocMeta,
 } from '@/lib/offlineStorage';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePinnedDocuments } from '@/hooks/usePinnedDocuments';
 import { toast } from 'sonner';
 
 export default function Offline() {
   const { language } = useLanguage();
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { unpinDocument } = usePinnedDocuments();
 
   const [docs, setDocs] = useState<PinnedDocMeta[]>([]);
   const [query, setQuery] = useState('');
@@ -62,12 +60,8 @@ export default function Offline() {
   };
 
   const handleUnpin = async (id: string) => {
-    await unpinDocumentOffline(id);
-    if (user) {
-      supabase.from('pinned_documents').delete().eq('user_id', user.id).eq('document_id', id).then(() => {});
-    }
-    setDocs(prev => prev.filter(d => d.id !== id));
-    toast.success('📌 Désépinglé');
+    const ok = await unpinDocument(id);
+    if (ok) setDocs(prev => prev.filter(d => d.id !== id));
   };
 
   if (loading) {
@@ -143,15 +137,17 @@ export default function Offline() {
                       ))}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={e => { e.stopPropagation(); handleUnpin(doc.id); }}
-                    title={language === 'fr' ? 'Désépingler' : 'Unpin'}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {doc.confidentiality_level !== 'confidential' && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={e => { e.stopPropagation(); handleUnpin(doc.id); }}
+                      title={language === 'fr' ? 'Désépingler' : 'Unpin'}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
