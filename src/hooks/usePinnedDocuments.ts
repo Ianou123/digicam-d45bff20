@@ -24,7 +24,7 @@ interface PinTarget {
 }
 
 export function usePinnedDocuments() {
-  const { user, profile } = useAuth();
+  const { user, profile, isClientAdmin } = useAuth();
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [pinningIds, setPinningIds] = useState<Set<string>>(new Set());
   const [pinnedDocs, setPinnedDocs] = useState<PinnedDocMeta[]>([]);
@@ -47,6 +47,8 @@ export function usePinnedDocuments() {
 
   const pinDocument = useCallback(async (doc: PinTarget) => {
     if (!user) return;
+    // IT Admin (client_admin): upload/ops role — offline pin not allowed
+    if (isClientAdmin) return;
     if (doc.confidentiality_level === 'confidential') return;
 
     setPinningIds(prev => new Set(prev).add(doc.id));
@@ -102,7 +104,7 @@ export function usePinnedDocuments() {
         return next;
       });
     }
-  }, [user, profile?.client_id, refreshPinnedDocs]);
+  }, [user, profile?.client_id, refreshPinnedDocs, isClientAdmin]);
 
   const unpinDocument = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;

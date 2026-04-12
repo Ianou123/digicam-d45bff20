@@ -549,7 +549,7 @@ export default function DocumentDetailPage() {
                 <Download className="h-4 w-4 mr-1" />
                 {t('documents.download')}
               </Button>
-              {document.confidentiality_level !== 'confidential' && (
+              {!isClientAdmin && document.confidentiality_level !== 'confidential' && (
                 <Button
                   size="sm"
                   variant="outline"

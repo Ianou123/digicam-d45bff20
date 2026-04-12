@@ -81,7 +81,7 @@ interface OwnerProfile {
 export default function Documents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin } = useAuth();
+  const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin, isClientAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const { pinnedIds, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
@@ -864,7 +864,7 @@ export default function Documents() {
                 isPinned={isPinnedDoc(doc.id)}
                 isPinning={pinningIds.has(doc.id)}
                 onTogglePin={
-                  !showTrash && doc.confidentiality_level !== 'confidential'
+                  !showTrash && !isClientAdmin && doc.confidentiality_level !== 'confidential'
                     ? (d: any) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments })
                     : undefined
                 }

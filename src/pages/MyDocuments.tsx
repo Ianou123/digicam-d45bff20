@@ -56,7 +56,7 @@ const getOcrMeta = (status: string | null, language: 'fr' | 'en') => {
 };
 
 export default function MyDocuments() {
-  const { user, profile, isUltraAdmin, isSuperAdmin, isClientSuspended, canManageDocuments } = useAuth();
+  const { user, profile, isUltraAdmin, isSuperAdmin, isClientAdmin, isClientSuspended, canManageDocuments } = useAuth();
   const { language, t } = useLanguage();
   const navigate = useNavigate();
   const { favoriteIds, toggleFavorite, isFavorite } = useFavorites();
@@ -345,7 +345,7 @@ export default function MyDocuments() {
                   isPinned={isPinnedDoc(doc.id)}
                   isPinning={pinningIds.has(doc.id)}
                   onTogglePin={
-                    doc.confidentiality_level !== 'confidential'
+                    !isClientAdmin && doc.confidentiality_level !== 'confidential'
                       ? (d) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments })
                       : undefined
                   }
