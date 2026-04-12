@@ -160,6 +160,7 @@ export default function Documents() {
     fetchDocuments();
     fetchDepartments();
     fetchSearchHistory();
+    fetchRecentlyViewed();
     if (isSuperAdmin) {
       fetchClients();
     }
@@ -187,6 +188,97 @@ export default function Documents() {
     };
     fetchFavDocs();
   }, [user, favoriteIds, isUltraAdmin]);
+
+  // Fetch recently viewed documents
+  const fetchRecentlyViewed = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('document_id')
+      .eq('user_id', user.id)
+      .eq('action_type', 'view')
+      .not('document_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (data) {
+      const uniqueIds = [...new Set(data.map(d => d.document_id).filter(Boolean))] as string[];
+      const topIds = uniqueIds.slice(0, 4);
+      if (topIds.length > 0) {
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('id, title, document_type')
+          .in('id', topIds)
+          .is('deleted_at', null);
+        setRecentlyViewed(docs || []);
+      }
+    }
+  };
+
+  // Compute department doc counts when documents change
+  useEffect(() => {
+    if (!profile?.client_id) return;
+    const fetchCounts = async () => {
+      // We'll compute from all docs (not filtered) — fetch counts per department
+      const { data } = await supabase
+        .from('documents')
+        .select('department_id')
+        .eq('client_id', profile.client_id)
+        .is('deleted_at', null);
+      if (data) {
+        const counts: Record<string, number> = { all: data.length };
+        data.forEach(d => {
+          const deptId = (d as any).department_id || 'general';
+          counts[deptId] = (counts[deptId] || 0) + 1;
+        });
+        setDeptDocCounts(counts);
+      }
+    };
+    fetchCounts();
+  }, [profile?.client_id]);
+
+  // Watch search handler (moved from WatchSearchButton)
+  const handleWatchSearch = useCallback(async () => {
+    if (!user || !profile?.client_id) return;
+    const hasActiveFilters = filters.search || filters.department || filters.type || filters.year || filters.confidentiality;
+    if (!hasActiveFilters) return;
+
+    setWatchLoading(true);
+    try {
+      const parts: string[] = [];
+      if (filters.search) parts.push(`"${filters.search}"`);
+      if (filters.type) parts.push(filters.type.toUpperCase());
+      if (filters.confidentiality) parts.push(filters.confidentiality);
+      if (filters.year) parts.push(filters.year);
+      const searchName = parts.join(' + ') || (language === 'fr' ? 'Recherche surveillée' : 'Watched Search');
+
+      const sanitizedFilters = {
+        ...filters,
+        search: filters.search.replace(/[%_\\]/g, '').trim().substring(0, 100),
+      };
+
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert([{
+          user_id: user.id,
+          client_id: profile.client_id,
+          name: searchName,
+          filters: sanitizedFilters as unknown as import('@/integrations/supabase/types').Json,
+          is_pinned: false,
+          is_watched: true,
+        }]);
+
+      if (error) throw error;
+      toast.success(
+        language === 'fr' ? `🔔 Surveillance activée : ${searchName}` : `🔔 Now watching: ${searchName}`,
+        { description: language === 'fr' ? 'Vous serez notifié quand un nouveau document correspond' : 'You\'ll be notified when a new document matches' }
+      );
+    } catch (error) {
+      console.error('Error creating watch:', error);
+      toast.error(language === 'fr' ? 'Erreur lors de l\'activation de la surveillance' : 'Error activating watch');
+    } finally {
+      setWatchLoading(false);
+    }
+  }, [user, profile?.client_id, filters, language]);
 
   const fetchClients = async () => {
     const { data } = await supabase
