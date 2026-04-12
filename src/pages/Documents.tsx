@@ -1,14 +1,12 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText, FolderOpen, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { DocumentFilters } from '@/components/documents/DocumentFilters';
 import { UploadModal } from '@/components/documents/UploadModal';
 import { EmptyState } from '@/components/documents/EmptyState';
 import { SearchResultCard } from '@/components/documents/SearchResultCard';
-import { WatchSearchButton } from '@/components/documents/WatchSearchButton';
-import { WatchedSearchesList } from '@/components/documents/WatchedSearchesList';
 import { ConfidentialDownloadModal } from '@/components/documents/ConfidentialDownloadModal';
 import { DocumentShareTab } from '@/components/documents/DocumentShareTab';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
