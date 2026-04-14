@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText, FolderOpen, Clock } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText, FolderOpen, Clock, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -713,8 +713,41 @@ export default function Documents() {
 
   const ownerDisplayName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '';
 
+  // Watched searches state
+  const [watchedSearches, setWatchedSearches] = useState<{ id: string; name: string; filters: FilterState; is_watched: boolean }[]>([]);
+
+  // Fetch watched searches
+  useEffect(() => {
+    const fetchWatched = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('saved_searches')
+        .select('id, name, filters, is_watched')
+        .eq('user_id', user.id)
+        .eq('is_watched', true)
+        .order('created_at', { ascending: false });
+      if (data) {
+        setWatchedSearches(data.map(s => ({
+          id: s.id,
+          name: s.name,
+          filters: s.filters as unknown as FilterState,
+          is_watched: s.is_watched ?? true,
+        })));
+      }
+    };
+    fetchWatched();
+  }, [user]);
+
+  const handleDeleteWatch = async (id: string) => {
+    const { error } = await supabase.from('saved_searches').delete().eq('id', id);
+    if (!error) {
+      setWatchedSearches(prev => prev.filter(s => s.id !== id));
+      toast.success(language === 'fr' ? 'Surveillance supprimée' : 'Watch removed');
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Owner Filter Chip */}
       {ownerIdParam && ownerProfile && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -736,13 +769,11 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Super Admin Warning - only shown to Super Admins viewing cross-org data, not regular admins */}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {loading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -756,7 +787,6 @@ export default function Documents() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Trash Toggle */}
           {canManageDocuments && !isSuperAdmin && (
             <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
               <TabsList>
@@ -768,27 +798,14 @@ export default function Documents() {
               </TabsList>
             </Tabs>
           )}
-
-
           <div className="flex items-center border border-border rounded-md">
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-9 w-9 rounded-r-none"
-              onClick={() => setViewMode('list')}
-            >
+            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode('list')}>
               <List className="h-4 w-4" />
             </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-9 w-9 rounded-l-none"
-              onClick={() => setViewMode('grid')}
-            >
+            <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-l-none" onClick={() => setViewMode('grid')}>
               <Grid className="h-4 w-4" />
             </Button>
           </div>
-          {/* Hide upload button for Super Admin and suspended clients */}
           {canManageDocuments && !isSuperAdmin && !isClientSuspended && !showTrash && (
             <Button onClick={() => setUploadModalOpen(true)} className="btn-institutional">
               <Plus className="h-4 w-4 mr-2" />
@@ -798,40 +815,43 @@ export default function Documents() {
         </div>
       </div>
 
-      {/* Bulk Action Bar */}
-      {selectedDocuments.size > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
-          <span className="text-sm text-muted-foreground">
-            {t('documents.selectedCount').replace('{count}', selectedDocuments.size.toString())}
+      {/* 1. Search Bar + Filters — AT THE TOP */}
+      <DocumentFilters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        departments={departments}
+        searchHistory={searchHistory}
+        onSearchHistoryClick={handleSearchHistoryClick}
+        onWatchSearch={handleWatchSearch}
+        isWatchLoading={watchLoading}
+      />
+
+      {/* Active watched searches — compact inline chips with ✕ to cancel */}
+      {watchedSearches.length > 0 && !showTrash && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+            <Bell className="h-3 w-3" />
+            {language === 'fr' ? 'Surveillées :' : 'Watching:'}
           </span>
-          <div className="flex-1" />
-          {!showTrash ? (
-            <>
-              <Button variant="outline" size="sm" onClick={handleBulkDownload}>
-                <Download className="h-4 w-4 mr-1" />
-                {t('documents.bulkDownload')}
+          {watchedSearches.map(ws => (
+            <Badge key={ws.id} variant="outline" className="gap-1 pr-1 text-xs">
+              <Bell className="h-3 w-3 text-amber-500" />
+              {ws.name}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 ml-0.5 hover:bg-destructive/10 rounded-full p-0"
+                onClick={() => handleDeleteWatch(ws.id)}
+                title={language === 'fr' ? 'Annuler la surveillance' : 'Cancel watch'}
+              >
+                <X className="h-3 w-3 text-destructive" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('trash')}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                {t('documents.moveToTrash')}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('restore')}>
-                <RotateCcw className="h-4 w-4 mr-1" />
-                {t('documents.restore')}
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => confirmBulkAction('delete')}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                {t('documents.deletePermanently')}
-              </Button>
-            </>
-          )}
+            </Badge>
+          ))}
         </div>
       )}
 
-      {/* Department Folder Chips */}
+      {/* 2. Department Folder Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
         <button
           onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
@@ -883,7 +903,7 @@ export default function Documents() {
         ))}
       </div>
 
-      {/* Recently Viewed Strip */}
+      {/* 3. Recently Viewed Strip */}
       {!filters.search && recentlyViewed.length > 0 && !showTrash && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
@@ -905,18 +925,7 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Filters */}
-      <DocumentFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        departments={departments}
-        searchHistory={searchHistory}
-        onSearchHistoryClick={handleSearchHistoryClick}
-        onWatchSearch={handleWatchSearch}
-        isWatchLoading={watchLoading}
-      />
-
-      {/* Top Favorites Section — compact row format */}
+      {/* 4. Compact Favorites */}
       {!showTrash && favoriteDocs.length > 0 && !filters.search && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -956,7 +965,6 @@ export default function Documents() {
           </div>
         </div>
       )}
-
       {/* Select All Header */}
       {documents.length > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
         <div className="flex items-center gap-2">
