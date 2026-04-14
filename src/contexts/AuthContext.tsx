@@ -227,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const redirectUrl = `${window.location.origin}/`;
 
     if (inviteCode?.trim()) {
-      const { error: inviteErr } = await supabase.rpc('validate_invite_for_signup', {
+      const { error: inviteErr } = await supabase.rpc('validate_invite_for_signup' as any, {
         _code: inviteCode.trim(),
       });
       if (inviteErr) {

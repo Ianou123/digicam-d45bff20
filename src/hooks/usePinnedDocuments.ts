@@ -198,8 +198,9 @@ export function usePinnedDocuments() {
         await supabase.from('activity_logs').insert({
           user_id: user.id,
           client_id: profile.client_id,
-          action_type: 'pin_offline' as const,
+          action_type: 'update' as const,
           document_id: doc.id,
+          metadata: { action: 'pin_offline' } as any,
         });
       }
 
@@ -310,8 +311,9 @@ export function usePinnedDocuments() {
           await supabase.from('activity_logs').insert({
             user_id: user.id,
             client_id: profile.client_id,
-            action_type: 'unpin_offline' as const,
+            action_type: 'update' as const,
             document_id: id,
+            metadata: { action: 'unpin_offline' } as any,
           });
         }
 
