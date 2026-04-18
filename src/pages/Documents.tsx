@@ -411,7 +411,7 @@ export default function Documents() {
       if (filters.department === 'general') {
         query = query.is('department_id', null);
       } else if (filters.department) {
-        query = query.or(`department_id.eq.${filters.department},department_id.is.null`);
+        query = query.eq('department_id', filters.department);
       }
       if (filters.type) {
         query = query.eq('document_type', filters.type as any);
