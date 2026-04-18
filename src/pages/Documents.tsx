@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, Star, FileText, FolderOpen, Clock, Bell } from 'lucide-react';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -219,7 +219,6 @@ export default function Documents() {
   useEffect(() => {
     if (!profile?.client_id) return;
     const fetchCounts = async () => {
-      // We'll compute from all docs (not filtered) — fetch counts per department
       const { data } = await supabase
         .from('documents')
         .select('department_id')
@@ -310,7 +309,6 @@ export default function Documents() {
   const logSearch = async (query: string, resultCount?: number) => {
     if (!user || !profile?.client_id || !query.trim()) return;
 
-    // Log to activity_logs for existing functionality
     await supabase.from('activity_logs').insert({
       user_id: user.id,
       client_id: profile.client_id,
@@ -318,7 +316,6 @@ export default function Documents() {
       search_query: query.trim(),
     });
 
-    // Log to search_logs for V2 analytics (write-only for now)
     await supabase.from('search_logs').insert({
       user_id: user.id,
       client_id: profile.client_id,
@@ -333,7 +330,6 @@ export default function Documents() {
   const logSearchResultClick = async (documentId: string) => {
     if (!user || !profile?.client_id || !filters.search.trim()) return;
 
-    // Log the click as a new search_logs entry with clicked_document_id
     await supabase.from('search_logs').insert({
       user_id: user.id,
       client_id: profile.client_id,
@@ -347,10 +343,8 @@ export default function Documents() {
     const previousSearch = filters.search;
     setFilters(newFilters);
 
-    // Defer search logging to after documents have loaded
     if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
       const timeoutId = setTimeout(() => {
-        // Note: result_count will be logged with a small delay after documents load
         logSearch(newFilters.search, documents.length);
       }, 1500);
       return () => clearTimeout(timeoutId);
@@ -400,29 +394,23 @@ export default function Documents() {
         `)
         .order('created_at', { ascending: false });
 
-      // Filter by trash status
       if (showTrash) {
         query = query.not('deleted_at', 'is', null);
       } else {
         query = query.is('deleted_at', null);
       }
 
-      // Apply client filter
       if (profile?.client_id) {
         query = query.eq('client_id', profile.client_id);
       }
 
-      // Apply owner filter if specified in URL
       if (ownerIdParam) {
         query = query.eq('uploaded_by', ownerIdParam);
       }
 
-      // Apply filters
       if (filters.department === 'general') {
-        // Show only "Général" documents (no department assigned = shared with all)
         query = query.is('department_id', null);
       } else if (filters.department) {
-        // When filtering by a specific department, also include "Général" docs (null department)
         query = query.or(`department_id.eq.${filters.department},department_id.is.null`);
       }
       if (filters.type) {
@@ -437,9 +425,6 @@ export default function Documents() {
         query = query.gte('created_at', startDate).lte('created_at', endDate);
       }
       if (filters.search) {
-        // Search in title and ocr_text using partial matching (ilike)
-        // Note: For tags, we search title/OCR. Tag search is best done with frontend filtering
-        // since PostgREST cs (contains) requires exact match
         query = query.or(`title.ilike.%${filters.search}%,ocr_text.ilike.%${filters.search}%`);
       }
       if (filters.status) {
@@ -450,19 +435,15 @@ export default function Documents() {
 
       if (error) throw error;
 
-      // Apply STRICT client-side validation for search results
-      // This ensures no false positives - search term MUST actually exist in the document
       let filteredData = (data || []) as unknown as Document[];
       if (filters.search && filters.search.trim().length >= 2) {
         const searchLower = filters.search.toLowerCase().trim();
         filteredData = filteredData.filter(doc => {
-          // Strictly validate that the search term exists in title, OCR, or tags
           const titleMatch = doc.title?.toLowerCase().includes(searchLower);
           const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
           const tagMatch = doc.tags?.some(tag =>
             tag.toLowerCase().includes(searchLower)
           );
-          // Document MUST have an actual match - no fuzzy false positives
           return titleMatch || ocrMatch || tagMatch;
         });
       }
@@ -492,14 +473,12 @@ export default function Documents() {
     const doc = documents.find(d => d.id === id);
     if (!doc) return;
 
-    // Check if document is confidential - trigger warning modal
     if (doc.confidentiality_level === 'confidential') {
       setPendingDownloadDoc(doc);
       setConfidentialModalOpen(true);
       return;
     }
 
-    // Execute download directly for non-confidential docs
     await executeDownload(doc);
   };
 
@@ -520,7 +499,6 @@ export default function Documents() {
       toast.error(t('common.error'));
     }
 
-    // Reset modal state
     setPendingDownloadDoc(null);
     setConfidentialModalOpen(false);
   };
@@ -815,6 +793,39 @@ export default function Documents() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedDocuments.size > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
+        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+          <span className="text-sm text-muted-foreground">
+            {t('documents.selectedCount').replace('{count}', selectedDocuments.size.toString())}
+          </span>
+          <div className="flex-1" />
+          {!showTrash ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleBulkDownload}>
+                <Download className="h-4 w-4 mr-1" />
+                {t('documents.bulkDownload')}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('trash')}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t('documents.moveToTrash')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => confirmBulkAction('restore')}>
+                <RotateCcw className="h-4 w-4 mr-1" />
+                {t('documents.restore')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => confirmBulkAction('delete')}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t('documents.deletePermanently')}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* 1. Search Bar + Filters — AT THE TOP */}
       <DocumentFilters
         filters={filters}
@@ -903,68 +914,18 @@ export default function Documents() {
         ))}
       </div>
 
-      {/* 3. Recently Viewed Strip */}
-      {!filters.search && recentlyViewed.length > 0 && !showTrash && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <Clock className="h-3 w-3" />
-            {language === 'fr' ? 'Récemment consultés' : 'Recently viewed'}
+      {!loading && (
+        <div className="flex items-center justify-between py-0.5">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">{documents.length}</span>{' '}
+            {language === 'fr'
+              ? `document${documents.length !== 1 ? 's' : ''}`
+              : `document${documents.length !== 1 ? 's' : ''}`}
+            {filters.search ? ` — "${filters.search}"` : ''}
           </p>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {recentlyViewed.map(doc => (
-              <button
-                key={doc.id}
-                onClick={() => navigate(`/documents/${doc.id}`)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card hover:bg-muted text-sm whitespace-nowrap transition-colors"
-              >
-                <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="truncate max-w-[160px]">{doc.title}</span>
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* 4. Compact Favorites */}
-      {!showTrash && favoriteDocs.length > 0 && !filters.search && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {language === 'fr' ? 'Mes Favoris Récents' : 'Recent Favorites'}
-            </p>
-            <Button
-              variant="link"
-              size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
-              onClick={() => navigate('/my-favorites')}
-            >
-              {language === 'fr' ? 'Gérer les favoris' : 'Manage favorites'}
-            </Button>
-          </div>
-          <div className="space-y-1">
-            {favoriteDocs.slice(0, 3).map((doc) => (
-              <div
-                key={doc.id}
-                className="cursor-pointer group flex items-center gap-3 px-3 py-2 rounded-lg border bg-card hover:bg-muted transition-colors"
-                onClick={() => navigate(`/documents/${doc.id}`)}
-              >
-                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">{doc.title}</span>
-                <span className="text-xs text-muted-foreground uppercase">{doc.document_type}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(doc.id); }}
-                >
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       {/* Select All Header */}
       {documents.length > 0 && canManageDocuments && !isSuperAdmin && !isClientSuspended && (
         <div className="flex items-center gap-2">
@@ -984,7 +945,6 @@ export default function Documents() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : documents.length > 0 ? (
-        /* Use SearchResultCard when there's an active search, otherwise DocumentCard */
         filters.search && filters.search.length >= 2 ? (
           <div className="space-y-3">
             {documents.map((doc) => {
@@ -1075,6 +1035,7 @@ export default function Documents() {
           />
         )
       ) : null}
+
       {/* Upload Modal - only for non-super admin */}
       {!isSuperAdmin && (
         <UploadModal
