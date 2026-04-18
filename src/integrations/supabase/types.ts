@@ -959,8 +959,6 @@ export type Database = {
         | "upload"
         | "update"
         | "delete"
-        | "pin_offline"
-        | "unpin_offline"
       app_role: "super_admin" | "client_admin" | "staff" | "ultra_admin"
       client_module: "core" | "admin_publique"
       confidentiality_level: "public" | "internal" | "confidential"
@@ -1101,16 +1099,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      action_type: [
-        "search",
-        "view",
-        "download",
-        "upload",
-        "update",
-        "delete",
-        "pin_offline",
-        "unpin_offline",
-      ],
+      action_type: ["search", "view", "download", "upload", "update", "delete"],
       app_role: ["super_admin", "client_admin", "staff", "ultra_admin"],
       client_module: ["core", "admin_publique"],
       confidentiality_level: ["public", "internal", "confidential"],

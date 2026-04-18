@@ -1,7 +1,7 @@
+import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
-  
   Upload, 
   Users, 
   Building2, 
@@ -31,9 +31,31 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface AppSidebarProps {
   onClose?: () => void;
+}
+
+function useCollapsibleState(key: string, defaultOpen: boolean): [boolean, (open: boolean) => void] {
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`sidebar-${key}`);
+      if (stored !== null) return stored === 'true';
+    } catch {}
+    return defaultOpen;
+  });
+
+  const setOpen = (open: boolean) => {
+    setIsOpen(open);
+    try { localStorage.setItem(`sidebar-${key}`, String(open)); } catch {}
+  };
+
+  return [isOpen, setOpen];
 }
 
 export function AppSidebar({ onClose }: AppSidebarProps) {
@@ -44,6 +66,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
 
   const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
+
+  const [accountOpen, setAccountOpen] = useCollapsibleState('account', false);
+  const [adminOpen, setAdminOpen] = useCollapsibleState('admin', true);
 
   const handleSignOut = async () => {
     await signOut();
@@ -73,8 +98,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     }
   };
 
-  const isStaffUser = !isUltraAdmin && !isSuperAdmin && !isClientAdmin;
-
   const NavItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
     const isActive = location.pathname === href;
     
@@ -93,12 +116,31 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     );
   };
 
-  const SectionLabel = ({ label }: { label: string }) => (
-    <div className="pt-4 pb-2">
-      <span className="px-3 text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
-        {label}
-      </span>
-    </div>
+  const CollapsibleSection = ({ 
+    label, 
+    isOpen, 
+    onOpenChange, 
+    children 
+  }: { 
+    label: string; 
+    isOpen: boolean; 
+    onOpenChange: (open: boolean) => void; 
+    children: React.ReactNode;
+  }) => (
+    <Collapsible open={isOpen} onOpenChange={onOpenChange}>
+      <CollapsibleTrigger className="w-full pt-4 pb-2 flex items-center justify-between px-3 group cursor-pointer hover:opacity-80 transition-opacity">
+        <span className="text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+          {label}
+        </span>
+        <ChevronDown className={cn(
+          "h-3.5 w-3.5 text-sidebar-foreground/40 transition-transform duration-200",
+          isOpen && "rotate-180"
+        )} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-up data-[state=open]:slide-down">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
   );
 
   const ModuleIcon = getModuleIcon();
@@ -119,14 +161,18 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           <NavItem href="/dashboard" icon={LayoutDashboard} label={language === 'fr' ? 'Tableau de Bord' : 'Dashboard'} />
           <NavItem href="/clients" icon={Building2} label={language === 'fr' ? 'Organisations' : 'Organizations'} />
           <NavItem href="/users" icon={Users} label={language === 'fr' ? 'Utilisateurs' : 'Users'} />
-          <SectionLabel label={language === 'fr' ? 'Supervision' : 'Supervision'} />
-          <NavItem href="/activity" icon={Activity} label={language === 'fr' ? 'Journal d\'Activité' : 'Activity Log'} />
-          <NavItem href="/analytics" icon={BarChart3} label={language === 'fr' ? 'Statistiques' : 'Statistics'} />
-          <SectionLabel label={language === 'fr' ? 'Mon Compte' : 'My Account'} />
-          <NavItem href="/my-authorization" icon={KeyRound} label={language === 'fr' ? 'Mon Habilitation' : 'My Authorization'} />
-          <NavItem href="/offline" icon={Pin} label={language === 'fr' ? 'Hors-ligne' : 'Offline'} />
-          <NavItem href="/settings" icon={Settings} label={language === 'fr' ? 'Paramètres' : 'Settings'} />
-          <NavItem href="/guide" icon={HelpCircle} label={language === 'fr' ? 'Guide' : 'Guide'} />
+
+          <CollapsibleSection label={language === 'fr' ? 'Supervision' : 'Supervision'} isOpen={adminOpen} onOpenChange={setAdminOpen}>
+            <NavItem href="/activity" icon={Activity} label={language === 'fr' ? 'Journal d\'Activité' : 'Activity Log'} />
+            <NavItem href="/analytics" icon={BarChart3} label={language === 'fr' ? 'Statistiques' : 'Statistics'} />
+          </CollapsibleSection>
+
+          <CollapsibleSection label={language === 'fr' ? 'Mon Compte' : 'My Account'} isOpen={accountOpen} onOpenChange={setAccountOpen}>
+            <NavItem href="/my-authorization" icon={KeyRound} label={language === 'fr' ? 'Mon Habilitation' : 'My Authorization'} />
+            <NavItem href="/offline" icon={Pin} label={language === 'fr' ? 'Hors-ligne' : 'Offline'} />
+            <NavItem href="/settings" icon={Settings} label={language === 'fr' ? 'Paramètres' : 'Settings'} />
+            <NavItem href="/guide" icon={HelpCircle} label={language === 'fr' ? 'Guide' : 'Guide'} />
+          </CollapsibleSection>
         </nav>
         {/* User Menu */}
         <div className="border-t border-sidebar-border p-4">
@@ -211,18 +257,18 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
         ))}
 
         {adminNavItems.some(item => item.show) && (
-          <>
-            <SectionLabel label="Administration" />
+          <CollapsibleSection label="Administration" isOpen={adminOpen} onOpenChange={setAdminOpen}>
             {adminNavItems.filter(item => item.show).map((item) => (
               <NavItem key={item.href} {...item} />
             ))}
-          </>
+          </CollapsibleSection>
         )}
 
-        <SectionLabel label={language === 'fr' ? 'Mon Compte' : 'My Account'} />
-        {accountNavItems.filter(item => item.show).map((item) => (
-          <NavItem key={item.href} {...item} />
-        ))}
+        <CollapsibleSection label={language === 'fr' ? 'Mon Compte' : 'My Account'} isOpen={accountOpen} onOpenChange={setAccountOpen}>
+          {accountNavItems.filter(item => item.show).map((item) => (
+            <NavItem key={item.href} {...item} />
+          ))}
+        </CollapsibleSection>
       </nav>
 
       <div className="border-t border-sidebar-border p-4">
