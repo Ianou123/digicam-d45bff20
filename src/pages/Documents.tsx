@@ -84,7 +84,7 @@ export default function Documents() {
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin, isClientAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
-  const { pinnedIds, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
+  const { pinnedIds, pinnedDocs, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -342,15 +342,29 @@ export default function Documents() {
     });
   };
 
+  // Debounced search history (1500ms after typing stops, also fired on Enter)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleFiltersChange = (newFilters: FilterState) => {
-    const previousSearch = filters.search;
     setFilters(newFilters);
 
-    if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
-      const timeoutId = setTimeout(() => {
-        logSearch(newFilters.search, documents.length);
-      }, 1500);
-      return () => clearTimeout(timeoutId);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (newFilters.search && newFilters.search.length >= 2) {
+      const q = newFilters.search.trim();
+      // Skip dedupe - already in history
+      if (!searchHistory.includes(q)) {
+        searchDebounceRef.current = setTimeout(() => {
+          logSearch(q, documents.length);
+        }, 1500);
+      }
+    }
+  };
+
+  const handleSearchEnter = (query: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const q = query.trim();
+    if (q.length >= 2 && !searchHistory.includes(q)) {
+      logSearch(q, documents.length);
     }
   };
 
