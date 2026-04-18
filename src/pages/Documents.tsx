@@ -237,7 +237,52 @@ export default function Documents() {
       }
     };
     fetchCounts();
-  }, [profile?.client_id]);
+  }, [profile?.client_id, documents.length]);
+
+  // Fetch shared-with-me count
+  useEffect(() => {
+    const fetchSharedCount = async () => {
+      if (!user) { setSharedCount(0); return; }
+      const { count } = await supabase
+        .from('shares')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_user_id', user.id);
+      setSharedCount(count || 0);
+    };
+    fetchSharedCount();
+  }, [user]);
+
+  // Sync filters to URL (department, search, type, etc.)
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    };
+    setOrDelete('search', filters.search);
+    setOrDelete('department', filters.department);
+    setOrDelete('type', filters.type);
+    setOrDelete('year', filters.year);
+    setOrDelete('confidentiality', filters.confidentiality);
+    setOrDelete('status', filters.status);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [filters]);
+
+  // Keyboard shortcut: "/" focuses search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== '/') return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Watch search handler (moved from WatchSearchButton)
   const handleWatchSearch = useCallback(async () => {
