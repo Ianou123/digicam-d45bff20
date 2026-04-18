@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useFavorites } from '@/hooks/useFavorites';
+import { usePinnedDocuments } from '@/hooks/usePinnedDocuments';
+import { Star } from 'lucide-react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -69,6 +73,32 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const [accountOpen, setAccountOpen] = useCollapsibleState('account', false);
   const [adminOpen, setAdminOpen] = useCollapsibleState('admin', true);
+  const [spacesOpen, setSpacesOpen] = useCollapsibleState('spaces', true);
+
+  const { favoriteCount } = useFavorites();
+  const { pinnedDocs } = usePinnedDocuments();
+  const [docsCount, setDocsCount] = useState<number>(0);
+  const [sharedCount, setSharedCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!profile?.client_id) return;
+      const { count: dCount } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', profile.client_id)
+        .is('deleted_at', null);
+      setDocsCount(dCount || 0);
+      if (profile.id) {
+        const { count: sCount } = await supabase
+          .from('shares')
+          .select('*', { count: 'exact', head: true })
+          .eq('recipient_user_id', profile.id);
+        setSharedCount(sCount || 0);
+      }
+    };
+    fetchCounts();
+  }, [profile?.client_id, profile?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,9 +128,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     }
   };
 
-  const NavItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
+  const NavItem = ({ href, icon: Icon, label, badge }: { href: string; icon: any; label: string; badge?: number | null }) => {
     const isActive = location.pathname === href;
-    
+
     return (
       <Link
         to={href}
@@ -111,7 +141,12 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
         )}
       >
         <Icon className="h-5 w-5 flex-shrink-0" />
-        <span className="truncate">{label}</span>
+        <span className="truncate flex-1">{label}</span>
+        {badge != null && badge > 0 && (
+          <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs flex items-center justify-center">
+            {badge}
+          </Badge>
+        )}
       </Link>
     );
   };
