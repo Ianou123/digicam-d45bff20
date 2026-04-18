@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { Search, X, Clock, SlidersHorizontal, Bell, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ interface DocumentFiltersProps {
   onSearchHistoryClick?: (query: string) => void;
   onWatchSearch?: () => void;
   isWatchLoading?: boolean;
+  onSearchEnter?: (query: string) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 const documentTypes = ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
@@ -54,7 +56,7 @@ const statusLabels: Record<string, { fr: string; en: string }> = {
   archived: { fr: 'Archivé', en: 'Archived' },
 };
 
-export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick, onWatchSearch, isWatchLoading }: DocumentFiltersProps) {
+export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick, onWatchSearch, isWatchLoading, onSearchEnter, searchInputRef }: DocumentFiltersProps) {
   const { t, language } = useLanguage();
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -95,12 +97,18 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
       {/* Search Bar + Watch Button + Filtres Button */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            ref={searchInputRef}
             placeholder={t('documents.searchPlaceholder')}
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-12 h-12 text-base border-2 focus:border-primary shadow-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && filters.search.trim()) {
+                onSearchEnter?.(filters.search.trim());
+              }
+            }}
+            className="pl-11 h-11 text-sm border-2 focus:border-primary shadow-sm"
           />
         </div>
 
@@ -108,16 +116,16 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="h-12 w-12 flex-shrink-0"
+                className="h-11 w-11 border-2 flex-shrink-0"
                 onClick={onWatchSearch}
                 disabled={isWatchLoading}
               >
                 {isWatchLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <Bell className="h-4 w-4 text-muted-foreground" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -129,7 +137,7 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
 
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="h-12 gap-2 px-4 border-2 flex-shrink-0">
+            <Button variant="outline" className="h-11 gap-2 px-4 border-2 flex-shrink-0">
               <SlidersHorizontal className="h-4 w-4" />
               <span>{language === 'fr' ? 'Filtres' : 'Filters'}</span>
               {activeFilterCount > 0 && (
