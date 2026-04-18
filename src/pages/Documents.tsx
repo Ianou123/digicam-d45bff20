@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell, Star, Pin, ArrowRight, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -100,6 +100,9 @@ export default function Documents() {
   const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; title: string; document_type: string }[]>([]);
   const [watchLoading, setWatchLoading] = useState(false);
   const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
+  const [sharedCount, setSharedCount] = useState(0);
+  const [sortBy, setSortBy] = useState<'date' | 'name_asc' | 'name_desc' | 'type' | 'size'>('date');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
