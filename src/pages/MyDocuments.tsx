@@ -336,6 +336,7 @@ export default function MyDocuments() {
                     updated_at: doc.updated_at,
                     tags: doc.tags,
                     current_version: doc.current_version,
+                    file_size: doc.file_size,
                     ocr_text: doc.ocr_text,
                     department: doc.departments,
                     profiles: null,
@@ -346,7 +347,13 @@ export default function MyDocuments() {
                   isPinning={pinningIds.has(doc.id)}
                   onTogglePin={
                     !isClientAdmin && doc.confidentiality_level !== 'confidential'
-                      ? (d) => togglePin({ ...d, file_url: doc.file_url, department: doc.departments })
+                      ? (d) =>
+                          togglePin({
+                            ...d,
+                            file_url: doc.file_url,
+                            file_size: doc.file_size,
+                            department: doc.departments,
+                          })
                       : undefined
                   }
                   onView={handleView}

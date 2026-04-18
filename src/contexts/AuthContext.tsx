@@ -226,6 +226,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string, inviteCode?: string) => {
     const redirectUrl = `${window.location.origin}/`;
 
+    if (inviteCode?.trim()) {
+      const { error: inviteErr } = await supabase.rpc('validate_invite_for_signup' as any, {
+        _code: inviteCode.trim(),
+      });
+      if (inviteErr) {
+        const msg = inviteErr.message || '';
+        let friendly = msg;
+        if (/expired/i.test(msg)) {
+          friendly = 'Ce code d’invitation a expiré. / This invite code has expired.';
+        } else if (/already used/i.test(msg)) {
+          friendly = 'Ce code d’invitation a déjà été utilisé. / This invite code has already been used.';
+        } else if (/Invalid invite/i.test(msg)) {
+          friendly = 'Code d’invitation invalide. / Invalid invite code.';
+        }
+        return { error: new Error(friendly) };
+      }
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,

@@ -158,7 +158,11 @@ export default function Clients() {
     try {
       const { error } = await supabase
         .from('clients')
-        .update({ invite_code: newCode })
+        .update({
+          invite_code: newCode,
+          invite_code_used_at: null,
+          invite_code_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
         .eq('id', clientId);
 
       if (error) throw error;
@@ -192,7 +196,14 @@ export default function Clients() {
       const inviteCode = generateInviteCode();
       const { error } = await supabase
         .from('clients')
-        .insert({ name: formName, slug: formSlug, invite_code: inviteCode, status: 'active' });
+        .insert({
+          name: formName,
+          slug: formSlug,
+          invite_code: inviteCode,
+          status: 'active',
+          invite_code_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          invite_code_used_at: null,
+        });
 
       if (error) throw error;
 

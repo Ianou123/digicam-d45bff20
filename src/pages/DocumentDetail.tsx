@@ -564,6 +564,7 @@ export default function DocumentDetailPage() {
                       confidentiality_level: document.confidentiality_level,
                       current_version: document.current_version,
                       file_url: document.file_url,
+                      file_size: document.file_size,
                       department: document.departments,
                     })
                   }

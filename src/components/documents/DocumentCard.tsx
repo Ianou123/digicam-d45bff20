@@ -45,6 +45,7 @@ interface DocumentCardProps {
     updated_at: string;
     tags: string[];
     current_version: number;
+    file_size?: number | null;
     ocr_text?: string | null;
     department?: { name: string } | null;
     profiles?: { full_name: string } | null;
