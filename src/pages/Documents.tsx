@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell, Star, Pin, ArrowRight, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -84,7 +84,7 @@ export default function Documents() {
   const { user, profile, canManageDocuments, isSuperAdmin, isClientSuspended, clientName, isUltraAdmin, isClientAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
-  const { pinnedIds, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
+  const { pinnedIds, pinnedDocs, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
@@ -100,6 +100,9 @@ export default function Documents() {
   const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; title: string; document_type: string }[]>([]);
   const [watchLoading, setWatchLoading] = useState(false);
   const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
+  const [sharedCount, setSharedCount] = useState(0);
+  const [sortBy, setSortBy] = useState<'date' | 'name_asc' | 'name_desc' | 'type' | 'size'>('date');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
@@ -234,7 +237,52 @@ export default function Documents() {
       }
     };
     fetchCounts();
-  }, [profile?.client_id]);
+  }, [profile?.client_id, documents.length]);
+
+  // Fetch shared-with-me count
+  useEffect(() => {
+    const fetchSharedCount = async () => {
+      if (!user) { setSharedCount(0); return; }
+      const { count } = await supabase
+        .from('shares')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_user_id', user.id);
+      setSharedCount(count || 0);
+    };
+    fetchSharedCount();
+  }, [user]);
+
+  // Sync filters to URL (department, search, type, etc.)
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const setOrDelete = (key: string, value: string) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    };
+    setOrDelete('search', filters.search);
+    setOrDelete('department', filters.department);
+    setOrDelete('type', filters.type);
+    setOrDelete('year', filters.year);
+    setOrDelete('confidentiality', filters.confidentiality);
+    setOrDelete('status', filters.status);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [filters]);
+
+  // Keyboard shortcut: "/" focuses search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== '/') return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Watch search handler (moved from WatchSearchButton)
   const handleWatchSearch = useCallback(async () => {
@@ -339,15 +387,29 @@ export default function Documents() {
     });
   };
 
+  // Debounced search history (1500ms after typing stops, also fired on Enter)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleFiltersChange = (newFilters: FilterState) => {
-    const previousSearch = filters.search;
     setFilters(newFilters);
 
-    if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
-      const timeoutId = setTimeout(() => {
-        logSearch(newFilters.search, documents.length);
-      }, 1500);
-      return () => clearTimeout(timeoutId);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (newFilters.search && newFilters.search.length >= 2) {
+      const q = newFilters.search.trim();
+      // Skip dedupe - already in history
+      if (!searchHistory.includes(q)) {
+        searchDebounceRef.current = setTimeout(() => {
+          logSearch(q, documents.length);
+        }, 1500);
+      }
+    }
+  };
+
+  const handleSearchEnter = (query: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const q = query.trim();
+    if (q.length >= 2 && !searchHistory.includes(q)) {
+      logSearch(q, documents.length);
     }
   };
 
@@ -411,7 +473,7 @@ export default function Documents() {
       if (filters.department === 'general') {
         query = query.is('department_id', null);
       } else if (filters.department) {
-        query = query.or(`department_id.eq.${filters.department},department_id.is.null`);
+        query = query.eq('department_id', filters.department);
       }
       if (filters.type) {
         query = query.eq('document_type', filters.type as any);
@@ -724,6 +786,27 @@ export default function Documents() {
     }
   };
 
+  // Sort documents client-side
+  const sortedDocuments = useMemo(() => {
+    const arr = [...documents];
+    switch (sortBy) {
+      case 'name_asc':
+        return arr.sort((a, b) => a.title.localeCompare(b.title));
+      case 'name_desc':
+        return arr.sort((a, b) => b.title.localeCompare(a.title));
+      case 'type':
+        return arr.sort((a, b) => a.document_type.localeCompare(b.document_type));
+      case 'size':
+        return arr.sort((a, b) => (b.file_size || 0) - (a.file_size || 0));
+      case 'date':
+      default:
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [documents, sortBy]);
+
+  const showQuickAccess = !filters.search && !showTrash && !ownerIdParam;
+  const offlineEnabled = !isClientAdmin;
+
   return (
     <div className="space-y-4">
       {/* Owner Filter Chip */}
@@ -751,18 +834,6 @@ export default function Documents() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
-          <p className="text-sm text-muted-foreground">
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {language === 'fr' ? 'Recherche en cours...' : 'Searching...'}
-              </span>
-            ) : (
-              <>
-                {documents.length} {language === 'fr' ? 'résultat' : 'result'}{documents.length !== 1 ? 's' : ''} {language === 'fr' ? 'trouvé' : 'found'}{documents.length !== 1 && language === 'fr' ? 's' : ''}
-              </>
-            )}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {canManageDocuments && !isSuperAdmin && (
@@ -776,6 +847,18 @@ export default function Documents() {
               </TabsList>
             </Tabs>
           )}
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-9 w-[160px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
+              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
+              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
+              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
+              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="flex items-center border border-border rounded-md">
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode('list')}>
               <List className="h-4 w-4" />
@@ -826,6 +909,59 @@ export default function Documents() {
         </div>
       )}
 
+      {/* Quick-access sections — ABOVE search bar, hidden when searching */}
+      {showQuickAccess && (favoriteDocs.length > 0 || sharedCount > 0 || (offlineEnabled && pinnedDocs.length > 0)) && (
+        <div className="space-y-1.5">
+          {favoriteDocs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground">
+                {language === 'fr' ? 'Favoris récents :' : 'Recent favorites:'}
+              </span>
+              {favoriteDocs.slice(0, 4).map((doc) => (
+                <button
+                  key={doc.id}
+                  onClick={() => handleView(doc.id)}
+                  className="text-xs px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 truncate max-w-[180px] transition-colors"
+                  title={doc.title}
+                >
+                  {doc.title}
+                </button>
+              ))}
+              <Link to="/my-favorites" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
+                {language === 'fr' ? 'Voir tous' : 'See all'} <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          )}
+          {sharedCount > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Share2 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                {sharedCount} {language === 'fr'
+                  ? `document${sharedCount !== 1 ? 's' : ''} partagé${sharedCount !== 1 ? 's' : ''} avec vous`
+                  : `document${sharedCount !== 1 ? 's' : ''} shared with you`}
+              </span>
+              <Link to="/shared-with-me" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
+                {language === 'fr' ? 'Voir' : 'View'} <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          )}
+          {offlineEnabled && pinnedDocs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Pin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                {pinnedDocs.length} {language === 'fr'
+                  ? `document${pinnedDocs.length !== 1 ? 's' : ''} disponible${pinnedDocs.length !== 1 ? 's' : ''} hors ligne`
+                  : `document${pinnedDocs.length !== 1 ? 's' : ''} available offline`}
+              </span>
+              <Link to="/offline" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
+                {language === 'fr' ? 'Voir' : 'View'} <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 1. Search Bar + Filters — AT THE TOP */}
       <DocumentFilters
         filters={filters}
@@ -835,6 +971,8 @@ export default function Documents() {
         onSearchHistoryClick={handleSearchHistoryClick}
         onWatchSearch={handleWatchSearch}
         isWatchLoading={watchLoading}
+        onSearchEnter={handleSearchEnter}
+        searchInputRef={searchInputRef}
       />
 
       {/* Active watched searches — compact inline chips with ✕ to cancel */}
@@ -862,56 +1000,60 @@ export default function Documents() {
         </div>
       )}
 
-      {/* 2. Department Folder Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            !filters.department
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Tous les documents' : 'All documents'}
-          {deptDocCounts.all != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
-          )}
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            filters.department === 'general'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Général' : 'General'}
-          {deptDocCounts.general != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
-          )}
-        </button>
-        {departments.filter(d => !d.archived_at).map(dept => (
+      {/* 2. Department Folder Chips with right-side fade */}
+      <div className="relative">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin pr-8">
           <button
-            key={dept.id}
-            onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+            onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-              filters.department === dept.id
+              !filters.department
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:bg-muted'
             )}
           >
             <FolderOpen className="h-3.5 w-3.5" />
-            {dept.name}
-            {deptDocCounts[dept.id] != null && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+            {language === 'fr' ? 'Tous les documents' : 'All documents'}
+            {deptDocCounts.all != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
             )}
           </button>
-        ))}
+          <button
+            onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+              filters.department === 'general'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card text-muted-foreground border-border hover:bg-muted'
+            )}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            {language === 'fr' ? 'Général' : 'General'}
+            {deptDocCounts.general != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
+            )}
+          </button>
+          {departments.filter(d => !d.archived_at).map(dept => (
+            <button
+              key={dept.id}
+              onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+                filters.department === dept.id
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+              )}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              {dept.name}
+              {deptDocCounts[dept.id] != null && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* Fade overlay hint */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent" />
       </div>
 
       {!loading && (
@@ -973,11 +1115,12 @@ export default function Documents() {
         ) : (
           <div className={viewMode === 'grid'
             ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
-            : 'space-y-3'
+            : 'space-y-2'
           }>
-            {documents.map((doc) => (
+            {sortedDocuments.map((doc) => (
               <DocumentCard
                 key={doc.id}
+                viewMode={viewMode}
                 document={{
                   ...doc,
                   department: doc.departments,
@@ -1017,15 +1160,22 @@ export default function Documents() {
         ) : ownerIdParam && ownerProfile ? (
           <EmptyState
             type="noResults"
-            searchQuery={language === 'fr'
-              ? `documents de ${ownerDisplayName}`
-              : `documents by ${ownerDisplayName}`}
+            searchQuery={language === 'fr' ? `documents de ${ownerDisplayName}` : `documents by ${ownerDisplayName}`}
           />
         ) : filters.search ? (
-          <EmptyState
-            type="noResults"
-            searchQuery={filters.search}
-          />
+          <EmptyState type="noResults" searchQuery={filters.search} />
+        ) : filters.department ? (
+          <div className="text-center py-12 border border-dashed border-border rounded-lg">
+            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              {language === 'fr' ? 'Aucun document dans ce département' : 'No documents in this department'}
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto text-sm">
+              {language === 'fr'
+                ? 'Sélectionnez un autre département ou téléversez un nouveau document.'
+                : 'Select another department or upload a new document.'}
+            </p>
+          </div>
         ) : (
           <EmptyState
             type="noDocuments"
