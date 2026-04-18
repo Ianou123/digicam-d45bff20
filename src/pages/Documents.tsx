@@ -786,6 +786,27 @@ export default function Documents() {
     }
   };
 
+  // Sort documents client-side
+  const sortedDocuments = useMemo(() => {
+    const arr = [...documents];
+    switch (sortBy) {
+      case 'name_asc':
+        return arr.sort((a, b) => a.title.localeCompare(b.title));
+      case 'name_desc':
+        return arr.sort((a, b) => b.title.localeCompare(a.title));
+      case 'type':
+        return arr.sort((a, b) => a.document_type.localeCompare(b.document_type));
+      case 'size':
+        return arr.sort((a, b) => (b.file_size || 0) - (a.file_size || 0));
+      case 'date':
+      default:
+        return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [documents, sortBy]);
+
+  const showQuickAccess = !filters.search && !showTrash && !ownerIdParam;
+  const offlineEnabled = !isClientAdmin;
+
   return (
     <div className="space-y-4">
       {/* Owner Filter Chip */}
