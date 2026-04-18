@@ -1115,11 +1115,12 @@ export default function Documents() {
         ) : (
           <div className={viewMode === 'grid'
             ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
-            : 'space-y-3'
+            : 'space-y-2'
           }>
-            {documents.map((doc) => (
+            {sortedDocuments.map((doc) => (
               <DocumentCard
                 key={doc.id}
+                viewMode={viewMode}
                 document={{
                   ...doc,
                   department: doc.departments,
@@ -1159,15 +1160,22 @@ export default function Documents() {
         ) : ownerIdParam && ownerProfile ? (
           <EmptyState
             type="noResults"
-            searchQuery={language === 'fr'
-              ? `documents de ${ownerDisplayName}`
-              : `documents by ${ownerDisplayName}`}
+            searchQuery={language === 'fr' ? `documents de ${ownerDisplayName}` : `documents by ${ownerDisplayName}`}
           />
         ) : filters.search ? (
-          <EmptyState
-            type="noResults"
-            searchQuery={filters.search}
-          />
+          <EmptyState type="noResults" searchQuery={filters.search} />
+        ) : filters.department ? (
+          <div className="text-center py-12 border border-dashed border-border rounded-lg">
+            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              {language === 'fr' ? 'Aucun document dans ce département' : 'No documents in this department'}
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto text-sm">
+              {language === 'fr'
+                ? 'Sélectionnez un autre département ou téléversez un nouveau document.'
+                : 'Select another department or upload a new document.'}
+            </p>
+          </div>
         ) : (
           <EmptyState
             type="noDocuments"
