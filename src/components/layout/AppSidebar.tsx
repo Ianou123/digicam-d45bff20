@@ -189,7 +189,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
               <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-serif text-xl font-semibold text-sidebar-foreground">DigiCam</span>
+            <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI<span className="block text-[10px] font-normal text-sidebar-foreground/60">by DigiCam</span></span>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
@@ -247,10 +247,15 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       ]
     : [
         { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
-        { href: '/documents', icon: FileText, label: language === 'fr' ? 'Documents' : 'Documents', show: true },
-        { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: true },
+        { href: '/documents', icon: FileText, label: language === 'fr' ? 'Documents' : 'Documents', show: true, badge: docsCount },
         { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
       ];
+
+  const spacesNavItems = [
+    { href: '/my-favorites', icon: Star, label: language === 'fr' ? 'Mes favoris' : 'My favorites', show: true, badge: favoriteCount },
+    { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: true, badge: sharedCount },
+    { href: '/offline', icon: Pin, label: language === 'fr' ? 'Hors ligne' : 'Offline', show: !isClientAdmin, badge: pinnedDocs.length },
+  ];
 
   const adminNavItems = [
     { href: '/users', icon: Users, label: t('nav.users'), show: isAdmin },
@@ -262,7 +267,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const accountNavItems = [
     { href: '/my-authorization', icon: KeyRound, label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization', show: true },
-    { href: '/offline', icon: Pin, label: language === 'fr' ? 'Hors-ligne' : 'Offline', show: true },
     { href: '/guide', icon: HelpCircle, label: language === 'fr' ? 'Aide' : 'Help', show: true },
   ];
 
@@ -273,7 +277,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-serif text-xl font-semibold text-sidebar-foreground">DigiCam</span>
+          <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI<span className="block text-[10px] font-normal text-sidebar-foreground/60">by DigiCam</span></span>
         </Link>
       </div>
 
@@ -290,6 +294,14 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
         {mainNavItems.filter(item => item.show).map((item) => (
           <NavItem key={item.href} {...item} />
         ))}
+
+        {!isRestrictedITAdmin && (
+          <CollapsibleSection label={language === 'fr' ? 'Mes espaces' : 'My spaces'} isOpen={spacesOpen} onOpenChange={setSpacesOpen}>
+            {spacesNavItems.filter(item => item.show).map((item) => (
+              <NavItem key={item.href} {...item} />
+            ))}
+          </CollapsibleSection>
+        )}
 
         {adminNavItems.some(item => item.show) && (
           <CollapsibleSection label="Administration" isOpen={adminOpen} onOpenChange={setAdminOpen}>
