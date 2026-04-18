@@ -1000,56 +1000,60 @@ export default function Documents() {
         </div>
       )}
 
-      {/* 2. Department Folder Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            !filters.department
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Tous les documents' : 'All documents'}
-          {deptDocCounts.all != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
-          )}
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            filters.department === 'general'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Général' : 'General'}
-          {deptDocCounts.general != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
-          )}
-        </button>
-        {departments.filter(d => !d.archived_at).map(dept => (
+      {/* 2. Department Folder Chips with right-side fade */}
+      <div className="relative">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin pr-8">
           <button
-            key={dept.id}
-            onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+            onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-              filters.department === dept.id
+              !filters.department
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:bg-muted'
             )}
           >
             <FolderOpen className="h-3.5 w-3.5" />
-            {dept.name}
-            {deptDocCounts[dept.id] != null && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+            {language === 'fr' ? 'Tous les documents' : 'All documents'}
+            {deptDocCounts.all != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
             )}
           </button>
-        ))}
+          <button
+            onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+              filters.department === 'general'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card text-muted-foreground border-border hover:bg-muted'
+            )}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            {language === 'fr' ? 'Général' : 'General'}
+            {deptDocCounts.general != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
+            )}
+          </button>
+          {departments.filter(d => !d.archived_at).map(dept => (
+            <button
+              key={dept.id}
+              onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+                filters.department === dept.id
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+              )}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              {dept.name}
+              {deptDocCounts[dept.id] != null && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* Fade overlay hint */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent" />
       </div>
 
       {!loading && (
