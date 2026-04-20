@@ -1088,12 +1088,24 @@ export default function Documents() {
       {!loading && (
         <div className="flex items-center justify-between py-0.5">
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{documents.length}</span>{' '}
+            <span className="font-semibold text-foreground">{sortedDocuments.length}</span>{' '}
             {language === 'fr'
-              ? `document${documents.length !== 1 ? 's' : ''}`
-              : `document${documents.length !== 1 ? 's' : ''}`}
+              ? `document${sortedDocuments.length !== 1 ? 's' : ''}`
+              : `document${sortedDocuments.length !== 1 ? 's' : ''}`}
             {filters.search ? ` — "${filters.search}"` : ''}
           </p>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-9 w-[150px] text-xs border-0 bg-transparent hover:bg-muted focus:ring-0 focus:ring-offset-0 gap-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
+              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
+              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
+              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
+              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
