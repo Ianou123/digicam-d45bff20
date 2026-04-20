@@ -1,69 +1,44 @@
+# Documents page tabs + branding cleanup
 
+## 1. Branding — "GEDAI" only
 
-# Offline Pin Feature for DigiCam
+**File:** `src/components/layout/AppSidebar.tsx` (lines 192 & 280)
+Replace the two-line "GEDAI / by DigiCam" label with a single clean **"GEDAI"** wordmark. Remove the "by DigiCam" subtitle entirely.
 
-## Overview
-Add an offline document pinning system using IndexedDB for local storage and a Supabase table for sync, plus an `/offline` page and connectivity banner.
+## 2. Top segmented tabs on /documents
 
-## 1. Database Migration
-- Create `pinned_documents` table (id, user_id, document_id, pinned_at) with unique constraint on (user_id, document_id)
-- RLS: users can only manage their own pins (ALL policy on `user_id = auth.uid()` for authenticated role)
+**File:** `src/pages/Documents.tsx`
 
-## 2. IndexedDB Helper (`src/lib/offlineStorage.ts`)
-- Pure browser IndexedDB wrapper (no library) with a `digicam-offline` database
-- Two object stores: `pinned-docs` (metadata: id, title, tags, ocr_text, document_type, pinned_at) and `pinned-blobs` (the actual file blobs keyed by document_id)
-- Functions: `pinDocument(doc, blob)`, `unpinDocument(id)`, `getPinnedDocs()`, `getPinnedBlob(id)`, `isPinned(id)`, `searchPinned(query)`
+Add a horizontal segmented tab row at the very top of the page (above the search bar, replacing the current page title area), styled like the screenshot:
 
-## 3. `usePinnedDocuments` Hook (`src/hooks/usePinnedDocuments.ts`)
-- Wraps IndexedDB calls + optional Supabase sync (silent fail)
-- `pinDocument(doc)`: calls `get-signed-url` edge function, fetches blob, stores in IndexedDB, inserts into `pinned_documents` table (non-blocking)
-- `unpinDocument(id)`: removes from IndexedDB + deletes from Supabase
-- `isPinned(id)`: checks IndexedDB
-- `pinnedDocs`: list from IndexedDB
-- Shows toast on pin/unpin
+```text
+[ Tous  124 ] [ Partagés 12 ] [ Favoris 8 ] [ Hors-ligne 7 ] 
+```
 
-## 4. Pin Button on DocumentCard
-- Add a 📌 icon button next to the existing ⭐ star button in `DocumentCard.tsx`
-- Props: `isPinned`, `onTogglePin`
-- Filled/colored when pinned, outline when not
-- Integration in `Documents.tsx`, `MyDocuments.tsx`, `DocumentDetail.tsx`
+- 5 main tabs on the left, one tab on the right (Corbeille, only if user can manage)
+- Each tab is a clickable button (NOT a router link — no navigation), it filters the current document list in-place via local state `activeTab: 'all' | 'shared' | 'favorites' | 'off-line'`
+- Active tab: burgundy underline + bold label, count badge in muted pill
+- Counts derived live from already-fetched data:
+  - `Tous` = total accessible docs
+  - `Hors ligne` = total pinned off line docs
+  - `Partagés` = shared-with-me count (reuse existing query/hook)
+  - `Favoris` = `favoriteIds.size` 
+- Filtering logic: apply tab filter to the documents array before department chips / search filters, so all combinations still work.
 
-## 5. Offline Page (`src/pages/Offline.tsx`)
-- Route: `/offline`, added to `App.tsx` inside AppLayout
-- Reads ONLY from IndexedDB (no Supabase)
-- Search bar filtering by title, ocr_text, tags (pure JS)
-- Cards with "📌 Disponible hors-ligne" badge
-- Click behavior: online → navigate to `/documents/:id`, offline → `URL.createObjectURL(blob)` in new tab
-- Unpin button on each card
+## 3. Move sort dropdown next to the document list
 
-## 6. Sidebar Entry
-- Add "Hors-ligne" / "Offline" nav item with Pin icon to all sidebar variants (ultra admin, standard, restricted IT admin)
-- Visible to all roles
+**File:** `src/pages/Documents.tsx`
 
-## 7. Offline Banner (`src/components/layout/OfflineBanner.tsx`)
-- Uses `navigator.onLine` + `online`/`offline` events
-- Sticky amber banner at top: "Vous êtes hors-ligne — Seuls vos documents épinglés sont accessibles"
-- Link to `/offline`
-- Rendered in `AppLayout.tsx` above the main content
+- Remove the "Date de création ↓" Select from the top-right header row.
+- Place it **inline on the same row as the "124 documents" counter**, right-aligned, immediately above the first document card. Compact `h-9` size, ghost-style trigger to feel lightweight.
 
-## 8. Route & Layout Updates
-- Add `/offline` route in `App.tsx`
-- Add `/offline` to `allowedRoutesForRestrictedITAdmin` in `AppLayout.tsx`
-- Add page title mapping
+## 4. Keep everything else intact
 
-## Files to Create
-- `supabase/migrations/..._pinned_documents.sql`
-- `src/lib/offlineStorage.ts`
-- `src/hooks/usePinnedDocuments.ts`
-- `src/pages/Offline.tsx`
-- `src/components/layout/OfflineBanner.tsx`
+- Department chips row stays where it is (below search + watched chips).
+- Search bar, filters button, watched searches, quick-access strips (Favoris récents / Partagés / Hors ligne) all unchanged.
+- No data fetching / hook / Supabase changes.
 
-## Files to Modify
-- `src/components/documents/DocumentCard.tsx` — add pin button
-- `src/pages/Documents.tsx` — integrate pin hook
-- `src/pages/MyDocuments.tsx` — integrate pin hook
-- `src/pages/DocumentDetail.tsx` — add pin button
-- `src/components/layout/AppSidebar.tsx` — add nav item
-- `src/components/layout/AppLayout.tsx` — add banner + allowed route
-- `src/App.tsx` — add route
+## Files to modify
 
+- `src/components/layout/AppSidebar.tsx` — branding text (2 spots)
+- `src/pages/Documents.tsx` — add tab bar, add `activeTab` state + filter, move sort Select inline above list, remove old header sort
