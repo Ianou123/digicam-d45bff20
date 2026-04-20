@@ -787,9 +787,25 @@ export default function Documents() {
     }
   };
 
+  // Tab-filtered documents (applied before sort)
+  const tabFilteredDocuments = useMemo(() => {
+    if (activeTab === 'favorites') {
+      return documents.filter(d => favoriteIds.has(d.id));
+    }
+    if (activeTab === 'offline') {
+      return documents.filter(d => pinnedIds.has(d.id));
+    }
+    if (activeTab === 'shared') {
+      // shared-with-me docs aren't in main list necessarily; filter by share recipient is server-side.
+      // As a lightweight client filter: show none here unless they're in documents (placeholder behavior).
+      return documents.filter(d => false);
+    }
+    return documents;
+  }, [documents, activeTab, favoriteIds, pinnedIds]);
+
   // Sort documents client-side
   const sortedDocuments = useMemo(() => {
-    const arr = [...documents];
+    const arr = [...tabFilteredDocuments];
     switch (sortBy) {
       case 'name_asc':
         return arr.sort((a, b) => a.title.localeCompare(b.title));
@@ -803,7 +819,7 @@ export default function Documents() {
       default:
         return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
-  }, [documents, sortBy]);
+  }, [tabFilteredDocuments, sortBy]);
 
   const showQuickAccess = !filters.search && !showTrash && !ownerIdParam;
   const offlineEnabled = !isClientAdmin;
