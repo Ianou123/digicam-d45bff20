@@ -1,7 +1,7 @@
-import { 
-  FileText, 
-  FileImage, 
-  FileSpreadsheet, 
+import {
+  FileText,
+  FileImage,
+  FileSpreadsheet,
   Presentation,
   Download,
   Eye,
@@ -64,6 +64,7 @@ interface DocumentCardProps {
   isPinned?: boolean;
   isPinning?: boolean;
   onTogglePin?: (doc: any) => void;
+  viewMode?: 'list' | 'grid';
 }
 
 const documentTypeIcons: Record<string, any> = {
@@ -100,10 +101,11 @@ export function DocumentCard({
   isPinned = false,
   isPinning = false,
   onTogglePin,
+  viewMode,
 }: DocumentCardProps) {
   const { t, language } = useLanguage();
   const { canManageDocuments } = useAuth();
-  
+
   const Icon = documentTypeIcons[document.document_type] || FileText;
   const dateLocale = language === 'fr' ? fr : enUS;
 
@@ -117,14 +119,17 @@ export function DocumentCard({
   };
 
   return (
-    <Card className={cn("document-card group", selected && "ring-2 ring-primary")}>
+    <Card
+      className={cn("document-card group cursor-pointer", selected && "ring-2 ring-primary")}
+      onClick={() => onView?.(document.id)}
+    >
       <CardContent className="p-0">
-        <div className="flex gap-4">
+        <div className="flex gap-3 px-4 py-3">
           {/* Selection Checkbox */}
           {onSelect && (
             <div className="flex-shrink-0 flex items-start pt-1">
-              <Checkbox 
-                checked={selected} 
+              <Checkbox
+                checked={selected}
                 onCheckedChange={onSelect}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -132,23 +137,27 @@ export function DocumentCard({
           )}
 
           {/* Icon */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-            <Icon className="h-6 w-6 text-muted-foreground" />
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+            <Icon className="h-5 w-5 text-muted-foreground" />
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-medium text-foreground truncate">
+                <h3 className="text-sm font-medium text-foreground truncate">
                   {document.title}
                 </h3>
                 <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                   <span className="uppercase text-xs font-medium">
                     {document.document_type}
                   </span>
-                  <span>•</span>
-                  <span>Version {document.current_version}</span>
+                  {viewMode !== 'list' && (
+                    <>
+                      <span>•</span>
+                      <span>Version {document.current_version}</span>
+                    </>
+                  )}
                   {document.department && (
                     <>
                       <span>•</span>
@@ -168,7 +177,7 @@ export function DocumentCard({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => onRestore(document.id)}
+                        onClick={(e) => { e.stopPropagation(); onRestore(document.id); }}
                         title={t('documents.restore')}
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -179,7 +188,7 @@ export function DocumentCard({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => onDelete(document.id)}
+                        onClick={(e) => { e.stopPropagation(); onDelete(document.id); }}
                         title={t('documents.deletePermanently')}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -220,7 +229,7 @@ export function DocumentCard({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onView?.(document.id)}
+                      onClick={(e) => { e.stopPropagation(); onView?.(document.id); }}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -239,14 +248,14 @@ export function DocumentCard({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onDownload?.(document.id)}
+                      onClick={(e) => { e.stopPropagation(); onDownload?.(document.id); }}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
                     {canManageDocuments && (onEdit || onDelete) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -258,7 +267,7 @@ export function DocumentCard({
                           )}
                           {onEdit && onDelete && <DropdownMenuSeparator />}
                           {onDelete && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => onDelete(document.id)}
                               className="text-destructive focus:text-destructive"
                             >
@@ -277,19 +286,19 @@ export function DocumentCard({
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {/* Search capability badge */}
               {document.ocr_text ? (
-                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30 h-5 py-0 px-1.5">
                   <FileSearch className="h-3 w-3 mr-1" />
                   {t('documents.fullTextSearchable')}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground h-5 py-0 px-1.5">
                   <Search className="h-3 w-3 mr-1" />
                   {t('documents.metadataOnly')}
                 </Badge>
               )}
-              <Badge 
-                variant="outline" 
-                className={cn('text-xs', confidentialityColors[document.confidentiality_level])}
+              <Badge
+                variant="outline"
+                className={cn('text-xs h-5 py-0 px-1.5', confidentialityColors[document.confidentiality_level])}
               >
                 <Shield className="h-3 w-3 mr-1" />
                 {formatConfidentiality(document.confidentiality_level)}

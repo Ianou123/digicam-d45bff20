@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Upload, 
-  Users, 
-  Building2, 
-  Settings, 
+import {
+  LayoutDashboard,
+  FileText,
+  Upload,
+  Users,
+  Building2,
+  Settings,
   Activity,
   BarChart3,
   LogOut,
@@ -16,12 +16,15 @@ import {
   HelpCircle,
   Lightbulb,
   Pin,
+  Star,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
+import { useFavorites } from '@/hooks/useFavorites';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,14 +64,38 @@ function useCollapsibleState(key: string, defaultOpen: boolean): [boolean, (open
 export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments } = useAuth();
+  const { profile, signOut, isUltraAdmin, isSuperAdmin, isClientAdmin, canManageDocuments, user } = useAuth();
   const { t, language } = useLanguage();
   const { module, moduleInfo, permissions, isRestrictedModule } = useModulePermissions();
+  const { favoriteCount } = useFavorites();
 
   const isRestrictedITAdmin = isClientAdmin && isRestrictedModule;
 
   const [accountOpen, setAccountOpen] = useCollapsibleState('account', false);
   const [adminOpen, setAdminOpen] = useCollapsibleState('admin', true);
+  const [espacesOpen, setEspacesOpen] = useCollapsibleState('espaces', true);
+
+  const [sharedCount, setSharedCount] = useState(0);
+  const [pinnedCount, setPinnedCount] = useState(0);
+
+  useEffect(() => {
+    if (!user || isUltraAdmin) return;
+    supabase
+      .from('shares')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_user_id', user.id)
+      .eq('share_type', 'internal')
+      .then(({ count }) => setSharedCount(count || 0));
+  }, [user?.id, isUltraAdmin]);
+
+  useEffect(() => {
+    if (!user || isUltraAdmin) return;
+    supabase
+      .from('pinned_documents')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => setPinnedCount(count || 0));
+  }, [user?.id, isUltraAdmin]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,33 +125,32 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     }
   };
 
-  const NavItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
+  const NavItem = ({ href, icon: Icon, label, count }: { href: string; icon: any; label: string; count?: number }) => {
     const isActive = location.pathname === href;
-    
     return (
       <Link
         to={href}
         onClick={handleNavClick}
-        className={cn(
-          'sidebar-item group',
-          isActive && 'sidebar-item-active'
-        )}
+        className={cn('sidebar-item group', isActive && 'sidebar-item-active')}
       >
         <Icon className="h-5 w-5 flex-shrink-0" />
-        <span className="truncate">{label}</span>
+        <span className="truncate flex-1">{label}</span>
+        {count != null && count > 0 && (
+          <Badge variant="secondary" className="h-5 px-1.5 text-xs ml-auto">{count}</Badge>
+        )}
       </Link>
     );
   };
 
-  const CollapsibleSection = ({ 
-    label, 
-    isOpen, 
-    onOpenChange, 
-    children 
-  }: { 
-    label: string; 
-    isOpen: boolean; 
-    onOpenChange: (open: boolean) => void; 
+  const CollapsibleSection = ({
+    label,
+    isOpen,
+    onOpenChange,
+    children
+  }: {
+    label: string;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
     children: React.ReactNode;
   }) => (
     <Collapsible open={isOpen} onOpenChange={onOpenChange}>
@@ -154,7 +180,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
               <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-serif text-xl font-semibold text-sidebar-foreground">DigiCam</span>
+            <span className="font-serif text-xl font-semibold text-sidebar-foreground">GEDAI by DigiCam</span>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
@@ -213,7 +239,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
     : [
         { href: '/dashboard', icon: LayoutDashboard, label: language === 'fr' ? 'Tableau de bord' : 'Dashboard', show: true },
         { href: '/documents', icon: FileText, label: language === 'fr' ? 'Documents' : 'Documents', show: true },
-        { href: '/shared-with-me', icon: Share2, label: language === 'fr' ? 'Partagés avec moi' : 'Shared with me', show: true },
         { href: '/upload', icon: Upload, label: t('nav.upload'), show: permissions.canUploadDocuments },
       ];
 
@@ -227,7 +252,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   const accountNavItems = [
     { href: '/my-authorization', icon: KeyRound, label: language === 'fr' ? 'Mon Habilitation' : 'My Authorization', show: true },
-    { href: '/offline', icon: Pin, label: language === 'fr' ? 'Hors-ligne' : 'Offline', show: true },
     { href: '/guide', icon: HelpCircle, label: language === 'fr' ? 'Aide' : 'Help', show: true },
   ];
 
@@ -238,7 +262,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-serif text-xl font-semibold text-sidebar-foreground">DigiCam</span>
+          <span className="font-serif text-xl font-semibold text-sidebar-foreground">GEDAI by DigiCam</span>
         </Link>
       </div>
 
@@ -255,6 +279,20 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
         {mainNavItems.filter(item => item.show).map((item) => (
           <NavItem key={item.href} {...item} />
         ))}
+
+        {!isRestrictedITAdmin && (
+          <CollapsibleSection label={language === 'fr' ? 'Mes espaces' : 'My spaces'} isOpen={espacesOpen} onOpenChange={setEspacesOpen}>
+            {permissions.canViewDocuments && (
+              <NavItem href="/my-favorites" icon={Star} label={language === 'fr' ? 'Mes favoris' : 'My favorites'} count={favoriteCount > 0 ? favoriteCount : undefined} />
+            )}
+            {permissions.canViewDocuments && (
+              <NavItem href="/shared-with-me" icon={Share2} label={language === 'fr' ? 'Partagés avec moi' : 'Shared with me'} count={sharedCount > 0 ? sharedCount : undefined} />
+            )}
+            {!isClientAdmin && (
+              <NavItem href="/offline" icon={Pin} label={language === 'fr' ? 'Hors-ligne' : 'Offline'} count={pinnedCount > 0 ? pinnedCount : undefined} />
+            )}
+          </CollapsibleSection>
+        )}
 
         {adminNavItems.some(item => item.show) && (
           <CollapsibleSection label="Administration" isOpen={adminOpen} onOpenChange={setAdminOpen}>

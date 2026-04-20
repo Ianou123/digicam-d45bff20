@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, X, Clock, SlidersHorizontal, Bell, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ interface DocumentFiltersProps {
   onSearchHistoryClick?: (query: string) => void;
   onWatchSearch?: () => void;
   isWatchLoading?: boolean;
+  searchRef?: React.RefObject<HTMLInputElement>;
+  onSearchEnter?: () => void;
 }
 
 const documentTypes = ['pdf', 'jpg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
@@ -54,7 +56,7 @@ const statusLabels: Record<string, { fr: string; en: string }> = {
   archived: { fr: 'Archivé', en: 'Archived' },
 };
 
-export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick, onWatchSearch, isWatchLoading }: DocumentFiltersProps) {
+export function DocumentFilters({ filters, onFiltersChange, departments, searchHistory = [], onSearchHistoryClick, onWatchSearch, isWatchLoading, searchRef, onSearchEnter }: DocumentFiltersProps) {
   const { t, language } = useLanguage();
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -97,9 +99,11 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder={t('documents.searchPlaceholder')}
+            ref={searchRef}
+            placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onSearchEnter?.(); }}
             className="pl-12 h-12 text-base border-2 focus:border-primary shadow-sm"
           />
         </div>
@@ -129,7 +133,7 @@ export function DocumentFilters({ filters, onFiltersChange, departments, searchH
 
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="h-12 gap-2 px-4 border-2 flex-shrink-0">
+            <Button variant="outline" className="h-11 gap-2 px-4 border-2 flex-shrink-0">
               <SlidersHorizontal className="h-4 w-4" />
               <span>{language === 'fr' ? 'Filtres' : 'Filters'}</span>
               {activeFilterCount > 0 && (

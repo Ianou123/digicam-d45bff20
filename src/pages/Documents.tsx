@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Plus, Grid, List, ShieldAlert, Trash2, RotateCcw, Download, Loader2, User, X, Share2, FolderOpen, Bell, FileText, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface Document {
+interface Doc {
   id: string;
   title: string;
   document_type: string;
@@ -78,6 +78,8 @@ interface OwnerProfile {
   email: string;
 }
 
+type SortBy = 'date_desc' | 'name_asc' | 'name_desc' | 'type' | 'size';
+
 export default function Documents() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,20 +88,25 @@ export default function Documents() {
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const { pinnedIds, pinningIds, togglePin, isPinned: isPinnedDoc } = usePinnedDocuments();
 
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchLogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [documents, setDocuments] = useState<Doc[]>([]);
   const [departments, setDepartments] = useState<{ id: string; name: string; archived_at: string | null }[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [sortBy, setSortBy] = useState<SortBy>('date_desc');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [favoriteDocs, setFavoriteDocs] = useState<any[]>([]);
+  const [favoriteDocs, setFavoriteDocs] = useState<{ id: string; title: string; document_type: string }[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; title: string; document_type: string }[]>([]);
   const [watchLoading, setWatchLoading] = useState(false);
   const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
+  const [sharedWithMeCount, setSharedWithMeCount] = useState(0);
 
   // Trash & Selection state
   const [showTrash, setShowTrash] = useState(false);
@@ -109,7 +116,7 @@ export default function Documents() {
 
   // Confidential download modal state
   const [confidentialModalOpen, setConfidentialModalOpen] = useState(false);
-  const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Document | null>(null);
+  const [pendingDownloadDoc, setPendingDownloadDoc] = useState<Doc | null>(null);
 
   // Share modal state
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -129,6 +136,22 @@ export default function Documents() {
     confidentiality: searchParams.get('confidentiality') || '',
     status: searchParams.get('status') || '',
   }));
+
+  // "/" keyboard shortcut: focus search bar when no input is focused
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '/' &&
+        (document.activeElement as HTMLElement)?.tagName !== 'INPUT' &&
+        (document.activeElement as HTMLElement)?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Fetch owner profile if filtering by owner
   useEffect(() => {
@@ -169,17 +192,17 @@ export default function Documents() {
 
   useEffect(() => {
     fetchDocuments();
-    setSelectedDocuments(new Set()); // Clear selection when view changes
+    setSelectedDocuments(new Set());
   }, [filters, selectedClientId, showTrash, ownerIdParam]);
 
-  // Fetch top 3 favorite documents
+  // Fetch top 4 favorite documents for quick-access section
   useEffect(() => {
     const fetchFavDocs = async () => {
       if (!user || isUltraAdmin || favoriteIds.size === 0) {
         setFavoriteDocs([]);
         return;
       }
-      const ids = Array.from(favoriteIds).slice(0, 3);
+      const ids = Array.from(favoriteIds).slice(0, 4);
       const { data } = await supabase
         .from('documents')
         .select('id, title, document_type')
@@ -189,6 +212,17 @@ export default function Documents() {
     };
     fetchFavDocs();
   }, [user, favoriteIds, isUltraAdmin]);
+
+  // Fetch shared-with-me count for quick-access section
+  useEffect(() => {
+    if (!user || isUltraAdmin || isClientAdmin) return;
+    supabase
+      .from('shares')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_user_id', user.id)
+      .eq('share_type', 'internal')
+      .then(({ count }) => setSharedWithMeCount(count || 0));
+  }, [user?.id, isUltraAdmin, isClientAdmin]);
 
   // Fetch recently viewed documents
   const fetchRecentlyViewed = async () => {
@@ -215,7 +249,7 @@ export default function Documents() {
     }
   };
 
-  // Compute department doc counts when documents change
+  // Compute department doc counts
   useEffect(() => {
     if (!profile?.client_id) return;
     const fetchCounts = async () => {
@@ -236,7 +270,7 @@ export default function Documents() {
     fetchCounts();
   }, [profile?.client_id]);
 
-  // Watch search handler (moved from WatchSearchButton)
+  // Watch search handler
   const handleWatchSearch = useCallback(async () => {
     if (!user || !profile?.client_id) return;
     const hasActiveFilters = filters.search || filters.department || filters.type || filters.year || filters.confidentiality;
@@ -269,12 +303,12 @@ export default function Documents() {
 
       if (error) throw error;
       toast.success(
-        language === 'fr' ? `🔔 Surveillance activée : ${searchName}` : `🔔 Now watching: ${searchName}`,
-        { description: language === 'fr' ? 'Vous serez notifié quand un nouveau document correspond' : 'You\'ll be notified when a new document matches' }
+        language === 'fr' ? `Surveillance activée : ${searchName}` : `Now watching: ${searchName}`,
+        { description: language === 'fr' ? 'Vous serez notifié quand un nouveau document correspond' : "You'll be notified when a new document matches" }
       );
     } catch (error) {
       console.error('Error creating watch:', error);
-      toast.error(language === 'fr' ? 'Erreur lors de l\'activation de la surveillance' : 'Error activating watch');
+      toast.error(language === 'fr' ? "Erreur lors de l'activation de la surveillance" : 'Error activating watch');
     } finally {
       setWatchLoading(false);
     }
@@ -339,15 +373,28 @@ export default function Documents() {
     });
   };
 
+  // BUG 2 fix: proper debounce with deduplication
   const handleFiltersChange = (newFilters: FilterState) => {
-    const previousSearch = filters.search;
     setFilters(newFilters);
 
-    if (newFilters.search && newFilters.search !== previousSearch && newFilters.search.length >= 2) {
-      const timeoutId = setTimeout(() => {
-        logSearch(newFilters.search, documents.length);
+    if (newFilters.search && newFilters.search.trim().length >= 2) {
+      if (searchLogTimerRef.current) clearTimeout(searchLogTimerRef.current);
+      searchLogTimerRef.current = setTimeout(() => {
+        const trimmed = newFilters.search.trim();
+        if (!searchHistory.includes(trimmed)) {
+          logSearch(trimmed, documents.length);
+        }
       }, 1500);
-      return () => clearTimeout(timeoutId);
+    }
+  };
+
+  // Called on Enter key in search input
+  const handleSearchEnter = () => {
+    const trimmed = filters.search.trim();
+    if (trimmed.length < 2) return;
+    if (searchLogTimerRef.current) clearTimeout(searchLogTimerRef.current);
+    if (!searchHistory.includes(trimmed)) {
+      logSearch(trimmed, documents.length);
     }
   };
 
@@ -408,11 +455,13 @@ export default function Documents() {
         query = query.eq('uploaded_by', ownerIdParam);
       }
 
+      // BUG 1 fix: specific dept → exact match only (no null dept included)
       if (filters.department === 'general') {
         query = query.is('department_id', null);
       } else if (filters.department) {
-        query = query.or(`department_id.eq.${filters.department},department_id.is.null`);
+        query = query.eq('department_id', filters.department);
       }
+
       if (filters.type) {
         query = query.eq('document_type', filters.type as any);
       }
@@ -435,15 +484,13 @@ export default function Documents() {
 
       if (error) throw error;
 
-      let filteredData = (data || []) as unknown as Document[];
+      let filteredData = (data || []) as unknown as Doc[];
       if (filters.search && filters.search.trim().length >= 2) {
         const searchLower = filters.search.toLowerCase().trim();
         filteredData = filteredData.filter(doc => {
           const titleMatch = doc.title?.toLowerCase().includes(searchLower);
           const ocrMatch = doc.ocr_text?.toLowerCase().includes(searchLower);
-          const tagMatch = doc.tags?.some(tag =>
-            tag.toLowerCase().includes(searchLower)
-          );
+          const tagMatch = doc.tags?.some(tag => tag.toLowerCase().includes(searchLower));
           return titleMatch || ocrMatch || tagMatch;
         });
       }
@@ -482,7 +529,7 @@ export default function Documents() {
     await executeDownload(doc);
   };
 
-  const executeDownload = async (doc: Document) => {
+  const executeDownload = async (doc: Doc) => {
     if (user && profile?.client_id) {
       await supabase.from('activity_logs').insert({
         user_id: user.id,
@@ -520,7 +567,6 @@ export default function Documents() {
     setShareModalOpen(true);
   };
 
-  // Soft delete - move to trash
   const handleMoveToTrash = async (ids: string[]) => {
     try {
       const { error } = await supabase
@@ -539,7 +585,6 @@ export default function Documents() {
     }
   };
 
-  // Restore from trash
   const handleRestore = async (ids: string[]) => {
     try {
       const { error } = await supabase
@@ -558,7 +603,6 @@ export default function Documents() {
     }
   };
 
-  // Permanent delete
   const handlePermanentDelete = async (ids: string[]) => {
     try {
       const { error } = await supabase
@@ -694,7 +738,6 @@ export default function Documents() {
   // Watched searches state
   const [watchedSearches, setWatchedSearches] = useState<{ id: string; name: string; filters: FilterState; is_watched: boolean }[]>([]);
 
-  // Fetch watched searches
   useEffect(() => {
     const fetchWatched = async () => {
       if (!user) return;
@@ -724,6 +767,36 @@ export default function Documents() {
     }
   };
 
+  // UX 11: client-side sorting
+  const sortedDocuments = useMemo(() => {
+    const docs = [...documents];
+    switch (sortBy) {
+      case 'name_asc':
+        return docs.sort((a, b) => a.title.localeCompare(b.title));
+      case 'name_desc':
+        return docs.sort((a, b) => b.title.localeCompare(a.title));
+      case 'type':
+        return docs.sort((a, b) => a.document_type.localeCompare(b.document_type));
+      case 'size':
+        return docs.sort((a, b) => (b.file_size || 0) - (a.file_size || 0));
+      case 'date_desc':
+      default:
+        return docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [documents, sortBy]);
+
+  // UX 6: helper to update dept filter + URL param
+  const setDeptFilter = (dept: string) => {
+    setFilters(prev => ({ ...prev, department: dept }));
+    const params = new URLSearchParams(searchParams);
+    if (dept) {
+      params.set('department', dept);
+    } else {
+      params.delete('department');
+    }
+    setSearchParams(params, { replace: true });
+  };
+
   return (
     <div className="space-y-4">
       {/* Owner Filter Chip */}
@@ -747,23 +820,9 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header — BUG 3: subtitle count removed */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
-          <p className="text-sm text-muted-foreground">
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {language === 'fr' ? 'Recherche en cours...' : 'Searching...'}
-              </span>
-            ) : (
-              <>
-                {documents.length} {language === 'fr' ? 'résultat' : 'result'}{documents.length !== 1 ? 's' : ''} {language === 'fr' ? 'trouvé' : 'found'}{documents.length !== 1 && language === 'fr' ? 's' : ''}
-              </>
-            )}
-          </p>
-        </div>
+        <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
         <div className="flex items-center gap-2">
           {canManageDocuments && !isSuperAdmin && (
             <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
@@ -776,6 +835,21 @@ export default function Documents() {
               </TabsList>
             </Tabs>
           )}
+
+          {/* UX 11: Sort Select */}
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+            <SelectTrigger className="h-9 w-40 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
+              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
+              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
+              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
+              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
+            </SelectContent>
+          </Select>
+
           <div className="flex items-center border border-border rounded-md">
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode('list')}>
               <List className="h-4 w-4" />
@@ -826,7 +900,62 @@ export default function Documents() {
         </div>
       )}
 
-      {/* 1. Search Bar + Filters — AT THE TOP */}
+      {/* UX 10: Quick-access sections — only when no search active */}
+      {!filters.search && !showTrash && (
+        <div className="flex flex-col gap-1.5">
+          {/* Favoris récents */}
+          {!isUltraAdmin && favoriteDocs.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-muted-foreground shrink-0">
+                {language === 'fr' ? 'Favoris :' : 'Favorites:'}
+              </span>
+              {favoriteDocs.map(doc => (
+                <button
+                  key={doc.id}
+                  onClick={() => navigate(`/documents/${doc.id}`)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-card text-xs font-medium hover:bg-muted transition-colors max-w-[180px]"
+                >
+                  <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate">{doc.title}</span>
+                </button>
+              ))}
+              <Link to="/my-favorites" className="text-xs text-primary hover:underline whitespace-nowrap">
+                {language === 'fr' ? 'Voir tous →' : 'See all →'}
+              </Link>
+            </div>
+          )}
+
+          {/* Partagés avec moi */}
+          {!isUltraAdmin && !isClientAdmin && sharedWithMeCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Share2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{sharedWithMeCount}</span>{' '}
+                {language === 'fr' ? `document${sharedWithMeCount !== 1 ? 's' : ''} partagé${sharedWithMeCount !== 1 ? 's' : ''} avec vous` : `document${sharedWithMeCount !== 1 ? 's' : ''} shared with you`}
+              </span>
+              <Link to="/shared-with-me" className="text-xs text-primary hover:underline whitespace-nowrap">
+                {language === 'fr' ? 'Voir →' : 'View →'}
+              </Link>
+            </div>
+          )}
+
+          {/* Hors ligne */}
+          {!isUltraAdmin && !isClientAdmin && pinnedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <WifiOff className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{pinnedIds.size}</span>{' '}
+                {language === 'fr' ? `document${pinnedIds.size !== 1 ? 's' : ''} disponible${pinnedIds.size !== 1 ? 's' : ''} hors ligne` : `document${pinnedIds.size !== 1 ? 's' : ''} available offline`}
+              </span>
+              <Link to="/offline" className="text-xs text-primary hover:underline whitespace-nowrap">
+                {language === 'fr' ? 'Voir →' : 'View →'}
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search Bar + Filters */}
       <DocumentFilters
         filters={filters}
         onFiltersChange={handleFiltersChange}
@@ -835,9 +964,11 @@ export default function Documents() {
         onSearchHistoryClick={handleSearchHistoryClick}
         onWatchSearch={handleWatchSearch}
         isWatchLoading={watchLoading}
+        searchRef={searchRef}
+        onSearchEnter={handleSearchEnter}
       />
 
-      {/* Active watched searches — compact inline chips with ✕ to cancel */}
+      {/* Active watched searches */}
       {watchedSearches.length > 0 && !showTrash && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -862,56 +993,61 @@ export default function Documents() {
         </div>
       )}
 
-      {/* 2. Department Folder Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: '' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            !filters.department
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Tous les documents' : 'All documents'}
-          {deptDocCounts.all != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
-          )}
-        </button>
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, department: 'general' }))}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-            filters.department === 'general'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-          )}
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          {language === 'fr' ? 'Général' : 'General'}
-          {deptDocCounts.general != null && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
-          )}
-        </button>
-        {departments.filter(d => !d.archived_at).map(dept => (
+      {/* UX 5: Department Folder Chips with scroll fade */}
+      <div className="relative">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          {/* UX 6: each click updates URL */}
           <button
-            key={dept.id}
-            onClick={() => setFilters(prev => ({ ...prev, department: dept.id }))}
+            onClick={() => setDeptFilter('')}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
-              filters.department === dept.id
+              !filters.department
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:bg-muted'
             )}
           >
             <FolderOpen className="h-3.5 w-3.5" />
-            {dept.name}
-            {deptDocCounts[dept.id] != null && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+            {language === 'fr' ? 'Tous les documents' : 'All documents'}
+            {deptDocCounts.all != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.all}</Badge>
             )}
           </button>
-        ))}
+          <button
+            onClick={() => setDeptFilter('general')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+              filters.department === 'general'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card text-muted-foreground border-border hover:bg-muted'
+            )}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            {language === 'fr' ? 'Général' : 'General'}
+            {deptDocCounts.general != null && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts.general}</Badge>
+            )}
+          </button>
+          {departments.filter(d => !d.archived_at).map(dept => (
+            <button
+              key={dept.id}
+              onClick={() => setDeptFilter(dept.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors',
+                filters.department === dept.id
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+              )}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              {dept.name}
+              {deptDocCounts[dept.id] != null && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{deptDocCounts[dept.id]}</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* UX 5: right-side fade hint for horizontal scroll */}
+        <div className="absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
       </div>
 
       {!loading && (
@@ -947,7 +1083,7 @@ export default function Documents() {
       ) : documents.length > 0 ? (
         filters.search && filters.search.length >= 2 ? (
           <div className="space-y-3">
-            {documents.map((doc) => {
+            {sortedDocuments.map((doc) => {
               const matchedInContent = doc.ocr_text
                 ? doc.ocr_text.toLowerCase().includes(filters.search.toLowerCase())
                 : false;
@@ -973,11 +1109,12 @@ export default function Documents() {
         ) : (
           <div className={viewMode === 'grid'
             ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
-            : 'space-y-3'
+            : 'space-y-2'
           }>
-            {documents.map((doc) => (
+            {sortedDocuments.map((doc) => (
               <DocumentCard
                 key={doc.id}
+                viewMode={viewMode}
                 document={{
                   ...doc,
                   department: doc.departments,
@@ -1026,6 +1163,19 @@ export default function Documents() {
             type="noResults"
             searchQuery={filters.search}
           />
+        ) : filters.department ? (
+          // UX 7: dept-specific empty state
+          <div className="text-center py-12 border border-dashed border-border rounded-lg">
+            <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              {language === 'fr' ? 'Aucun document dans ce département' : 'No documents in this department'}
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              {language === 'fr'
+                ? 'Ce département ne contient pas encore de document accessible.'
+                : 'This department does not have any accessible documents yet.'}
+            </p>
+          </div>
         ) : (
           <EmptyState
             type="noDocuments"
@@ -1036,7 +1186,7 @@ export default function Documents() {
         )
       ) : null}
 
-      {/* Upload Modal - only for non-super admin */}
+      {/* Upload Modal */}
       {!isSuperAdmin && (
         <UploadModal
           open={uploadModalOpen}
