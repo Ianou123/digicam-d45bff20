@@ -189,7 +189,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
               <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI<span className="block text-[10px] font-normal text-sidebar-foreground/60">by DigiCam</span></span>
+            <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI</span>
           </Link>
         </div>
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
@@ -277,7 +277,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI<span className="block text-[10px] font-normal text-sidebar-foreground/60">by DigiCam</span></span>
+          <span className="font-serif text-lg font-semibold text-sidebar-foreground leading-tight">GEDAI</span>
         </Link>
       </div>
 

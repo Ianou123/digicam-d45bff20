@@ -102,6 +102,7 @@ export default function Documents() {
   const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
   const [sharedCount, setSharedCount] = useState(0);
   const [sortBy, setSortBy] = useState<'date' | 'name_asc' | 'name_desc' | 'type' | 'size'>('date');
+  const [activeTab, setActiveTab] = useState<'all' | 'shared' | 'favorites' | 'offline'>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Trash & Selection state
@@ -786,9 +787,25 @@ export default function Documents() {
     }
   };
 
+  // Tab-filtered documents (applied before sort)
+  const tabFilteredDocuments = useMemo(() => {
+    if (activeTab === 'favorites') {
+      return documents.filter(d => favoriteIds.has(d.id));
+    }
+    if (activeTab === 'offline') {
+      return documents.filter(d => pinnedIds.has(d.id));
+    }
+    if (activeTab === 'shared') {
+      // shared-with-me docs aren't in main list necessarily; filter by share recipient is server-side.
+      // As a lightweight client filter: show none here unless they're in documents (placeholder behavior).
+      return documents.filter(d => false);
+    }
+    return documents;
+  }, [documents, activeTab, favoriteIds, pinnedIds]);
+
   // Sort documents client-side
   const sortedDocuments = useMemo(() => {
-    const arr = [...documents];
+    const arr = [...tabFilteredDocuments];
     switch (sortBy) {
       case 'name_asc':
         return arr.sort((a, b) => a.title.localeCompare(b.title));
@@ -802,7 +819,7 @@ export default function Documents() {
       default:
         return arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
-  }, [documents, sortBy]);
+  }, [tabFilteredDocuments, sortBy]);
 
   const showQuickAccess = !filters.search && !showTrash && !ownerIdParam;
   const offlineEnabled = !isClientAdmin;
@@ -830,35 +847,47 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
+      {/* Top Segmented Tabs */}
+      <div className="flex items-center justify-between border-b border-border">
+        <div className="flex items-center gap-1">
+          {([
+            { key: 'all', label: language === 'fr' ? 'Tous' : 'All', count: documents.length },
+            { key: 'shared', label: language === 'fr' ? 'Partagés' : 'Shared', count: sharedCount },
+            { key: 'favorites', label: language === 'fr' ? 'Favoris' : 'Favorites', count: favoriteIds.size },
+            { key: 'offline', label: language === 'fr' ? 'Hors-ligne' : 'Offline', count: pinnedDocs.length },
+          ] as const).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 -mb-px transition-colors',
+                  isActive
+                    ? 'border-primary text-foreground font-semibold'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab.label}
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs font-normal">
+                  {tab.count}
+                </Badge>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pb-2">
           {canManageDocuments && !isSuperAdmin && (
             <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
-              <TabsList>
-                <TabsTrigger value="active">{t('documents.activeDocuments')}</TabsTrigger>
-                <TabsTrigger value="trash" className="flex items-center gap-1">
+              <TabsList className="h-9">
+                <TabsTrigger value="active" className="text-xs">{t('documents.activeDocuments')}</TabsTrigger>
+                <TabsTrigger value="trash" className="text-xs flex items-center gap-1">
                   <Trash2 className="h-3 w-3" />
                   {t('documents.trash')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           )}
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="h-9 w-[160px] text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
-              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
-              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
-              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
-              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
-            </SelectContent>
-          </Select>
           <div className="flex items-center border border-border rounded-md">
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode('list')}>
               <List className="h-4 w-4" />
@@ -1059,12 +1088,24 @@ export default function Documents() {
       {!loading && (
         <div className="flex items-center justify-between py-0.5">
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{documents.length}</span>{' '}
+            <span className="font-semibold text-foreground">{sortedDocuments.length}</span>{' '}
             {language === 'fr'
-              ? `document${documents.length !== 1 ? 's' : ''}`
-              : `document${documents.length !== 1 ? 's' : ''}`}
+              ? `document${sortedDocuments.length !== 1 ? 's' : ''}`
+              : `document${sortedDocuments.length !== 1 ? 's' : ''}`}
             {filters.search ? ` — "${filters.search}"` : ''}
           </p>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-9 w-[150px] text-xs border-0 bg-transparent hover:bg-muted focus:ring-0 focus:ring-offset-0 gap-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
+              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
+              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
+              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
+              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
