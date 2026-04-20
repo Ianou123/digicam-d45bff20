@@ -847,35 +847,47 @@ export default function Documents() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-serif font-semibold">{t('nav.documents')}</h2>
+      {/* Top Segmented Tabs */}
+      <div className="flex items-center justify-between border-b border-border">
+        <div className="flex items-center gap-1">
+          {([
+            { key: 'all', label: language === 'fr' ? 'Tous' : 'All', count: documents.length },
+            { key: 'shared', label: language === 'fr' ? 'Partagés' : 'Shared', count: sharedCount },
+            { key: 'favorites', label: language === 'fr' ? 'Favoris' : 'Favorites', count: favoriteIds.size },
+            { key: 'offline', label: language === 'fr' ? 'Hors-ligne' : 'Offline', count: pinnedDocs.length },
+          ] as const).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 -mb-px transition-colors',
+                  isActive
+                    ? 'border-primary text-foreground font-semibold'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab.label}
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs font-normal">
+                  {tab.count}
+                </Badge>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pb-2">
           {canManageDocuments && !isSuperAdmin && (
             <Tabs value={showTrash ? 'trash' : 'active'} onValueChange={(v) => setShowTrash(v === 'trash')}>
-              <TabsList>
-                <TabsTrigger value="active">{t('documents.activeDocuments')}</TabsTrigger>
-                <TabsTrigger value="trash" className="flex items-center gap-1">
+              <TabsList className="h-9">
+                <TabsTrigger value="active" className="text-xs">{t('documents.activeDocuments')}</TabsTrigger>
+                <TabsTrigger value="trash" className="text-xs flex items-center gap-1">
                   <Trash2 className="h-3 w-3" />
                   {t('documents.trash')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           )}
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="h-9 w-[160px] text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">{language === 'fr' ? 'Date récente' : 'Recent date'}</SelectItem>
-              <SelectItem value="name_asc">{language === 'fr' ? 'Nom A→Z' : 'Name A→Z'}</SelectItem>
-              <SelectItem value="name_desc">{language === 'fr' ? 'Nom Z→A' : 'Name Z→A'}</SelectItem>
-              <SelectItem value="type">{language === 'fr' ? 'Type' : 'Type'}</SelectItem>
-              <SelectItem value="size">{language === 'fr' ? 'Taille' : 'Size'}</SelectItem>
-            </SelectContent>
-          </Select>
           <div className="flex items-center border border-border rounded-md">
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode('list')}>
               <List className="h-4 w-4" />
