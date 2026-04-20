@@ -102,6 +102,7 @@ export default function Documents() {
   const [deptDocCounts, setDeptDocCounts] = useState<Record<string, number>>({});
   const [sharedCount, setSharedCount] = useState(0);
   const [sortBy, setSortBy] = useState<'date' | 'name_asc' | 'name_desc' | 'type' | 'size'>('date');
+  const [activeTab, setActiveTab] = useState<'all' | 'shared' | 'favorites' | 'offline'>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Trash & Selection state
