@@ -939,55 +939,27 @@ export default function Documents() {
       )}
 
       {/* Quick-access sections — ABOVE search bar, hidden when searching */}
-      {showQuickAccess && (favoriteDocs.length > 0 || sharedCount > 0 || (offlineEnabled && pinnedDocs.length > 0)) && (
+      {showQuickAccess && favoriteDocs.length > 0 && (
         <div className="space-y-1.5">
-          {favoriteDocs.length > 0 && (
-            <div className="flex items-center gap-2 text-sm flex-wrap">
-              <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0" />
-              <span className="text-xs font-medium text-muted-foreground">
-                {language === 'fr' ? 'Favoris récents :' : 'Recent favorites:'}
-              </span>
-              {favoriteDocs.slice(0, 4).map((doc) => (
-                <button
-                  key={doc.id}
-                  onClick={() => handleView(doc.id)}
-                  className="text-xs px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 truncate max-w-[180px] transition-colors"
-                  title={doc.title}
-                >
-                  {doc.title}
-                </button>
-              ))}
-              <Link to="/my-favorites" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
-                {language === 'fr' ? 'Voir tous' : 'See all'} <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )}
-          {sharedCount > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Share2 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-              <span className="text-xs text-muted-foreground">
-                {sharedCount} {language === 'fr'
-                  ? `document${sharedCount !== 1 ? 's' : ''} partagé${sharedCount !== 1 ? 's' : ''} avec vous`
-                  : `document${sharedCount !== 1 ? 's' : ''} shared with you`}
-              </span>
-              <Link to="/shared-with-me" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
-                {language === 'fr' ? 'Voir' : 'View'} <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )}
-          {offlineEnabled && pinnedDocs.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Pin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-              <span className="text-xs text-muted-foreground">
-                {pinnedDocs.length} {language === 'fr'
-                  ? `document${pinnedDocs.length !== 1 ? 's' : ''} disponible${pinnedDocs.length !== 1 ? 's' : ''} hors ligne`
-                  : `document${pinnedDocs.length !== 1 ? 's' : ''} available offline`}
-              </span>
-              <Link to="/offline" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
-                {language === 'fr' ? 'Voir' : 'View'} <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <Star className="h-3.5 w-3.5 text-yellow-500 flex-shrink-0" />
+            <span className="text-xs font-medium text-muted-foreground">
+              {language === 'fr' ? 'Favoris récents :' : 'Recent favorites:'}
+            </span>
+            {favoriteDocs.slice(0, 4).map((doc) => (
+              <button
+                key={doc.id}
+                onClick={() => handleView(doc.id)}
+                className="text-xs px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 truncate max-w-[180px] transition-colors"
+                title={doc.title}
+              >
+                {doc.title}
+              </button>
+            ))}
+            <Link to="/my-favorites" className="text-xs text-primary hover:underline ml-auto flex items-center gap-0.5">
+              {language === 'fr' ? 'Voir tous' : 'See all'} <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
       )}
 
